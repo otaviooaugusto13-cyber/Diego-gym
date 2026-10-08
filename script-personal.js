@@ -196,10 +196,6 @@ function confirmarCadastroAluno() {
 }
 
 // ==========================================
-// CHAT COM ALUNOS
-// ==========================================
-
-// ==========================================
 // FUNÇÕES DE PERFIL, TEMA E NAVEGAÇÃO
 // ==========================================
 
@@ -367,6 +363,7 @@ function switchTabPersonal(tabId, navElement) {
     const painel = document.getElementById('painel-notificacoes');
     if (painel) painel.hidden = true;
 }
+
 // ==========================================
 // UTILITÁRIOS
 // ==========================================
@@ -381,7 +378,6 @@ function dataHoje() {
 
 // ==========================================
 // PERSISTÊNCIA (LocalStorage com versionamento)
-// Trocar por backend: basta reimplementar salvarEstado/carregarEstado com fetch().
 // ==========================================
 
 const STORAGE_KEY = 'tapago_personal_state_v1';
@@ -389,7 +385,7 @@ let agendaPadrao = null;
 let historicoAgenda = [];
 
 function salvarEstado() {
-    const { cpf, ...perfilSemCpf } = dadosPerfil; // CPF não é guardado aqui
+    const { cpf, ...perfilSemCpf } = dadosPerfil;
     const estado = {
         versao: 1,
         data: dataHoje(),
@@ -404,7 +400,6 @@ function salvarEstado() {
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(estado));
     } catch (e) {
-        // Foto em base64 pode estourar a cota: tenta de novo sem ela
         try {
             estado.dadosPerfil.fotoUrl = null;
             localStorage.setItem(STORAGE_KEY, JSON.stringify(estado));
@@ -434,7 +429,6 @@ function carregarEstado() {
         if (s.radarRaioKm) radarRaioKm = s.radarRaioKm;
         historicoAgenda = Array.isArray(s.historicoAgenda) ? s.historicoAgenda : [];
 
-        // Virou o dia? Arquiva a agenda anterior e começa uma nova.
         if (Array.isArray(s.agendaDeHoje)) {
             if (s.data && s.data !== dataHoje()) {
                 historicoAgenda.push({ data: s.data, agenda: s.agendaDeHoje });
@@ -830,16 +824,11 @@ function simularMensagemAluno() {
 }
 
 function iniciarNotificacoes() {
-    timers.push(setTimeout(simularNovoAgendamento, 8000));
-    timers.push(setTimeout(simularMensagemAluno, 15000));
-    timers.push(setInterval(simularNovoAgendamento, 70000));
-    timers.push(setInterval(simularMensagemAluno, 45000));
-    atualizarSino();
-    atualizarBadgeChat();
-    atualizarBadgeAgenda();
+    timers.push(setInterval(simularNovoAgendamento, 45000));
+    timers.push(setInterval(simularMensagemAluno, 60000));
 }
 
 function pararTimers() {
-    timers.forEach(t => { clearInterval(t); clearTimeout(t); });
+    timers.forEach(t => clearInterval(t));
     timers = [];
 }
