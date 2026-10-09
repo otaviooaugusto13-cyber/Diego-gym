@@ -19,142 +19,215 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+// Seu CPF de Administrador (Acesso liberado e salvo direto no Firestore)
+const ADMIN_CPF = "11122233344";
+
 // ==========================================
-// ESTADO DO PERFIL E DADOS REAIS
+// ESTADO DO PERFIL, MENSAGENS E TARIFAS
 // ==========================================
+
 let dadosPerfil = {
     nome: "Professor",
     cref: "",
     cpf: "",
     bio: "",
     fotoUrl: null,
-    tarifas: { normal: 60, surge: 85, discount: 45 }
+    tarifas: {
+        normal: 60,
+        surge: 85,
+        discount: 45
+    }
 };
 
-let agendaDeHoje = [];
-const ADMIN_CPF = "11122233344"; // Altere aqui se preferir outro CPF para o seu Admin
+const bancoAlunosCadastrados = [
+    { cpf: "12345678901", nome: "Lucas Silveira", objetivo: "Condicionamento Físico" },
+    { cpf: "98765432100", nome: "Fernanda Lima", objetivo: "Emagrecimento" }
+];
+
+let conversaAtiva = null;
 
 // ==========================================
-// VALIDAÇÃO DE ACESSO COM O BANCO DE DADOS
+// INICIALIZAÇÃO E LOGIN
 // ==========================================
+
+window.addEventListener('DOMContentLoaded', () => {
+    const savedProfile = localStorage.getItem('tapago_personal_user');
+    if (savedProfile) {
+        const parsed = JSON.parse(savedProfile);
+        document.getElementById('input-nome').value = parsed.nome || '';
+        document.getElementById('input-cpf').value = parsed.cpf || '';
+        document.getElementById('input-cref').value = parsed.cref || '';
+        document.getElementById('check-remember').checked = true;
+    }
+});
+
 async function validarProfissional() {
     const nome = document.getElementById('input-nome').value.trim();
     const cpf = document.getElementById('input-cpf').value.replace(/\D/g, '');
     const cref = document.getElementById('input-cref').value.trim();
-    const loader = document.getElementById('login-loader');
-    const btnLogin = document.getElementById('btn-login');
+    const lembreme = document.getElementById('check-remember').checked;
 
-    if (!nome || !cpf || !cref) {
+    if (nome === "" || cpf === "" || cref === "") {
         alert("Preencha todos os campos obrigatórios.");
         return;
     }
 
-    loader.style.display = 'block';
-    btnLogin.style.display = 'none';
+    document.getElementById('login-loader').style.display = 'block';
+    document.getElementById('btn-login').style.display = 'none';
 
     try {
-        // Se for o Admin, libera direto e registra o perfil no Firestore
+        const regexCref = /\d+-G\/[A-Z]{2}/i; 
+        
+        if (cpf.length < 11) {
+            alert("Erro: CPF inválido.");
+            document.getElementById('login-loader').style.display = 'none';
+            document.getElementById('btn-login').style.display = 'block';
+            return;
+        } else if (!regexCref.test(cref)) {
+            alert("Erro: CREF formato incorreto. Ex: 123456-G/SP");
+            document.getElementById('login-loader').style.display = 'none';
+            document.getElementById('btn-login').style.display = 'block';
+            return;
+        }
+
+        // Validação com o Firebase Firestore
         if (cpf === ADMIN_CPF) {
             dadosPerfil.nome = nome;
             dadosPerfil.cpf = cpf;
             dadosPerfil.cref = cref;
-            
+
             await setDoc(doc(db, "profissionais", cpf), {
                 nome, cpf, cref, ativo: true, atualizadoEm: new Date()
             });
 
-            loader.style.display = 'none';
-            btnLogin.style.display = 'block';
-            entrarNoPainel();
-            return;
-        }
-
-        // Validação buscando no Firestore por profissionais cadastrados
-        const q = query(collection(db, "profissionais"), where("cpf", "==", cpf), where("cref", "==", cref));
-        const querySnapshot = await getDocs(q);
-
-        loader.style.display = 'none';
-        btnLogin.style.display = 'block';
-
-        if (!querySnapshot.empty) {
-            const profData = querySnapshot.docs[0].data();
-            dadosPerfil.nome = profData.nome;
-            dadosPerfil.cpf = profData.cpf;
-            dadosPerfil.cref = profData.cref;
-            entrarNoPainel();
+            finalizarLogin(lembreme, nome, cpf, cref);
         } else {
-            alert("❌ Acesso Negado: CPF ou CREF não encontrados na base de dados real do TAPAGO.");
+            const q = query(collection(db, "profissionais"), where("cpf", "==", cpf), where("cref", "==", cref));
+            const querySnapshot = await getDocs(q);
+
+            if (!querySnapshot.empty) {
+                const profData = querySnapshot.docs[0].data();
+                dadosPerfil.nome = profData.nome;
+                dadosPerfil.cpf = profData.cpf;
+                dadosPerfil.cref = profData.cref;
+                finalizarLogin(lembreme, profData.nome, cpf, cref);
+            } else {
+                document.getElementById('login-loader').style.display = 'none';
+                document.getElementById('btn-login').style.display = 'block';
+                alert("❌ Acesso Negado: CPF ou CREF não encontrados na base de dados real do Firebase.");
+            }
         }
     } catch (error) {
-        console.error("Erro ao validar no Firebase:", error);
-        loader.style.display = 'none';
-        btnLogin.style.display = 'block';
+        console.error("Erro na validação com Firebase:", error);
+        document.getElementById('login-loader').style.display = 'none';
+        document.getElementById('btn-login').style.display = 'block';
         alert("Erro de conexão com o banco de dados. Verifique o console.");
     }
 }
 
-function entrarNoPainel() {
-    document.getElementById('nome-exibicao').innerText = dadosPerfil.nome;
-    document.getElementById('perfil-nome-display').innerText = dadosPerfil.nome;
-    document.getElementById('perfil-cref-display').innerText = `CREF: ${dadosPerfil.cref}`;
-    
+function finalizarLogin(lembreme, nome, cpf, cref) {
+    document.getElementById('login-loader').style.display = 'none';
+    document.getElementById('btn-login').style.display = 'block';
+
+    if (lembreme) {
+        localStorage.setItem('tapago_personal_user', JSON.stringify({ nome, cpf, cref }));
+    } else {
+        localStorage.removeItem('tapago_personal_user');
+    }
+
+    atualizarExibicaoPerfil();
     document.getElementById('screen-login-personal').classList.remove('active');
     document.getElementById('screen-dashboard').classList.add('active');
-    
     carregarAgendaDoBanco();
 }
 
 // ==========================================
-// BUSCAR AGENDA E ALUNOS REAIS DO FIRESTORE
+// CONFIGURAÇÃO DE TARIFAS DE HORA/AULA
 // ==========================================
-async function carregarAgendaDoBanco() {
-    try {
-        const querySnapshot = await getDocs(collection(db, "agenda"));
-        agendaDeHoje = [];
-        
-        querySnapshot.forEach((doc) => {
-            agendaDeHoje.push(doc.data());
-        });
 
-        // Se a coleção estiver vazia, cria dados padrão para teste
-        if (agendaDeHoje.length === 0) {
-            agendaDeHoje = [
-                { hora: "08:00", aluno: "Carlos Andrade", objetivo: "Hipertrofia", status: "ocupado", vencimento: 5 },
-                { hora: "09:00", aluno: "Mariana Souza", objetivo: "Emagrecimento", status: "ocupado", vencimento: 10 },
-                { hora: "11:00", aluno: "Vaga Livre", objetivo: "Disponível no Radar", status: "livre", preco: 85 }
-            ];
-        }
+function salvarTarifas() {
+    const normal = parseFloat(document.getElementById('rate-normal').value) || 60;
+    const surge = parseFloat(document.getElementById('rate-surge').value) || 85;
+    const discount = parseFloat(document.getElementById('rate-discount').value) || 45;
 
+    dadosPerfil.tarifas.normal = normal;
+    dadosPerfil.tarifas.surge = surge;
+    dadosPerfil.tarifas.discount = discount;
+    alert("✅ Tabela de preços atualizada com sucesso!");
+}
+
+function abrirModalPricing(index) {
+    indiceVagaSelecionada = index;
+    document.getElementById('display-rate-normal').innerText = dadosPerfil.tarifas.normal;
+    document.getElementById('display-rate-surge').innerText = dadosPerfil.tarifas.surge;
+    document.getElementById('display-rate-discount').innerText = dadosPerfil.tarifas.discount;
+    document.getElementById('modal-pricing').classList.add('active');
+}
+
+function fecharModalPricing() {
+    document.getElementById('modal-pricing').classList.remove('active');
+    indiceVagaSelecionada = null;
+}
+
+function confirmarVagaAvulsa(tipo) {
+    if (indiceVagaSelecionada !== null) {
+        let precoFinal = dadosPerfil.tarifas.normal;
+        if (tipo === 'promocional') precoFinal = dadosPerfil.tarifas.discount;
+        if (tipo === 'premium') precoFinal = dadosPerfil.tarifas.surge;
+
+        agendaDeHoje[indiceVagaSelecionada].status = "livre";
+        agendaDeHoje[indiceVagaSelecionada].preco = precoFinal;
         renderizarAgenda();
-    } catch (error) {
-        console.error("Erro ao carregar agenda:", error);
+        fecharModalPricing();
+        alert(`✅ Vaga liberada no Radar por R$ ${precoFinal},00.`);
     }
 }
 
 // ==========================================
-// CADASTRO REAL DE ALUNOS NO FIRESTORE
+// CADASTRO DE ALUNO POR CPF
 // ==========================================
+
+function abrirModalCadastrarAluno() {
+    document.getElementById('modal-cadastrar-aluno').classList.add('active');
+}
+
+function fecharModalCadastrarAluno() {
+    document.getElementById('modal-cadastrar-aluno').classList.remove('active');
+    document.getElementById('cad-aluno-cpf').value = "";
+    document.getElementById('cad-aluno-nome').value = "";
+    document.getElementById('cad-aluno-objetivo').value = "";
+    document.getElementById('status-cpf-busca').style.display = "none";
+}
+
 async function consultarCpfAluno() {
     const cpfDigitado = document.getElementById('cad-aluno-cpf').value.trim();
     const statusDiv = document.getElementById('status-cpf-busca');
 
     if (cpfDigitado.length === 11) {
         statusDiv.style.display = "block";
-        statusDiv.innerText = "Consultando base de alunos reais...";
-        
+        statusDiv.innerText = "Consultando base de dados reais...";
+
         try {
-            const q = query(collection(db, "usuarios"), where("cpf", "==", cpfDigitado), where("tipo", "==", "aluno"));
+            const q = query(collection(db, "usuarios"), where("cpf", "==", cpfDigitado));
             const querySnapshot = await getDocs(q);
 
             if (!querySnapshot.empty) {
                 const alunoData = querySnapshot.docs[0].data();
                 document.getElementById('cad-aluno-nome').value = alunoData.nome;
                 document.getElementById('cad-aluno-objetivo').value = alunoData.objetivo || "Geral";
-                statusDiv.innerText = "✓ Aluno real localizado no Firestore!";
+                statusDiv.innerText = "✓ Aluno localizado na nuvem TAPAGO!";
                 statusDiv.style.color = "var(--neon-green)";
             } else {
-                statusDiv.innerText = "ℹ CPF não encontrado na base de alunos. Um link de convite será gerado.";
-                statusDiv.style.color = "var(--gold)";
+                const alunoLocal = bancoAlunosCadastrados.find(a => a.cpf === cpfDigitado);
+                if (alunoLocal) {
+                    document.getElementById('cad-aluno-nome').value = alunoLocal.nome;
+                    document.getElementById('cad-aluno-objetivo').value = alunoLocal.objetivo;
+                    statusDiv.innerText = "✓ Aluno localizado na base local!";
+                    statusDiv.style.color = "var(--neon-green)";
+                } else {
+                    statusDiv.innerText = "ℹ CPF não encontrado. Um pré-cadastro será gerado.";
+                    statusDiv.style.color = "var(--gold)";
+                }
             }
         } catch (e) {
             console.error("Erro na busca de aluno:", e);
@@ -167,8 +240,8 @@ async function confirmarCadastroAluno() {
     const objetivo = document.getElementById('cad-aluno-objetivo').value.trim();
     const cpf = document.getElementById('cad-aluno-cpf').value.trim();
 
-    if (!nome || !cpf) {
-        alert("Preencha os dados do aluno.");
+    if (!nome) {
+        alert("Digite o nome do aluno.");
         return;
     }
 
@@ -177,7 +250,6 @@ async function confirmarCadastroAluno() {
         aluno: nome,
         objetivo: objetivo || "Geral",
         status: "ocupado",
-        vencimento: 5,
         cpfAluno: cpf
     };
 
@@ -186,68 +258,268 @@ async function confirmarCadastroAluno() {
         agendaDeHoje.push(novoSlot);
         renderizarAgenda();
         fecharModalCadastrarAluno();
-        alert(`🎉 Aluno ${nome} matriculado e salvo no Banco de Dados Real!`);
+        alert(`🎉 Aluno ${nome} matriculado e salvo no Firestore!`);
     } catch (e) {
-        console.error("Erro ao salvar aluno no Firestore: ", e);
-        alert("Erro ao gravar no banco de dados.");
+        console.error("Erro ao salvar no Firestore:", e);
+        agendaDeHoje.push(novoSlot);
+        renderizarAgenda();
+        fecharModalCadastrarAluno();
+        alert(`🎉 Aluno ${nome} matriculado localmente!`);
     }
 }
 
 // ==========================================
-// RENDERIZAÇÃO DA AGENDA E TELA
+// CHAT COM ALUNOS
 // ==========================================
+
+function abrirConversa(nomeAluno) {
+    conversaAtiva = nomeAluno;
+    document.getElementById('chat-list-view').style.display = 'none';
+    document.getElementById('chat-conversation-view').style.display = 'block';
+    document.getElementById('chat-active-name').innerText = nomeAluno;
+}
+
+function fecharConversa() {
+    document.getElementById('chat-list-view').style.display = 'block';
+    document.getElementById('chat-conversation-view').style.display = 'none';
+    conversaAtiva = null;
+}
+
+function enviarMensagemChat() {
+    const input = document.getElementById('input-chat-msg');
+    const texto = input.value.trim();
+
+    if (texto === "") return;
+
+    const chatBox = document.getElementById('chat-box');
+    const horaAtual = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    const msgDiv = document.createElement('div');
+    msgDiv.className = 'msg msg-sent';
+    msgDiv.innerHTML = `<p>${texto}</p><span class="msg-time">${horaAtual}</span>`;
+    
+    chatBox.appendChild(msgDiv);
+    input.value = "";
+    chatBox.scrollTop = chatBox.scrollHeight;
+
+    setTimeout(() => {
+        const replyDiv = document.createElement('div');
+        replyDiv.className = 'msg msg-received';
+        replyDiv.innerHTML = `<p>Perfeito, professor! Combinado.</p><span class="msg-time">${horaAtual}</span>`;
+        chatBox.appendChild(replyDiv);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }, 1200);
+}
+
+// ==========================================
+// FUNÇÕES DE PERFIL E TEMA
+// ==========================================
+
+function atualizarExibicaoPerfil() {
+    const primeiraLetra = dadosPerfil.nome.charAt(0).toUpperCase();
+
+    document.getElementById('nome-exibicao').innerText = dadosPerfil.nome;
+    document.getElementById('perfil-nome-display').innerText = dadosPerfil.nome;
+    document.getElementById('perfil-cref-display').innerText = `CREF: ${dadosPerfil.cref}`;
+    
+    document.getElementById('initials-header').innerText = primeiraLetra;
+    document.getElementById('initials-perfil').innerText = primeiraLetra;
+
+    if (dadosPerfil.fotoUrl) {
+        document.getElementById('img-avatar-header').src = dadosPerfil.fotoUrl;
+        document.getElementById('img-avatar-header').style.display = 'block';
+        document.getElementById('initials-header').style.display = 'none';
+
+        document.getElementById('img-perfil-preview').src = dadosPerfil.fotoUrl;
+        document.getElementById('img-perfil-preview').style.display = 'block';
+        document.getElementById('initials-perfil').style.display = 'none';
+    }
+}
+
+function atualizarFotoPerfil(event) {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            dadosPerfil.fotoUrl = e.target.result;
+            atualizarExibicaoPerfil();
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+function salvarBio() {
+    dadosPerfil.bio = document.getElementById('input-bio').value;
+    alert("✅ Biografia atualizada!");
+}
+
+function alternarTema() {
+    document.body.classList.toggle('light-theme');
+    const claro = document.body.classList.contains('light-theme');
+    document.getElementById('label-tema').innerText = claro ? "Modo Claro Ativo" : "Modo Escuro Ativo";
+    document.getElementById('icon-tema').innerText = claro ? "☀️" : "🌙";
+}
+
+function sairModoPessoal() {
+    if (confirm("Deseja realmente sair da sua conta?")) {
+        document.getElementById('screen-dashboard').classList.remove('active');
+        document.getElementById('screen-login-personal').classList.add('active');
+    }
+}
+
+// ==========================================
+// GESTÃO DA AGENDA DE TREINOS
+// ==========================================
+
+let agendaDeHoje = [];
+let indiceVagaSelecionada = null;
+let ganhosAvulsos = 450;
+
+async function carregarAgendaDoBanco() {
+    try {
+        const querySnapshot = await getDocs(collection(db, "agenda"));
+        agendaDeHoje = [];
+        
+        querySnapshot.forEach((doc) => {
+            agendaDeHoje.push(doc.data());
+        });
+
+        if (agendaDeHoje.length === 0) {
+            agendaDeHoje = [
+                { hora: "08:00", aluno: "Carlos Andrade", objetivo: "Hipertrofia", status: "ocupado" },
+                { hora: "09:00", aluno: "Mariana Souza", objetivo: "Emagrecimento", status: "ocupado" },
+                { hora: "10:00", aluno: "Roberto Costa", objetivo: "Força", status: "ocupado" },
+                { hora: "11:00", aluno: "Vaga Livre", objetivo: "Disponível no Radar", status: "livre", preco: 85 }
+            ];
+        }
+
+        renderizarAgenda();
+    } catch (error) {
+        console.error("Erro ao carregar agenda do Firestore:", error);
+        agendaDeHoje = [
+            { hora: "08:00", aluno: "Carlos Andrade", objetivo: "Hipertrofia", status: "ocupado" },
+            { hora: "09:00", aluno: "Mariana Souza", objetivo: "Emagrecimento", status: "ocupado" },
+            { hora: "10:00", aluno: "Roberto Costa", objetivo: "Força", status: "ocupado" },
+            { hora: "11:00", aluno: "Vaga Livre", objetivo: "Disponível no Radar", status: "livre", preco: 85 }
+        ];
+        renderizarAgenda();
+    }
+}
+
 function renderizarAgenda() {
     const lista = document.getElementById('lista-agenda');
     if (!lista) return;
     lista.innerHTML = ""; 
 
-    agendaDeHoje.forEach((slot) => {
+    agendaDeHoje.forEach((slot, index) => {
         const div = document.createElement('div');
-        div.className = `glass agenda-slot`;
         
-        if (slot.status === "livre") {
+        if (slot.status === "concluida") {
+            div.className = `glass agenda-slot slot-concluida`;
+            div.innerHTML = `
+                <div class="slot-time">${slot.hora}</div>
+                <div class="slot-info">
+                    <div class="slot-info-name">${slot.aluno} (Check-in OK)</div>
+                    <div class="slot-info-desc">Pagamento Liberado</div>
+                </div>
+            `;
+        } else if (slot.status === "livre") {
+            div.className = `glass agenda-slot slot-livre`;
             div.innerHTML = `
                 <div class="slot-time">${slot.hora}</div>
                 <div class="slot-info">
                     <div class="slot-info-name">VAGA ABERTA</div>
-                    <div class="slot-info-desc">Radar: R$ ${slot.preco || 60},00</div>
+                    <div class="slot-info-desc">Radar Ativo: R$ ${slot.preco || dadosPerfil.tarifas.normal},00</div>
+                </div>
+                <div style="display:flex; flex-direction:column;">
+                    <button class="btn-slot-action" onclick="cancelarVagaAvulsa(${index})">Cancelar</button>
                 </div>
             `;
         } else {
+            div.className = `glass agenda-slot slot-ocupado`;
             div.innerHTML = `
-                <div class="slot-time" style="color: #fff;">${slot.hora}</div>
+                <div class="slot-time">${slot.hora}</div>
                 <div class="slot-info">
                     <div class="slot-info-name">${slot.aluno}</div>
                     <div class="slot-info-desc">Foco: ${slot.objetivo}</div>
                 </div>
+                <div style="display:flex; flex-direction:column; align-items:flex-end;">
+                    <button class="btn-slot-action btn-qr" onclick="abrirQRCode(${index})">Check-in QR</button>
+                    <button class="btn-slot-action" onclick="abrirModalPricing(${index})">Aluno Faltou</button>
+                </div>
             `;
         }
+        
         lista.appendChild(div);
     });
 }
 
-// Funções de apoio
+function cancelarVagaAvulsa(index) {
+    agendaDeHoje[index].status = "ocupado";
+    agendaDeHoje[index].aluno = "Horário Fechado";
+    agendaDeHoje[index].objetivo = "Indisponível";
+    renderizarAgenda();
+}
+
+function abrirQRCode(index) {
+    indiceVagaSelecionada = index;
+    document.getElementById('modal-qrcode').classList.add('active');
+}
+
+function fecharModalQRCode() {
+    document.getElementById('modal-qrcode').classList.remove('active');
+    indiceVagaSelecionada = null;
+}
+
+function simularLeituraQRCode() {
+    if (indiceVagaSelecionada !== null) {
+        agendaDeHoje[indiceVagaSelecionada].status = "concluida";
+        renderizarAgenda();
+        fecharModalQRCode();
+        atualizarFinanceiro(dadosPerfil.tarifas.normal);
+        alert("📸 Leitura de QR Code concluída! Aula validada e pagamento creditado.");
+    }
+}
+
+function atualizarFinanceiro(valorAdicional) {
+    ganhosAvulsos += valorAdicional;
+    document.getElementById('valor-avulso').innerText = `R$ ${ganhosAvulsos}`;
+    let total = 4200 + ganhosAvulsos;
+    document.getElementById('valor-total').innerText = `R$ ${total.toLocaleString('pt-BR')}`;
+}
+
 function switchTabPersonal(tabId, navElement) {
     document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
     const tabAlvo = document.getElementById(tabId);
     if (tabAlvo) tabAlvo.classList.add('active');
     
     document.querySelectorAll('#nav-personal .nav-item').forEach(item => item.classList.remove('active'));
-    if (navElement) navElement.classList.add('active');
+    if (navElement) {
+        navElement.classList.add('active');
+    }
 }
 
-function abrirModalCadastrarAluno() { document.getElementById('modal-cadastrar-aluno').classList.add('active'); }
-function fecharModalCadastrarAluno() { document.getElementById('modal-cadastrar-aluno').classList.remove('active'); }
-function sairModoPessoal() { document.getElementById('screen-dashboard').classList.remove('active'); document.getElementById('screen-login-personal').classList.add('active'); }
-
-// Expondo funções globais para o HTML
+// ==========================================
+// EXPOSIÇÃO GLOBAL DE FUNÇÕES PARA O HTML
+// ==========================================
 window.validarProfissional = validarProfissional;
-window.consultarCpfAluno = consultarCpfAluno;
-window.confirmarCadastroAluno = confirmarCadastroAluno;
+window.salvarTarifas = salvarTarifas;
+window.abrirModalPricing = abrirModalPricing;
+window.fecharModalPricing = fecharModalPricing;
+window.confirmarVagaAvulsa = confirmarVagaAvulsa;
 window.abrirModalCadastrarAluno = abrirModalCadastrarAluno;
 window.fecharModalCadastrarAluno = fecharModalCadastrarAluno;
-window.switchTabPersonal = switchTabPersonal;
+window.consultarCpfAluno = consultarCpfAluno;
+window.confirmarCadastroAluno = confirmarCadastroAluno;
+window.abrirConversa = abrirConversa;
+window.fecharConversa = fecharConversa;
+window.enviarMensagemChat = enviarMensagemChat;
+window.atualizarFotoPerfil = atualizarFotoPerfil;
+window.salvarBio = salvarBio;
+window.alternarTema = alternarTema;
 window.sairModoPessoal = sairModoPessoal;
-    timers.forEach(t => clearInterval(t));
-    timers = [];
-}
+window.cancelarVagaAvulsa = cancelarVagaAvulsa;
+window.abrirQRCode = abrirQRCode;
+window.fecharModalQRCode = fecharModalQRCode;
+window.simularLeituraQRCode = simularLeituraQRCode;
+window.switchTabPersonal = switchTabPersonal;
