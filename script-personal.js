@@ -19,7 +19,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Seu CPF de Administrador (Acesso liberado e salvo direto no Firestore)
+// Seu CPF de Administrador (Acesso direto com perfil ativo)
 const ADMIN_CPF = "11122233344";
 
 // ==========================================
@@ -47,7 +47,7 @@ const bancoAlunosCadastrados = [
 let conversaAtiva = null;
 
 // ==========================================
-// INICIALIZAÇÃO E LOGIN
+// INICIALIZAÇÃO E LOGIN COM STATUS PENDENTE
 // ==========================================
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -90,52 +90,55 @@ async function validarProfissional() {
             return;
         }
 
-        // Validação com o Firebase Firestore
+        // 1. Caso seja o CPF Administrador
         if (cpf === ADMIN_CPF) {
             dadosPerfil.nome = nome;
             dadosPerfil.cpf = cpf;
             dadosPerfil.cref = cref;
 
             await setDoc(doc(db, "profissionais", cpf), {
-                nome, cpf, cref, ativo: true, atualizadoEm: new Date()
+                nome, cpf, cref, status: "ativo", atualizadoEm: new Date()
             });
 
             finalizarLogin(lembreme, nome, cpf, cref);
-        } else {
-            const q = query(collection(db, "profissionais"), where("cpf", "==", cpf), where("cref", "==", cref));
-            const querySnapshot = await getDocs(q);
+            return;
+        }
 
-            if (!querySnapshot.empty) {
-                // Professor já existe no banco, entra direto!
-                const profData = querySnapshot.docs[0].data();
+        // 2. Procura o profissional na coleção do Firebase
+        const q = query(collection(db, "profissionais"), where("cpf", "==", cpf));
+        const querySnapshot = await getDocs(q);
+
+        if (!querySnapshot.empty) {
+            const profData = querySnapshot.docs[0].data();
+            
+            if (profData.status === "ativo") {
                 dadosPerfil.nome = profData.nome;
                 dadosPerfil.cpf = profData.cpf;
                 dadosPerfil.cref = profData.cref;
                 finalizarLogin(lembreme, profData.nome, cpf, cref);
-            } else {
-                // Professor NÃO existe no banco. Pergunta se quer cadastrar agora!
+            } else if (profData.status === "pendente") {
                 document.getElementById('login-loader').style.display = 'none';
                 document.getElementById('btn-login').style.display = 'block';
-                
-                const querCadastrar = confirm("Este CPF não está cadastrado. Deseja criar o seu perfil de Profissional agora?");
-                
-                if (querCadastrar) {
-                    // Cadastra ele automaticamente no Firebase
-                    document.getElementById('login-loader').style.display = 'block';
-                    document.getElementById('btn-login').style.display = 'none';
-                    
-                    dadosPerfil.nome = nome;
-                    dadosPerfil.cpf = cpf;
-                    dadosPerfil.cref = cref;
-
-                    await setDoc(doc(db, "profissionais", cpf), {
-                        nome, cpf, cref, ativo: true, atualizadoEm: new Date()
-                    });
-
-                    alert("✅ Cadastro realizado com sucesso na nuvem!");
-                    finalizarLogin(lembreme, nome, cpf, cref);
-                }
+                alert("⏳ Seu cadastro já foi recebido e está EM ANÁLISE pela equipe TAPAGO.\n\nAssim que o seu cadastro for liberado, você conseguirá acessar o painel.");
+            } else {
+                document.getElementById('login-loader').style.display = 'none';
+                document.getElementById('btn-login').style.display = 'block';
+                alert("❌ Acesso não liberado. Entre em contato com o suporte TAPAGO.");
             }
+        } else {
+            // 3. SE NÃO EXISTE: Cria o registro como PENDENTE no Firestore
+            await setDoc(doc(db, "profissionais", cpf), {
+                nome: nome,
+                cpf: cpf,
+                cref: cref,
+                status: "pendente",
+                criadoEm: new Date().toISOString()
+            });
+
+            document.getElementById('login-loader').style.display = 'none';
+            document.getElementById('btn-login').style.display = 'block';
+
+            alert("🚀 Solicitação enviada com sucesso!\n\nSeus dados (Nome, CPF e CREF) foram salvos em nossa base e estão em fila de análise. Em breve seu acesso será liberado!");
         }
     } catch (error) {
         console.error("Erro na validação com Firebase:", error);
@@ -520,7 +523,7 @@ function switchTabPersonal(tabId, navElement) {
 }
 
 // ==========================================
-// EXPOSIÇÃO GLOBAL DE FUNÇÕES PARA O HTML
+// EXPOSIÇÃO GLOBAL DE FUNÇÕES
 // ==========================================
 window.validarProfissional = validarProfissional;
 window.salvarTarifas = salvarTarifas;
