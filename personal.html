@@ -1,536 +1,283 @@
-// ==========================================
-// IMPORTAÇÕES DO FIREBASE (SDK Modular v10)
-// ==========================================
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, doc, setDoc, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TAPAGO - Painel do Personal</title>
+    <link rel="stylesheet" href="style-personal.css">
+</head>
+<body>
 
-// Suas credenciais reais do Firebase
-const firebaseConfig = {
-    apiKey: "AIzaSyA2PVDpo4X3G8ok_Mk5MU1WeRUaxwIhEpg",
-    authDomain: "app-diego-e0591.firebaseapp.com",
-    projectId: "app-diego-e0591",
-    storageBucket: "app-diego-e0591.firebasestorage.app",
-    messagingSenderId: "69109305372",
-    appId: "1:69109305372:web:5139a52f1342671c520fd9",
-    measurementId: "G-P2J3HHKK2R"
-};
+    <!-- TELA 1: Validação e Login -->
+    <div id="screen-login-personal" class="screen active">
+        <div class="glass" style="padding: 35px 25px; max-width: 400px; width: 100%;">
+            <div style="text-align: center; margin-bottom: 20px;">
+                <h1>TAPA<span class="highlight">GO</span></h1>
+                <p class="subtitle" style="color: var(--gold);">Portal do Profissional</p>
+            </div>
+            
+            <input type="text" id="input-nome" placeholder="Seu Nome Profissional" required>
+            <input type="text" id="input-cpf" placeholder="CPF (Apenas números)" maxlength="11">
+            <input type="text" id="input-cref" placeholder="CREF (Ex: 123456-G/SP)">
+            
+            <div class="remember-box">
+                <input type="checkbox" id="check-remember">
+                <label for="check-remember">Lembre-se de mim neste dispositivo</label>
+            </div>
 
-// Inicializa o Firebase
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+            <div id="login-loader" style="display: none; text-align: center; margin-top: 10px; color: var(--gold);">
+                <small>Consultando banco de dados...</small>
+            </div>
 
-// Seu CPF de Administrador (Acesso liberado e salvo direto no Firestore)
-const ADMIN_CPF = "11122233344";
+            <button id="btn-login" class="btn btn-primary ripple-btn" onclick="validarProfissional()" style="margin-top: 15px;">Validar e Entrar</button>
+            
+            <div style="text-align: center; margin-top: 20px;">
+                <a href="index.html" style="color: var(--text-muted); font-size: 13px; text-decoration: none;">Voltar para o App do Aluno</a>
+            </div>
+        </div>
+    </div>
 
-// ==========================================
-// ESTADO DO PERFIL, MENSAGENS E TARIFAS
-// ==========================================
-
-let dadosPerfil = {
-    nome: "Professor",
-    cref: "",
-    cpf: "",
-    bio: "",
-    fotoUrl: null,
-    tarifas: {
-        normal: 60,
-        surge: 85,
-        discount: 45
-    }
-};
-
-// Banco de Dados Simulado de Alunos (para busca por CPF caso o Firestore esteja vazio)
-const bancoAlunosCadastrados = [
-    { cpf: "12345678901", nome: "Lucas Silveira", objetivo: "Condicionamento Físico" },
-    { cpf: "98765432100", nome: "Fernanda Lima", objetivo: "Emagrecimento" }
-];
-
-let conversaAtiva = null;
-
-// ==========================================
-// INICIALIZAÇÃO & "LEMBRE-SE DE MIM"
-// ==========================================
-
-window.addEventListener('DOMContentLoaded', () => {
-    // Verifica se salvou login no localStorage
-    const savedProfile = localStorage.getItem('tapago_personal_user');
-    if (savedProfile) {
-        const parsed = JSON.parse(savedProfile);
-        document.getElementById('input-nome').value = parsed.nome || '';
-        document.getElementById('input-cpf').value = parsed.cpf || '';
-        document.getElementById('input-cref').value = parsed.cref || '';
-        document.getElementById('check-remember').checked = true;
-    }
-});
-
-async function validarProfissional() {
-    const nome = document.getElementById('input-nome').value.trim();
-    const cpf = document.getElementById('input-cpf').value.replace(/\D/g, '');
-    const cref = document.getElementById('input-cref').value.trim();
-    const lembreme = document.getElementById('check-remember').checked;
-
-    if (nome === "" || cpf === "" || cref === "") {
-        alert("Preencha todos os campos obrigatórios.");
-        return;
-    }
-
-    document.getElementById('login-loader').style.display = 'block';
-    document.getElementById('btn-login').style.display = 'none';
-
-    try {
-        const regexCref = /\d+-G\/[A-Z]{2}/i; 
+    <!-- TELA 2: Dashboard Principal -->
+    <div id="screen-dashboard" class="screen main-app-screen">
         
-        if (cpf.length < 11) {
-            alert("Erro: CPF inválido.");
-            document.getElementById('login-loader').style.display = 'none';
-            document.getElementById('btn-login').style.display = 'block';
-            return;
-        } else if (!regexCref.test(cref)) {
-            alert("Erro: CREF formato incorreto. Ex: 123456-G/SP");
-            document.getElementById('login-loader').style.display = 'none';
-            document.getElementById('btn-login').style.display = 'block';
-            return;
-        }
-
-        // Validação com o Firebase Firestore
-        if (cpf === ADMIN_CPF) {
-            // Acesso livre de Administrador (Salva automaticamente no Firestore)
-            dadosPerfil.nome = nome;
-            dadosPerfil.cpf = cpf;
-            dadosPerfil.cref = cref;
-
-            await setDoc(doc(db, "profissionais", cpf), {
-                nome, cpf, cref, ativo: true, atualizadoEm: new Date()
-            });
-
-            finalizarLogin(lembreme, nome, cpf, cref);
-        } else {
-            // Consulta na nuvem por profissionais reais cadastrados
-            const q = query(collection(db, "profissionais"), where("cpf", "==", cpf), where("cref", "==", cref));
-            const querySnapshot = await getDocs(q);
-
-            if (!querySnapshot.empty) {
-                const profData = querySnapshot.docs[0].data();
-                dadosPerfil.nome = profData.nome;
-                dadosPerfil.cpf = profData.cpf;
-                dadosPerfil.cref = profData.cref;
-                finalizarLogin(lembreme, profData.nome, cpf, cref);
-            } else {
-                document.getElementById('login-loader').style.display = 'none';
-                document.getElementById('btn-login').style.display = 'block';
-                alert("❌ Acesso Negado: CPF ou CREF não encontrados na base de dados real do Firebase.");
-            }
-        }
-    } catch (error) {
-        console.error("Erro na validação com Firebase:", error);
-        document.getElementById('login-loader').style.display = 'none';
-        document.getElementById('btn-login').style.display = 'block';
-        alert("Erro de conexão com o banco de dados. Verifique o console.");
-    }
-}
-
-function finalizarLogin(lembreme, nome, cpf, cref) {
-    document.getElementById('login-loader').style.display = 'none';
-    document.getElementById('btn-login').style.display = 'block';
-
-    if (lembreme) {
-        localStorage.setItem('tapago_personal_user', JSON.stringify({ nome, cpf, cref }));
-    } else {
-        localStorage.removeItem('tapago_personal_user');
-    }
-
-    atualizarExibicaoPerfil();
-
-    document.getElementById('screen-login-personal').classList.remove('active');
-    document.getElementById('screen-dashboard').classList.add('active');
-    carregarAgendaDoBanco();
-}
-
-// ==========================================
-// CONFIGURAÇÃO DE TARIFAS DE HORA/AULA
-// ==========================================
-
-function salvarTarifas() {
-    const normal = parseFloat(document.getElementById('rate-normal').value) || 60;
-    const surge = parseFloat(document.getElementById('rate-surge').value) || 85;
-    const discount = parseFloat(document.getElementById('rate-discount').value) || 45;
-
-    dadosPerfil.tarifas.normal = normal;
-    dadosPerfil.tarifas.surge = surge;
-    dadosPerfil.tarifas.discount = discount;
-
-    alert("✅ Tabela de preços atualizada com sucesso!");
-}
-
-function abrirModalPricing(index) {
-    indiceVagaSelecionada = index;
-    document.getElementById('display-rate-normal').innerText = dadosPerfil.tarifas.normal;
-    document.getElementById('display-rate-surge').innerText = dadosPerfil.tarifas.surge;
-    document.getElementById('display-rate-discount').innerText = dadosPerfil.tarifas.discount;
-
-    document.getElementById('modal-pricing').classList.add('active');
-}
-
-function fecharModalPricing() {
-    document.getElementById('modal-pricing').classList.remove('active');
-    indiceVagaSelecionada = null;
-}
-
-function confirmarVagaAvulsa(tipo) {
-    if (indiceVagaSelecionada !== null) {
-        let precoFinal = dadosPerfil.tarifas.normal;
-        if (tipo === 'promocional') precoFinal = dadosPerfil.tarifas.discount;
-        if (tipo === 'premium') precoFinal = dadosPerfil.tarifas.surge;
-
-        agendaDeHoje[indiceVagaSelecionada].status = "livre";
-        agendaDeHoje[indiceVagaSelecionada].preco = precoFinal;
-        renderizarAgenda();
-        fecharModalPricing();
-        alert(`✅ Vaga liberada no Radar por R$ ${precoFinal},00.`);
-    }
-}
-
-// ==========================================
-// CADASTRO DE ALUNO POR CPF (COM SUPORTE FIRESTORE)
-// ==========================================
-
-function abrirModalCadastrarAluno() {
-    document.getElementById('modal-cadastrar-aluno').classList.add('active');
-}
-
-function fecharModalCadastrarAluno() {
-    document.getElementById('modal-cadastrar-aluno').classList.remove('active');
-    document.getElementById('cad-aluno-cpf').value = "";
-    document.getElementById('cad-aluno-nome').value = "";
-    document.getElementById('cad-aluno-objetivo').value = "";
-    document.getElementById('status-cpf-busca').style.display = "none";
-}
-
-async function consultarCpfAluno() {
-    const cpfDigitado = document.getElementById('cad-aluno-cpf').value.trim();
-    const statusDiv = document.getElementById('status-cpf-busca');
-
-    if (cpfDigitado.length === 11) {
-        statusDiv.style.display = "block";
-        statusDiv.innerText = "Consultando base de dados reais...";
-
-        try {
-            const q = query(collection(db, "usuarios"), where("cpf", "==", cpfDigitado));
-            const querySnapshot = await getDocs(q);
-
-            if (!querySnapshot.empty) {
-                const alunoData = querySnapshot.docs[0].data();
-                document.getElementById('cad-aluno-nome').value = alunoData.nome;
-                document.getElementById('cad-aluno-objetivo').value = alunoData.objetivo || "Geral";
-                statusDiv.innerText = "✓ Aluno localizado na nuvem TAPAGO!";
-                statusDiv.style.color = "var(--neon-green)";
-            } else {
-                // Fallback para o array local caso não ache na nuvem
-                const alunoLocal = bancoAlunosCadastrados.find(a => a.cpf === cpfDigitado);
-                if (alunoLocal) {
-                    document.getElementById('cad-aluno-nome').value = alunoLocal.nome;
-                    document.getElementById('cad-aluno-objetivo').value = alunoLocal.objetivo;
-                    statusDiv.innerText = "✓ Aluno localizado na base local!";
-                    statusDiv.style.color = "var(--neon-green)";
-                } else {
-                    statusDiv.innerText = "ℹ CPF não encontrado. Um pré-cadastro será gerado.";
-                    statusDiv.style.color = "var(--gold)";
-                }
-            }
-        } catch (e) {
-            console.error("Erro na busca de aluno:", e);
-        }
-    }
-}
-
-async function confirmarCadastroAluno() {
-    const nome = document.getElementById('cad-aluno-nome').value.trim();
-    const objetivo = document.getElementById('cad-aluno-objetivo').value.trim();
-    const cpf = document.getElementById('cad-aluno-cpf').value.trim();
-
-    if (!nome) {
-        alert("Digite o nome do aluno.");
-        return;
-    }
-
-    const novoSlot = {
-        hora: "12:00",
-        aluno: nome,
-        objetivo: objetivo || "Geral",
-        status: "ocupado",
-        cpfAluno: cpf
-    };
-
-    try {
-        await addDoc(collection(db, "agenda"), novoSlot);
-        agendaDeHoje.push(novoSlot);
-        renderizarAgenda();
-        fecharModalCadastrarAluno();
-        alert(`🎉 Aluno ${nome} matriculado e salvo no Firestore!`);
-    } catch (e) {
-        console.error("Erro ao salvar no Firestore:", e);
-        // Salva localmente se houver falha de rede
-        agendaDeHoje.push(novoSlot);
-        renderizarAgenda();
-        fecharModalCadastrarAluno();
-        alert(`🎉 Aluno ${nome} matriculado localmente!`);
-    }
-}
-
-// ==========================================
-// CHAT COM ALUNOS
-// ==========================================
-
-function abrirConversa(nomeAluno) {
-    conversaAtiva = nomeAluno;
-    document.getElementById('chat-list-view').style.display = 'none';
-    document.getElementById('chat-conversation-view').style.display = 'block';
-    document.getElementById('chat-active-name').innerText = nomeAluno;
-}
-
-function fecharConversa() {
-    document.getElementById('chat-list-view').style.display = 'block';
-    document.getElementById('chat-conversation-view').style.display = 'none';
-    conversaAtiva = null;
-}
-
-function enviarMensagemChat() {
-    const input = document.getElementById('input-chat-msg');
-    const texto = input.value.trim();
-
-    if (texto === "") return;
-
-    const chatBox = document.getElementById('chat-box');
-    const horaAtual = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-    const msgDiv = document.createElement('div');
-    msgDiv.className = 'msg msg-sent';
-    msgDiv.innerHTML = `<p>${texto}</p><span class="msg-time">${horaAtual}</span>`;
-    
-    chatBox.appendChild(msgDiv);
-    input.value = "";
-    chatBox.scrollTop = chatBox.scrollHeight;
-
-    setTimeout(() => {
-        const replyDiv = document.createElement('div');
-        replyDiv.className = 'msg msg-received';
-        replyDiv.innerHTML = `<p>Perfeito, professor! Combinado.</p><span class="msg-time">${horaAtual}</span>`;
-        chatBox.appendChild(replyDiv);
-        chatBox.scrollTop = chatBox.scrollHeight;
-    }, 1200);
-}
-
-// ==========================================
-// FUNÇÕES DE PERFIL, TEMA E NAVEGAÇÃO
-// ==========================================
-
-function atualizarExibicaoPerfil() {
-    const primeiraLetra = dadosPerfil.nome.charAt(0).toUpperCase();
-
-    document.getElementById('nome-exibicao').innerText = dadosPerfil.nome;
-    document.getElementById('perfil-nome-display').innerText = dadosPerfil.nome;
-    document.getElementById('perfil-cref-display').innerText = `CREF: ${dadosPerfil.cref}`;
-    
-    document.getElementById('initials-header').innerText = primeiraLetra;
-    document.getElementById('initials-perfil').innerText = primeiraLetra;
-
-    if (dadosPerfil.fotoUrl) {
-        document.getElementById('img-avatar-header').src = dadosPerfil.fotoUrl;
-        document.getElementById('img-avatar-header').style.display = 'block';
-        document.getElementById('initials-header').style.display = 'none';
-
-        document.getElementById('img-perfil-preview').src = dadosPerfil.fotoUrl;
-        document.getElementById('img-perfil-preview').style.display = 'block';
-        document.getElementById('initials-perfil').style.display = 'none';
-    }
-}
-
-function atualizarFotoPerfil(event) {
-    const file = event.target.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            dadosPerfil.fotoUrl = e.target.result;
-            atualizarExibicaoPerfil();
-        };
-        reader.readAsDataURL(file);
-    }
-}
-
-function salvarBio() {
-    dadosPerfil.bio = document.getElementById('input-bio').value;
-    alert("✅ Biografia atualizada!");
-}
-
-function alternarTema() {
-    document.body.classList.toggle('light-theme');
-    const claro = document.body.classList.contains('light-theme');
-    document.getElementById('label-tema').innerText = claro ? "Modo Claro Ativo" : "Modo Escuro Ativo";
-    document.getElementById('icon-tema').innerText = claro ? "☀️" : "🌙";
-}
-
-function sairModoPessoal() {
-    if (confirm("Deseja realmente sair da sua conta?")) {
-        document.getElementById('screen-dashboard').classList.remove('active');
-        document.getElementById('screen-login-personal').classList.add('active');
-    }
-}
-
-// ==========================================
-// GESTÃO DA AGENDA DE TREINOS
-// ==========================================
-
-let agendaDeHoje = [];
-let indiceVagaSelecionada = null;
-let ganhosAvulsos = 450;
-
-async function carregarAgendaDoBanco() {
-    try {
-        const querySnapshot = await getDocs(collection(db, "agenda"));
-        agendaDeHoje = [];
-        
-        querySnapshot.forEach((doc) => {
-            agendaDeHoje.push(doc.data());
-        });
-
-        // Se o banco estiver vazio, carrega os dados padrão
-        if (agendaDeHoje.length === 0) {
-            agendaDeHoje = [
-                { hora: "08:00", aluno: "Carlos Andrade", objetivo: "Hipertrofia", status: "ocupado" },
-                { hora: "09:00", aluno: "Mariana Souza", objetivo: "Emagrecimento", status: "ocupado" },
-                { hora: "10:00", aluno: "Roberto Costa", objetivo: "Força", status: "ocupado" },
-                { hora: "11:00", aluno: "Vaga Livre", objetivo: "Disponível no Radar", status: "livre", preco: 85 }
-            ];
-        }
-
-        renderizarAgenda();
-    } catch (error) {
-        console.error("Erro ao carregar agenda do Firestore:", error);
-        // Fallback para agenda local se offline
-        agendaDeHoje = [
-            { hora: "08:00", aluno: "Carlos Andrade", objetivo: "Hipertrofia", status: "ocupado" },
-            { hora: "09:00", aluno: "Mariana Souza", objetivo: "Emagrecimento", status: "ocupado" },
-            { hora: "10:00", aluno: "Roberto Costa", objetivo: "Força", status: "ocupado" },
-            { hora: "11:00", aluno: "Vaga Livre", objetivo: "Disponível no Radar", status: "livre", preco: 85 }
-        ];
-        renderizarAgenda();
-    }
-}
-
-function renderizarAgenda() {
-    const lista = document.getElementById('lista-agenda');
-    if (!lista) return;
-    lista.innerHTML = ""; 
-
-    agendaDeHoje.forEach((slot, index) => {
-        const div = document.createElement('div');
-        
-        if (slot.status === "concluida") {
-            div.className = `glass agenda-slot slot-concluida`;
-            div.innerHTML = `
-                <div class="slot-time">${slot.hora}</div>
-                <div class="slot-info">
-                    <div class="slot-info-name">${slot.aluno} (Check-in OK)</div>
-                    <div class="slot-info-desc">Pagamento Liberado</div>
+        <!-- ABA 1: AGENDA -->
+        <div id="tab-agenda" class="tab-content active" style="padding-bottom: 100px;">
+            <div class="header-personal glass">
+                <div>
+                    <h2 style="margin: 0; font-size: 20px;">Olá, <span id="nome-exibicao" class="highlight">Professor</span></h2>
+                    <p style="margin: 0; font-size: 12px; color: var(--gold);">Profissional Verificado ✓</p>
                 </div>
-            `;
-        } else if (slot.status === "livre") {
-            div.className = `glass agenda-slot slot-livre`;
-            div.innerHTML = `
-                <div class="slot-time">${slot.hora}</div>
-                <div class="slot-info">
-                    <div class="slot-info-name">VAGA ABERTA</div>
-                    <div class="slot-info-desc">Radar Ativo: R$ ${slot.preco || dadosPerfil.tarifas.normal},00</div>
+                <div class="avatar-header" id="avatar-header" onclick="switchTabPersonal('tab-perfil', document.querySelectorAll('.nav-item')[3])">
+                    <img id="img-avatar-header" src="" alt="Foto" style="display:none; width:100%; height:100%; border-radius:50%; object-fit:cover;">
+                    <span id="initials-header">P</span>
                 </div>
-                <div style="display:flex; flex-direction:column;">
-                    <button class="btn-slot-action" onclick="cancelarVagaAvulsa(${index})">Cancelar</button>
+            </div>
+
+            <!-- PROJEÇÃO FINANCEIRA -->
+            <div class="glass finance-card">
+                <div class="finance-header">Projeção Financeira Mensal</div>
+                <div class="finance-values">
+                    <div class="finance-item">
+                        <span>Alunos Fixos</span>
+                        <h3 id="valor-fixo">R$ 4.200</h3>
+                    </div>
+                    <div class="finance-item">
+                        <span>Ganhos Avulsos (Radar)</span>
+                        <h3 id="valor-avulso" style="color: var(--neon-green);">R$ 450</h3>
+                    </div>
                 </div>
-            `;
-        } else {
-            div.className = `glass agenda-slot slot-ocupado`;
-            div.innerHTML = `
-                <div class="slot-time">${slot.hora}</div>
-                <div class="slot-info">
-                    <div class="slot-info-name">${slot.aluno}</div>
-                    <div class="slot-info-desc">Foco: ${slot.objetivo}</div>
+                <div class="finance-total">
+                    <span>Total Projetado:</span>
+                    <span id="valor-total" style="color: var(--gold); font-size: 18px; font-weight: bold;">R$ 4.650</span>
                 </div>
-                <div style="display:flex; flex-direction:column; align-items:flex-end;">
-                    <button class="btn-slot-action btn-qr" onclick="abrirQRCode(${index})">Check-in QR</button>
-                    <button class="btn-slot-action" onclick="abrirModalPricing(${index})">Aluno Faltou</button>
+            </div>
+
+            <!-- AÇÕES RÁPIDAS & ALERTAS -->
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <button class="btn btn-outline" style="padding: 10px; font-size: 12px; border-color: var(--gold); color: var(--gold);" onclick="abrirModalCadastrarAluno()">+ Cadastrar Aluno</button>
+            </div>
+
+            <!-- AGENDA DO DIA -->
+            <div class="section-title">Sua Agenda (Hoje)</div>
+            <div id="lista-agenda" style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;"></div>
+        </div>
+
+        <!-- ABA 2: RADAR DE DEMANDA -->
+        <div id="tab-heatmap" class="tab-content" style="padding-bottom: 100px;">
+            <div class="header-personal glass">
+                <h2 style="margin: 0; font-size: 20px;">Radar de Demanda</h2>
+            </div>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 15px;">Buscas ativas na sua região em tempo real.</p>
+            
+            <div class="glass heatmap-container">
+                <div class="hotspot hotspot-high" style="top: 30%; left: 40%;">
+                    <span class="hotspot-label">Centro - Muito Alta</span>
                 </div>
-            `;
-        }
-        
-        lista.appendChild(div);
-    });
-}
+                <div class="hotspot hotspot-medium" style="top: 60%; left: 70%;">
+                    <span class="hotspot-label">Bairro A - Média</span>
+                </div>
+                <div class="hotspot hotspot-low" style="top: 20%; left: 80%;"></div>
+            </div>
+        </div>
 
-function cancelarVagaAvulsa(index) {
-    agendaDeHoje[index].status = "ocupado";
-    agendaDeHoje[index].aluno = "Horário Fechado";
-    agendaDeHoje[index].objetivo = "Indisponível";
-    renderizarAgenda();
-}
+        <!-- ABA 3: CHAT COM ALUNOS -->
+        <div id="tab-chat" class="tab-content" style="padding-bottom: 100px;">
+            <div class="header-personal glass">
+                <h2 style="margin: 0; font-size: 20px;">Mensagens</h2>
+            </div>
 
-function abrirQRCode(index) {
-    indiceVagaSelecionada = index;
-    document.getElementById('modal-qrcode').classList.add('active');
-}
+            <!-- LISTA DE CONVERSAS -->
+            <div id="chat-list-view">
+                <div class="chat-item glass" onclick="abrirConversa('Carlos Andrade')">
+                    <div class="chat-avatar">C</div>
+                    <div class="chat-info">
+                        <h4>Carlos Andrade <span class="chat-time">10:42</span></h4>
+                        <p>Professor, consigo mudar o treino de hoje pra 18h?</p>
+                    </div>
+                </div>
+                <div class="chat-item glass" onclick="abrirConversa('Mariana Souza')">
+                    <div class="chat-avatar">M</div>
+                    <div class="chat-info">
+                        <h4>Mariana Souza <span class="chat-time">Ontem</span></h4>
+                        <p>Treino pago! Valeu pela força hoje 🔥</p>
+                    </div>
+                </div>
+            </div>
 
-function fecharModalQRCode() {
-    document.getElementById('modal-qrcode').classList.remove('active');
-    indiceVagaSelecionada = null;
-}
+            <!-- TELA DA CONVERSA ABERTA -->
+            <div id="chat-conversation-view" style="display: none;">
+                <div class="chat-header-active">
+                    <button class="btn-back-chat" onclick="fecharConversa()">← Voltar</button>
+                    <h3 id="chat-active-name" style="font-size: 15px; margin: 0;">Aluno</h3>
+                </div>
+                
+                <div class="chat-messages-container" id="chat-box">
+                    <div class="msg msg-received">
+                        <p>Olá professor! Tudo certo para a aula de hoje?</p>
+                        <span class="msg-time">08:00</span>
+                    </div>
+                </div>
 
-function simularLeituraQRCode() {
-    if (indiceVagaSelecionada !== null) {
-        agendaDeHoje[indiceVagaSelecionada].status = "concluida";
-        renderizarAgenda();
-        fecharModalQRCode();
-        atualizarFinanceiro(dadosPerfil.tarifas.normal);
-        alert("📸 Leitura de QR Code concluída! Aula validada e pagamento creditado.");
-    }
-}
+                <div class="chat-input-bar">
+                    <input type="text" id="input-chat-msg" placeholder="Digite uma mensagem...">
+                    <button onclick="enviarMensagemChat()">Enviar</button>
+                </div>
+            </div>
+        </div>
 
-function atualizarFinanceiro(valorAdicional) {
-    ganhosAvulsos += valorAdicional;
-    document.getElementById('valor-avulso').innerText = `R$ ${ganhosAvulsos}`;
-    let total = 4200 + ganhosAvulsos;
-    document.getElementById('valor-total').innerText = `R$ ${total.toLocaleString('pt-BR')}`;
-}
+        <!-- ABA 4: PERFIL E CONFIGURAÇÃO DE TARIFAS -->
+        <div id="tab-perfil" class="tab-content" style="padding-bottom: 100px;">
+            <div class="header-personal glass">
+                <h2 style="margin: 0; font-size: 20px;">Meu Perfil</h2>
+            </div>
 
-function switchTabPersonal(tabId, navElement) {
-    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-    const tabAlvo = document.getElementById(tabId);
-    if (tabAlvo) tabAlvo.classList.add('active');
-    
-    document.querySelectorAll('#nav-personal .nav-item').forEach(item => item.classList.remove('active'));
-    if (navElement) {
-        navElement.classList.add('active');
-    }
-}
+            <!-- FOTO E INFOS BÁSICAS -->
+            <div class="glass" style="padding: 20px; text-align: center; margin-bottom: 15px;">
+                <div class="profile-photo-container">
+                    <img id="img-perfil-preview" src="" alt="Foto de Perfil" style="display:none;">
+                    <span id="initials-perfil">P</span>
+                    <label for="input-foto" class="btn-change-photo">📷 Alterar</label>
+                    <input type="file" id="input-foto" accept="image/*" onchange="atualizarFotoPerfil(event)" style="display: none;">
+                </div>
+                <h3 id="perfil-nome-display" style="margin-top: 12px; font-size: 18px;">Professor</h3>
+                <p id="perfil-cref-display" style="font-size: 12px; color: var(--gold); margin-top: 2px;">CREF: --</p>
+            </div>
 
-// ==========================================
-// EXPOSIÇÃO GLOBAL DE FUNÇÕES PARA O HTML
-// ==========================================
-window.validarProfissional = validarProfissional;
-window.salvarTarifas = salvarTarifas;
-window.abrirModalPricing = abrirModalPricing;
-window.fecharModalPricing = fecharModalPricing;
-window.confirmarVagaAvulsa = confirmarVagaAvulsa;
-window.abrirModalCadastrarAluno = abrirModalCadastrarAluno;
-window.fecharModalCadastrarAluno = fecharModalCadastrarAluno;
-window.consultarCpfAluno = consultarCpfAluno;
-window.confirmarCadastroAluno = confirmarCadastroAluno;
-window.abrirConversa = abrirConversa;
-window.fecharConversa = fecharConversa;
-window.enviarMensagemChat = enviarMensagemChat;
-window.atualizarFotoPerfil = atualizarFotoPerfil;
-window.salvarBio = salvarBio;
-window.alternarTema = alternarTema;
-window.sairModoPessoal = sairModoPessoal;
-window.cancelarVagaAvulsa = cancelarVagaAvulsa;
-window.abrirQRCode = abrirQRCode;
-window.fecharModalQRCode = fecharModalQRCode;
-window.simularLeituraQRCode = simularLeituraQRCode;
-window.switchTabPersonal = switchTabPersonal;
+            <!-- CONFIGURAÇÃO DE VALORES DA HORA/AULA -->
+            <div class="glass" style="padding: 15px; margin-bottom: 15px;">
+                <h4 style="font-size: 14px; margin-bottom: 12px; color: var(--gold);">Minha Tabela de Preços (R$)</h4>
+                
+                <div class="price-input-group">
+                    <label>Hora/Aula Normal</label>
+                    <input type="number" id="rate-normal" value="60">
+                </div>
+                <div class="price-input-group">
+                    <label>Alta Demanda (Surge Radar)</label>
+                    <input type="number" id="rate-surge" value="85">
+                </div>
+                <div class="price-input-group">
+                    <label>Vaga Cancelada / Promoção</label>
+                    <input type="number" id="rate-discount" value="45">
+                </div>
+
+                <button class="btn btn-primary" style="padding: 10px; font-size: 12px; margin-top: 5px;" onclick="salvarTarifas()">Salvar Preços</button>
+            </div>
+
+            <!-- APRESENTAÇÃO E BIO -->
+            <div class="glass" style="padding: 15px; margin-bottom: 15px;">
+                <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 8px;">Sobre Mim / Biografia</label>
+                <textarea id="input-bio" rows="3" placeholder="Escreva sobre sua experiência e metodologia..."></textarea>
+                <button class="btn btn-outline" style="padding: 10px; font-size: 12px; margin-top: 10px;" onclick="salvarBio()">Salvar Bio</button>
+            </div>
+
+            <!-- APARÊNCIA E SAIR -->
+            <div class="glass" style="padding: 15px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h4 style="font-size: 14px; margin: 0;">Aparência</h4>
+                    <p style="font-size: 11px; color: var(--text-muted); margin: 0;" id="label-tema">Modo Escuro Ativo</p>
+                </div>
+                <button class="btn-theme-toggle" onclick="alternarTema()">
+                    <span id="icon-tema">🌙</span> Alternar
+                </button>
+            </div>
+
+            <button class="btn btn-logout" onclick="sairModoPessoal()">Sair do Modo Pessoal</button>
+        </div>
+
+        <!-- NAV INFERIOR COM 4 ABAS -->
+        <div class="bottom-nav glass-nav" id="nav-personal">
+            <div class="nav-item active" onclick="switchTabPersonal('tab-agenda', this)">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                <span>Agenda</span>
+            </div>
+            <div class="nav-item" onclick="switchTabPersonal('tab-heatmap', this)">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="10" r="3"></circle><path d="M12 21.7C17.3 17 20 13 20 10a8 8 0 1 0-16 0c0 3 2.7 7 8 11.7z"></path></svg>
+                <span>Radar</span>
+            </div>
+            <div class="nav-item" onclick="switchTabPersonal('tab-chat', this)">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                <span>Chat</span>
+            </div>
+            <div class="nav-item" onclick="switchTabPersonal('tab-perfil', this)">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                <span>Perfil</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: CADASTRO DE ALUNO POR CPF -->
+    <div id="modal-cadastrar-aluno" class="app-overlay">
+        <div class="glass modal-box">
+            <h3 style="margin-bottom: 10px; color: var(--gold);">Cadastrar Aluno</h3>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 15px;">Digite o CPF para consultar o sistema e matricular o aluno.</p>
+
+            <input type="text" id="cad-aluno-cpf" placeholder="CPF do Aluno (apenas números)" maxlength="11" onblur="consultarCpfAluno()">
+            <input type="text" id="cad-aluno-nome" placeholder="Nome Completo do Aluno">
+            <input type="text" id="cad-aluno-objetivo" placeholder="Objetivo (ex: Hipertrofia, Emagrecimento)">
+
+            <div id="status-cpf-busca" style="font-size: 11px; margin-bottom: 10px; color: var(--neon-green); display:none;"></div>
+
+            <button class="btn btn-primary" onclick="confirmarCadastroAluno()">Confirmar Matrícula</button>
+            <button class="btn btn-outline" style="margin-top: 8px;" onclick="fecharModalCadastrarAluno()">Cancelar</button>
+        </div>
+    </div>
+
+    <!-- MODAL: SURGE PRICING COM VALORES CUSTOMIZADOS -->
+    <div id="modal-pricing" class="app-overlay">
+        <div class="glass modal-box">
+            <h3 style="margin-bottom: 10px; color: var(--gold);">Liberar Vaga no Radar</h3>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 15px;">Selecione o valor configurado na sua tabela de preços:</p>
+            
+            <div class="pricing-option glass" onclick="confirmarVagaAvulsa('promocional')">
+                <h4 style="color: var(--neon-green);">Desconto Última Hora</h4>
+                <p>R$ <span id="display-rate-discount">45</span>,00 - Para preencher rápido.</p>
+            </div>
+            <div class="pricing-option glass" onclick="confirmarVagaAvulsa('normal')">
+                <h4>Preço Padrão</h4>
+                <p>R$ <span id="display-rate-normal">60</span>,00 - Seu valor regular.</p>
+            </div>
+            <div class="pricing-option glass" onclick="confirmarVagaAvulsa('premium')" style="border-color: rgba(255, 215, 0, 0.4);">
+                <h4 style="color: var(--gold);">Alta Demanda (Surge)</h4>
+                <p>R$ <span id="display-rate-surge">85</span>,00 - Região com alta procura no Radar.</p>
+            </div>
+            
+            <button class="btn btn-outline" style="margin-top: 10px;" onclick="fecharModalPricing()">Cancelar</button>
+        </div>
+    </div>
+
+    <!-- MODAL: CHECK-IN QR CODE -->
+    <div id="modal-qrcode" class="app-overlay">
+        <div class="glass modal-box" style="text-align: center;">
+            <h3 style="margin-bottom: 5px;">Check-in da Aula</h3>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 20px;">Peça para o aluno escanear para liberar o pagamento.</p>
+            <div class="qr-code-placeholder">
+                <svg viewBox="0 0 24 24" width="100" height="100" fill="var(--text-color)"><path d="M3 3h8v8H3V3zm2 2v4h4V5H5zm8-2h8v8h-8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm13-2h3v2h-3v-2zm-3 0h2v2h-2v-2zm3 3h3v2h-3v-2zm-3 0h2v2h-2v-2zm3 3h3v2h-3v-2zm-3 0h2v2h-2v-2z"/></svg>
+            </div>
+            <button class="btn btn-primary" style="margin-top: 20px;" onclick="simularLeituraQRCode()">Simular Leitura (Teste)</button>
+            <button class="btn btn-outline" style="margin-top: 10px;" onclick="fecharModalQRCode()">Cancelar</button>
+        </div>
+    </div>
+
+    <script type="module" src="script-personal.js"></script>
+</body>
+</html>
