@@ -1,9 +1,9 @@
 // ==========================================
 // IMPORTAÇÕES DO FIREBASE (SDK Modular v10)
 // ==========================================
-import { initializeApp } from "[https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js](https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js)";
-import { getFirestore, collection, addDoc, getDocs, doc, setDoc, query, where } from "[https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js](https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js)";
-import { getAuth, signInWithPopup, GoogleAuthProvider } from "[https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js](https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js)";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs, doc, setDoc, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 // Suas credenciais reais do Firebase
 const firebaseConfig = {
@@ -584,7 +584,7 @@ function switchTabPersonal(tabId, navElement) {
 }
 
 // ==========================================
-// EXPOSIÇÃO GLOBAL DE FUNÇÕES
+// EXPOSIÇÃO GLOBAL DE FUNÇÕES - IMPORTANTE!
 // ==========================================
 window.validarProfissional = validarProfissional;
 window.loginComGoogle = loginComGoogle;
