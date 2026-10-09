@@ -1,8 +1,9 @@
 // ==========================================
 // IMPORTAÇÕES DO FIREBASE (SDK Modular v10)
 // ==========================================
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, doc, setDoc, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { initializeApp } from "[https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js](https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js)";
+import { getFirestore, collection, addDoc, getDocs, doc, setDoc, query, where } from "[https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js](https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js)";
+import { getAuth, signInWithPopup, GoogleAuthProvider } from "[https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js](https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js)";
 
 // Suas credenciais reais do Firebase
 const firebaseConfig = {
@@ -18,8 +19,10 @@ const firebaseConfig = {
 // Inicializa o Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app);
+const googleProvider = new GoogleAuthProvider();
 
-// Seu CPF de Administrador (Acesso direto com perfil ativo)
+// Seu CPF de Administrador (Acesso liberado direto com status ativo)
 const ADMIN_CPF = "11122233344";
 
 // ==========================================
@@ -47,7 +50,68 @@ const bancoAlunosCadastrados = [
 let conversaAtiva = null;
 
 // ==========================================
-// INICIALIZAÇÃO E LOGIN COM STATUS PENDENTE
+// AUTENTICAÇÃO COM O GOOGLE
+// ==========================================
+
+async function loginComGoogle() {
+    try {
+        const result = await signInWithPopup(auth, googleProvider);
+        const user = result.user;
+
+        // Procura se o e-mail do Google já tem cadastro no Firestore
+        const q = query(collection(db, "profissionais"), where("email", "==", user.email));
+        const querySnapshot = await getDocs(q);
+
+        if (!querySnapshot.empty) {
+            const profData = querySnapshot.docs[0].data();
+            
+            if (profData.status === "ativo") {
+                dadosPerfil.nome = profData.nome || user.displayName;
+                dadosPerfil.cpf = profData.cpf;
+                dadosPerfil.cref = profData.cref;
+                dadosPerfil.fotoUrl = user.photoURL;
+                finalizarLogin(true, profData.nome, profData.cpf, profData.cref);
+            } else if (profData.status === "pendente") {
+                alert("⏳ Seu cadastro realizado via Google está EM ANÁLISE pela equipe TAPAGO.\n\nAssim que liberado, você poderá acessar o painel.");
+            } else {
+                alert("❌ Acesso não liberado para este e-mail.");
+            }
+        } else {
+            // Se não encontrou pelo e-mail, solicita CPF e CREF para complementar a proposta
+            const cpfInput = prompt("Login Google realizado com sucesso!\n\nPara concluir sua solicitação de Personal no TAPAGO, digite seu CPF (apenas números):");
+            if (!cpfInput) return;
+
+            const crefInput = prompt("Digite seu CREF (Ex: 123456-G/SP):");
+            if (!crefInput) return;
+
+            const cpf = cpfInput.replace(/\D/g, '');
+            const cref = crefInput.trim();
+
+            if (cpf.length < 11) {
+                alert("CPF inválido. Operação cancelada.");
+                return;
+            }
+
+            await setDoc(doc(db, "profissionais", cpf), {
+                nome: user.displayName,
+                email: user.email,
+                cpf: cpf,
+                cref: cref,
+                fotoGoogle: user.photoURL,
+                status: "pendente",
+                criadoEm: new Date().toISOString()
+            });
+
+            alert("🚀 Solicitação enviada com sucesso com sua conta do Google!\n\nSeus dados estão em fila de análise em nossa base de dados.");
+        }
+    } catch (error) {
+        console.error("Erro na autenticação com Google:", error);
+        alert("Falha ao autenticar com o Google. Verifique se a janela de popup foi permitida pelo navegador.");
+    }
+}
+
+// ==========================================
+// INICIALIZAÇÃO E LOGIN TRADICIONAL
 // ==========================================
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -90,7 +154,6 @@ async function validarProfissional() {
             return;
         }
 
-        // 1. Caso seja o CPF Administrador
         if (cpf === ADMIN_CPF) {
             dadosPerfil.nome = nome;
             dadosPerfil.cpf = cpf;
@@ -104,7 +167,6 @@ async function validarProfissional() {
             return;
         }
 
-        // 2. Procura o profissional na coleção do Firebase
         const q = query(collection(db, "profissionais"), where("cpf", "==", cpf));
         const querySnapshot = await getDocs(q);
 
@@ -119,14 +181,13 @@ async function validarProfissional() {
             } else if (profData.status === "pendente") {
                 document.getElementById('login-loader').style.display = 'none';
                 document.getElementById('btn-login').style.display = 'block';
-                alert("⏳ Seu cadastro já foi recebido e está EM ANÁLISE pela equipe TAPAGO.\n\nAssim que o seu cadastro for liberado, você conseguirá acessar o painel.");
+                alert("⏳ Seu cadastro já foi recebido e está EM ANÁLISE pela equipe TAPAGO.\n\nAssim que liberado, você conseguirá acessar o painel.");
             } else {
                 document.getElementById('login-loader').style.display = 'none';
                 document.getElementById('btn-login').style.display = 'block';
-                alert("❌ Acesso não liberado. Entre em contato com o suporte TAPAGO.");
+                alert("❌ Acesso não liberado. Entre em contato com o suporte.");
             }
         } else {
-            // 3. SE NÃO EXISTE: Cria o registro como PENDENTE no Firestore
             await setDoc(doc(db, "profissionais", cpf), {
                 nome: nome,
                 cpf: cpf,
@@ -138,7 +199,7 @@ async function validarProfissional() {
             document.getElementById('login-loader').style.display = 'none';
             document.getElementById('btn-login').style.display = 'block';
 
-            alert("🚀 Solicitação enviada com sucesso!\n\nSeus dados (Nome, CPF e CREF) foram salvos em nossa base e estão em fila de análise. Em breve seu acesso será liberado!");
+            alert("🚀 Solicitação enviada com sucesso!\n\nSeus dados foram salvos e estão em fila de análise no banco de dados.");
         }
     } catch (error) {
         console.error("Erro na validação com Firebase:", error);
@@ -526,6 +587,7 @@ function switchTabPersonal(tabId, navElement) {
 // EXPOSIÇÃO GLOBAL DE FUNÇÕES
 // ==========================================
 window.validarProfissional = validarProfissional;
+window.loginComGoogle = loginComGoogle;
 window.salvarTarifas = salvarTarifas;
 window.abrirModalPricing = abrirModalPricing;
 window.fecharModalPricing = fecharModalPricing;
