@@ -106,15 +106,35 @@ async function validarProfissional() {
             const querySnapshot = await getDocs(q);
 
             if (!querySnapshot.empty) {
+                // Professor já existe no banco, entra direto!
                 const profData = querySnapshot.docs[0].data();
                 dadosPerfil.nome = profData.nome;
                 dadosPerfil.cpf = profData.cpf;
                 dadosPerfil.cref = profData.cref;
                 finalizarLogin(lembreme, profData.nome, cpf, cref);
             } else {
+                // Professor NÃO existe no banco. Pergunta se quer cadastrar agora!
                 document.getElementById('login-loader').style.display = 'none';
                 document.getElementById('btn-login').style.display = 'block';
-                alert("❌ Acesso Negado: CPF ou CREF não encontrados na base de dados real do Firebase.");
+                
+                const querCadastrar = confirm("Este CPF não está cadastrado. Deseja criar o seu perfil de Profissional agora?");
+                
+                if (querCadastrar) {
+                    // Cadastra ele automaticamente no Firebase
+                    document.getElementById('login-loader').style.display = 'block';
+                    document.getElementById('btn-login').style.display = 'none';
+                    
+                    dadosPerfil.nome = nome;
+                    dadosPerfil.cpf = cpf;
+                    dadosPerfil.cref = cref;
+
+                    await setDoc(doc(db, "profissionais", cpf), {
+                        nome, cpf, cref, ativo: true, atualizadoEm: new Date()
+                    });
+
+                    alert("✅ Cadastro realizado com sucesso na nuvem!");
+                    finalizarLogin(lembreme, nome, cpf, cref);
+                }
             }
         }
     } catch (error) {
