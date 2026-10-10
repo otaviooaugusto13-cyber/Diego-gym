@@ -51,6 +51,7 @@ async function loginGoogleAluno() {
         await setDoc(doc(db, "usuarios", user.uid), {
             nome: alunoLogado.nome,
             email: alunoLogado.email,
+            foto: alunoLogado.foto || "",
             criadoEm: new Date().toISOString()
         }, { merge: true });
         iniciarAppAluno();
@@ -62,12 +63,29 @@ async function loginGoogleAluno() {
 function iniciarAppAluno() {
     document.getElementById('display-name-home').innerText = alunoLogado.nome;
     document.getElementById('display-name-profile').innerText = alunoLogado.nome;
+    
     const initial = alunoLogado.nome.charAt(0).toUpperCase();
-    document.getElementById('main-user-avatar').innerText = initial;
-    document.getElementById('display-avatar-profile').innerText = initial;
+    const mainAvatar = document.getElementById('main-user-avatar');
+    const profileSpan = document.getElementById('display-avatar-profile');
+    const profileImg = document.getElementById('img-aluno-perfil-preview');
 
-    if (alunoLogado.foto) {
-        document.getElementById('main-user-avatar').innerHTML = `<img src="${alunoLogado.foto}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+    if (mainAvatar) {
+        mainAvatar.innerText = initial;
+        if (alunoLogado.foto) {
+            mainAvatar.innerHTML = `<img src="${alunoLogado.foto}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+        }
+    }
+
+    if (profileSpan && profileImg) {
+        if (alunoLogado.foto) {
+            profileImg.src = alunoLogado.foto;
+            profileImg.style.display = 'block';
+            profileSpan.style.display = 'none';
+        } else {
+            profileSpan.innerText = initial;
+            profileImg.style.display = 'none';
+            profileSpan.style.display = 'block';
+        }
     }
 
     const btnWp = document.getElementById('btn-whatsapp-suporte');
@@ -78,6 +96,39 @@ function iniciarAppAluno() {
     escutarPersonaisEmTempoReal();
     carregarListaConversasAluno();
     carregarProximoAgendamentoAluno();
+}
+
+window.atualizarFotoPerfilAluno = function(event) {
+    const file = event.target.files[0];
+    if (file && alunoLogado) {
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            const base64Img = e.target.result;
+            alunoLogado.foto = base64Img;
+            
+            const profileImg = document.getElementById('img-aluno-perfil-preview');
+            const profileSpan = document.getElementById('display-avatar-profile');
+            if (profileImg && profileSpan) {
+                profileImg.src = base64Img;
+                profileImg.style.display = 'block';
+                profileSpan.style.display = 'none';
+            }
+            const mainAvatar = document.getElementById('main-user-avatar');
+            if (mainAvatar) {
+                mainAvatar.innerHTML = `<img src="${base64Img}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+            }
+
+            try {
+                await setDoc(doc(db, "usuarios", alunoLogado.uid), {
+                    foto: base64Img
+                }, { merge: true });
+                alert("✅ Foto de perfil atualizada com sucesso!");
+            } catch (err) {
+                console.error("Erro ao salvar foto no Firestore:", err);
+            }
+        };
+        reader.readAsDataURL(file);
+    }
 }
 
 async function logoutAluno() {
