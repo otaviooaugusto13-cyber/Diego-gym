@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, doc, setDoc, query, where, onSnapshot, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, doc, setDoc, query, where, onSnapshot, orderBy, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 const firebaseConfig = {
@@ -174,6 +174,66 @@ function finalizarLogin(lembreme, nome, cpf, cref) {
     iniciarRastreamentoGPS();
     carregarAgendaDoBanco();
     carregarListaConversasPersonal();
+    escutarChamadasUberPersonal();
+}
+
+// Escuta chamadas instantâneas dos alunos (Modo Uber)
+function escutarChamadasUberPersonal() {
+    const container = document.getElementById('painel-chamadas-uber');
+    if (!container) return;
+
+    const q = query(collection(db, "chamadas_uber"), where("status", "==", "pendente"));
+    onSnapshot(q, (snapshot) => {
+        container.innerHTML = "";
+        if (snapshot.empty) return;
+
+        snapshot.forEach((docItem) => {
+            const c = docItem.data();
+            const card = document.createElement('div');
+            card.className = "glass";
+            card.style.cssText = "padding: 15px; border-left: 4px solid var(--neon-green); margin-bottom: 10px; background: rgba(57, 255, 20, 0.08); border: 1px solid var(--neon-green);";
+            card.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <span style="font-size: 11px; font-weight: bold; color: var(--neon-green); text-transform: uppercase;">⚡ Chamada Solicitada (Estilo Uber)</span>
+                    <span style="font-size: 13px; font-weight: bold; color: var(--gold);">R$ ${c.valor},00</span>
+                </div>
+                <h4 style="margin: 0; font-size: 15px;">${c.alunoNome}</h4>
+                <p style="font-size: 12px; color: var(--text-muted); margin: 3px 0;">Foco: <strong>${c.foco}</strong> • Horário: <strong>${c.horario}</strong></p>
+                <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px;">Local: ${c.local}</p>
+                <button onclick="aceitarChamadaUber('${docItem.id}', '${c.alunoNome}', '${c.horario}', ${c.valor}, '${c.foco}')" style="width: 100%; background: var(--neon-green); color: #000; font-weight: bold; padding: 10px; border: none; border-radius: 8px; cursor: pointer; font-size: 13px;">
+                    ⚡ Aceitar Chamada Agora (Quem Clicar Primeiro Leva)
+                </button>
+            `;
+            container.appendChild(card);
+        });
+    });
+}
+
+window.aceitarChamadaUber = async function(chamadaId, nomeAluno, horario, valor, foco) {
+    try {
+        await updateDoc(doc(db, "chamadas_uber", chamadaId), {
+            status: "aceito",
+            personalAceitou: dadosPerfil.nome
+        });
+
+        await addDoc(collection(db, "agenda"), {
+            nome: nomeAluno,
+            aluno: nomeAluno,
+            professor: dadosPerfil.nome,
+            objetivo: foco || "Treino Rápido",
+            preco: parseFloat(valor),
+            horario: horario,
+            diaSemana: "Hoje",
+            frequencia: "Chamada Instantânea",
+            status: "ativo",
+            criadoEm: new Date().toISOString()
+        });
+
+        alert(`🎉 Você aceitou o treino de ${nomeAluno}!\n\nO aluno foi notificado e a aula foi adicionada à sua agenda.`);
+        carregarAgendaDoBanco();
+    } catch (e) {
+        console.error("Erro ao aceitar chamada:", e);
+    }
 }
 
 async function salvarHorarioAtendimento() {
@@ -231,7 +291,6 @@ function carregarAlunosNoMapa() {
         const listaCards = document.getElementById('lista-demandas-cards');
         if (listaCards) listaCards.innerHTML = "";
 
-        // Limpar marcadores anteriores
         Object.keys(marcadoresAlunosMap).forEach(key => {
             marcadoresAlunosMap[key].setMap(null);
         });
@@ -241,7 +300,6 @@ function carregarAlunosNoMapa() {
             const aluno = docItem.data();
             const objetivoAluno = aluno.objetivo || "Hipertrofia";
 
-            // Aplica filtro por objetivo
             if (filtroObjetivo !== "Todos" && objetivoAluno !== filtroObjetivo) {
                 return;
             }
@@ -559,3 +617,4 @@ window.fecharModalQRCode = fecharModalQRCode;
 window.simularLeituraQRCode = simularLeituraQRCode;
 window.switchTabPersonal = switchTabPersonal;
 window.carregarAlunosNoMapa = carregarAlunosNoMapa;
+window.aceitarChamadaUber = aceitarChamadaUber;
