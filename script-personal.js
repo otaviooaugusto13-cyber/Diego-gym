@@ -685,7 +685,9 @@ window.salvarDadosBancarios = async function() {
     }
 }
 
-// MAPA E RADAR DO PERSONAL
+// ==========================================
+// MAPA E CHAT DE ALUNOS
+// ==========================================
 window.initMapAlunos = function() {
     const mapElement = document.getElementById('mapa-alunos');
     if (!mapElement) return;
@@ -695,6 +697,9 @@ window.initMapAlunos = function() {
         zoom: 14,
         disableDefaultUI: true
     });
+
+    carregarAlunosNoMapa();
+}
 
 window.carregarAlunosNoMapa = async function() {
     if (!mapAlunos) return;
@@ -751,7 +756,7 @@ window.carregarAlunosNoMapa = async function() {
     }
 }
 
-// FUNÇÃO PARA ABRIR O CHAT EM OVERLAY/MODAL
+// FUNÇÕES PARA ABRIR O CHAT EM OVERLAY/MODAL
 window.abrirConversaModal = function(alunoUid, nomeAluno) {
     const modalChat = document.getElementById('modal-chat-flutuante');
     if (modalChat) {
@@ -873,3 +878,5 @@ window.fecharModalDadosBancarios = fecharModalDadosBancarios;
 window.salvarDadosBancarios = salvarDadosBancarios;
 window.mudarMesCalendario = mudarMesCalendario;
 window.selecionarDiaCalendario = selecionarDiaCalendario;
+window.abrirConversaModal = abrirConversaModal;
+window.fecharConversaModal = fecharConversaModal;
