@@ -19,7 +19,7 @@ const googleProvider = new GoogleAuthProvider();
 
 let alunoLogado = null;
 let mapRadar;
-let personaisReaisDB = [];
+let marcadoresPersonal = {};
 let conversaAtivaPersonal = null;
 let avaliacaoEstrelasSelecionadas = 5;
 let unsubscribeChat = null;
@@ -80,7 +80,7 @@ function iniciarAppAluno() {
     if (btnWp) btnWp.style.display = 'none';
 
     navTo('screen-main');
-    carregarPersonaisReais();
+    escutarPersonaisEmTempoReal();
     carregarListaConversasAluno();
 }
 
@@ -118,7 +118,7 @@ function toggleTheme() {
 window.initMap = function() {
     const mapaElemento = document.getElementById("mapa-quadrado");
     if (!mapaElemento) return;
-    const pontoInicial = { lat: -22.4389, lng: -46.8258 };
+    const pontoInicial = { lat: -22.4389, lng: -46.8258 }; // Itapira-SP
     mapRadar = new google.maps.Map(mapaElemento, {
         zoom: 14,
         center: pontoInicial,
@@ -133,92 +133,95 @@ window.initMap = function() {
     });
 }
 
-async function carregarPersonaisReais() {
+// Escuta em Tempo Real a Localização GPS dos Personais no Firestore
+function escutarPersonaisEmTempoReal() {
     const container = document.getElementById('lista-personais-reais');
     if (!container) return;
-    container.innerHTML = "<p style='color: var(--text-muted); font-size: 13px;'>Buscando profissionais...</p>";
 
-    try {
-        const querySnapshot = await getDocs(collection(db, "profissionais"));
-        personaisReaisDB = [];
-        querySnapshot.forEach((docItem) => {
-            const data = docItem.data();
-            if (data.status === "ativo") {
-                personaisReaisDB.push({
-                    nome: data.nome || "Personal",
-                    cref: data.cref || "Ativo",
-                    lat: data.lat || -22.4389 + (Math.random() - 0.5) * 0.02,
-                    lng: data.lng || -46.8258 + (Math.random() - 0.5) * 0.02
-                });
-            }
-        });
-
-        if (personaisReaisDB.length === 0) {
-            container.innerHTML = "<p style='color: var(--text-muted); font-size: 13px;'>Nenhum personal ativo no momento.</p>";
-            return;
-        }
-
+    onSnapshot(collection(db, "profissionais"), (snapshot) => {
         container.innerHTML = "";
+        let temAtivo = false;
+
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition((pos) => {
                 const localAluno = { lat: pos.coords.latitude, lng: pos.coords.longitude };
                 if (mapRadar) mapRadar.setCenter(localAluno);
-                renderizarCardsPersonais(localAluno);
+                processarSnapshotPersonais(snapshot, localAluno, container);
             }, () => {
-                renderizarCardsPersonais({ lat: -22.4389, lng: -46.8258 });
+                processarSnapshotPersonais(snapshot, { lat: -22.4389, lng: -46.8258 }, container);
             });
         } else {
-            renderizarCardsPersonais({ lat: -22.4389, lng: -46.8258 });
+            processarSnapshotPersonais(snapshot, { lat: -22.4389, lng: -46.8258 }, container);
         }
-    } catch (e) {
-        console.error("Erro personais:", e);
-    }
+    });
 }
 
-function renderizarCardsPersonais(localAluno) {
-    const container = document.getElementById('lista-personais-reais');
-    if (!container) return;
-    container.innerHTML = "";
+function processarSnapshotPersonais(snapshot, localAluno, container) {
+    snapshot.forEach((docItem) => {
+        const data = docItem.data();
+        if (data.status === "ativo") {
+            temAtivo = true;
+            const pLat = data.lat || -22.4389;
+            const pLng = data.lng || -46.8258;
+            const nomeProf = data.nome || "Personal";
 
-    personaisReaisDB.forEach(personal => {
-        let distanciaTexto = "Próximo";
-        if (window.google && google.maps && google.maps.geometry) {
-            const pAluno = new google.maps.LatLng(localAluno.lat, localAluno.lng);
-            const pProf = new google.maps.LatLng(personal.lat, personal.lng);
-            const metros = google.maps.geometry.spherical.computeDistanceBetween(pAluno, pProf);
-            distanciaTexto = metros < 1000 ? `${Math.round(metros)}m de você` : `${(metros / 1000).toFixed(1)}km de você`;
-        }
+            // Atualiza ou cria marcador no mapa em tempo real
+            if (mapRadar) {
+                const posLatLng = new google.maps.LatLng(pLat, pLng);
+                if (marcadoresPersonal[docItem.id]) {
+                    marcadoresPersonal[docItem.id].setPosition(posLatLng);
+                } else {
+                    marcadoresPersonal[docItem.id] = new google.maps.Marker({
+                        position: posLatLng,
+                        map: mapRadar,
+                        title: nomeProf,
+                        icon: {
+                            path: google.maps.SymbolPath.CIRCLE,
+                            scale: 8,
+                            fillColor: "#ffd700",
+                            fillOpacity: 1,
+                            strokeWeight: 2,
+                            strokeColor: "#ffffff"
+                        }
+                    });
+                }
+            }
 
-        if (mapRadar) {
-            new google.maps.Marker({
-                position: { lat: personal.lat, lng: personal.lng },
-                map: mapRadar,
-                title: personal.nome
-            });
-        }
+            let distanciaTexto = "Próximo de você";
+            if (window.google && google.maps && google.maps.geometry) {
+                const pAluno = new google.maps.LatLng(localAluno.lat, localAluno.lng);
+                const pProf = new google.maps.LatLng(pLat, pLng);
+                const metros = google.maps.geometry.spherical.computeDistanceBetween(pAluno, pProf);
+                distanciaTexto = metros < 1000 ? `${Math.round(metros)}m de você` : `${(metros / 1000).toFixed(1)}km de você`;
+            }
 
-        const card = document.createElement('div');
-        card.className = 'trainer-card glass card-gold';
-        card.innerHTML = `
-            <div class="trainer-header">
-                <div class="avatar-container story-ring">
-                    <div class="avatar">${personal.nome.charAt(0)}</div>
-                </div>
-                <div class="trainer-info">
-                    <h4>${personal.nome} <span class="badge badge-gold">Verificado</span></h4>
-                    <p>CREF: ${personal.cref}</p>
-                    <div class="trainer-status status-online">
-                        <span class="dot"></span> Online • <span>${distanciaTexto}</span>
+            const card = document.createElement('div');
+            card.className = 'trainer-card glass card-gold';
+            card.innerHTML = `
+                <div class="trainer-header">
+                    <div class="avatar-container story-ring">
+                        <div class="avatar">${nomeProf.charAt(0)}</div>
+                    </div>
+                    <div class="trainer-info">
+                        <h4>${nomeProf} <span class="badge badge-gold">GPS Ao Vivo</span></h4>
+                        <p>CREF: ${data.cref || 'Ativo'}</p>
+                        <div class="trainer-status status-online">
+                            <span class="dot"></span> Online • <span>${distanciaTexto}</span>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div class="trainer-actions">
-                <button class="btn-action btn-outline" onclick="openTrainerProfile('${personal.nome}')">Ver Perfil</button>
-                <button class="btn-action btn-fill" onclick="openActiveChat('${personal.nome}')">Conversar</button>
-            </div>
-        `;
-        container.appendChild(card);
+                <div class="trainer-actions">
+                    <button class="btn-action btn-outline" onclick="openTrainerProfile('${nomeProf}')">Ver Perfil</button>
+                    <button class="btn-action btn-fill" onclick="openActiveChat('${nomeProf}')">Conversar</button>
+                </div>
+            `;
+            container.appendChild(card);
+        }
     });
+
+    if (!temAtivo && container.innerHTML === "") {
+        container.innerHTML = "<p style='color: var(--text-muted); font-size: 13px;'>Nenhum personal online no momento.</p>";
+    }
 }
 
 let viewingTrainerName = "";
@@ -307,10 +310,6 @@ async function carregarListaConversasAluno() {
     try {
         const snap = await getDocs(collection(db, "profissionais"));
         listaConv.innerHTML = "";
-        if (snap.empty) {
-            listaConv.innerHTML = "<p style='color:var(--text-muted); font-size:13px;'>Nenhum personal disponível.</p>";
-            return;
-        }
         snap.forEach(docProf => {
             const prof = docProf.data();
             if (prof.status === "ativo") {
@@ -324,7 +323,7 @@ async function carregarListaConversasAluno() {
                             <h4>${prof.nome}</h4>
                             <span class="chat-time">Online</span>
                         </div>
-                        <p>Clique para abrir o chat em tempo real</p>
+                        <p>Abrir chat em tempo real</p>
                     </div>
                 `;
                 listaConv.appendChild(item);
