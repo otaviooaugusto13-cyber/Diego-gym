@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>TAPAGO - App do Aluno</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#39ff14">
 </head>
 <body>
 
@@ -52,22 +54,14 @@
                 <div class="avatar" id="main-user-avatar" style="width: 45px; height: 45px; border-color: var(--neon-green);">A</div>
             </div>
 
-            <!-- Container do Google Maps (Radar em Tempo Real) -->
+            <!-- Container do Google Maps (Radar em Tempo Real com GPS ao Vivo) -->
             <div class="section-title">Radar de Profissionais em Tempo Real</div>
             <div id="mapa-quadrado" class="glass" style="height: 230px; width: 100%; border-radius: 16px; border: 1px solid var(--neon-green); overflow: hidden; margin-bottom: 25px; z-index: 1;"></div>
-
-            <!-- Skeleton Loading -->
-            <div id="skeleton-area" class="skeleton-container" style="display: none;">
-                <div class="skeleton"></div>
-                <div class="skeleton"></div>
-            </div>
 
             <!-- Conteúdo Dinâmico com Cards dos Personais Reais -->
             <div id="home-content">
                 <div class="section-title">Profissionais Disponíveis na Região</div>
-                <div id="lista-personais-reais" style="display: flex; flex-direction: column; gap: 15px;">
-                    <!-- Preenchido dinamicamente do Firestore -->
-                </div>
+                <div id="lista-personais-reais" style="display: flex; flex-direction: column; gap: 15px;"></div>
             </div>
         </div>
 
@@ -76,9 +70,7 @@
             <div class="header-glass" style="margin-bottom: 20px;">
                 <h2>Suas Conversas</h2>
             </div>
-            <div id="lista-conversas">
-                <!-- Conversas reais do Firestore -->
-            </div>
+            <div id="lista-conversas"></div>
         </div>
 
         <!-- ABA: PERFIL -->
@@ -104,83 +96,64 @@
         <!-- MENU INFERIOR FIXO -->
         <div class="bottom-nav glass-nav" id="bottom-nav">
             <div class="nav-item active" onclick="switchTab('tab-home', this)">
-                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
                 <span>Início</span>
             </div>
             <div class="nav-item" onclick="switchTab('tab-mensagens', this)">
-                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
                 <span>Chat</span>
             </div>
             <div class="nav-item" onclick="switchTab('tab-perfil', this)">
-                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                 <span>Perfil</span>
             </div>
         </div>
     </div>
 
-    <!-- OVERLAY 1: TELA DE CHAT ATIVO -->
+    <!-- OVERLAY: CHAT ATIVO -->
     <div id="active-chat-screen" class="app-overlay">
         <div class="chat-header-bar">
-            <button class="btn-icon text-btn" onclick="closeActiveChat()">
-                &#8592; Voltar
-            </button>
+            <button class="btn-icon text-btn" onclick="closeActiveChat()">&#8592; Voltar</button>
             <div style="display: flex; align-items: center; gap: 10px;">
                 <div class="avatar" id="active-chat-avatar" style="width: 35px; height: 35px; border-color: var(--gold);">P</div>
                 <h3 id="active-chat-name" style="font-size: 16px; margin: 0;">Profissional</h3>
             </div>
             <div style="width: 50px;"></div>
         </div>
-
-        <div id="chat-messages" class="chat-messages-area">
-            <!-- Mensagens reais do Firestore -->
-        </div>
-
+        <div id="chat-messages" class="chat-messages-area"></div>
         <div class="chat-input-area">
             <input type="text" id="chat-message-input" placeholder="Digite uma mensagem..." onkeypress="handleEnter(event)">
             <button class="btn-send" onclick="sendMessage()">&#10148;</button>
         </div>
     </div>
 
-    <!-- OVERLAY 2: PERFIL DO PERSONAL & AVALIAÇÕES COM ESTRELAS -->
+    <!-- OVERLAY: PERFIL DO PERSONAL & AVALIAÇÕES -->
     <div id="trainer-profile-overlay" class="app-overlay">
         <div class="chat-header-bar">
-            <button class="btn-icon text-btn" onclick="closeTrainerProfile()">
-                &#8592; Voltar
-            </button>
+            <button class="btn-icon text-btn" onclick="closeTrainerProfile()">&#8592; Voltar</button>
             <h3 style="font-size: 16px; margin: 0;">Perfil do Personal</h3>
             <div style="width: 50px;"></div>
         </div>
-
         <div class="profile-scroll-area">
             <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 25px;">
                 <div class="avatar" id="tp-avatar" style="width: 75px; height: 75px; font-size: 28px; border-color: var(--gold); margin-bottom: 12px;">P</div>
-                <h2 id="tp-name" style="margin-bottom: 4px;">Nome do Personal</h2>
-                <p id="tp-spec" style="color: var(--text-muted); font-size: 14px;">Especialidade</p>
+                <h2 id="tp-name" style="margin-bottom: 4px;">Nome</h2>
+                <p id="tp-spec" style="color: var(--text-muted); font-size: 14px;">Profissional TAPAGO</p>
                 <div class="star-rating" id="tp-media-estrelas">⭐⭐⭐⭐⭐ (5.0)</div>
             </div>
-
             <div class="section-title">Avaliações dos Alunos</div>
-            <div id="reviews-list">
-                <!-- Avaliações salvas no Firestore -->
-            </div>
-
+            <div id="reviews-list"></div>
             <div class="glass" style="padding: 15px; margin-top: 20px;">
                 <h4 style="margin-bottom: 10px; font-size: 14px;">Deixe sua Avaliação</h4>
-                <!-- Sistema Interativo de Estrelas -->
                 <div id="star-selector" style="font-size: 24px; cursor: pointer; margin-bottom: 10px; color: var(--gold);">
-                    <span onclick="setRating(1)">★</span>
-                    <span onclick="setRating(2)">★</span>
-                    <span onclick="setRating(3)">★</span>
-                    <span onclick="setRating(4)">★</span>
-                    <span onclick="setRating(5)">★</span>
+                    <span onclick="setRating(1)">★</span><span onclick="setRating(2)">★</span><span onclick="setRating(3)">★</span><span onclick="setRating(4)">★</span><span onclick="setRating(5)">★</span>
                 </div>
-                <textarea id="new-review-text" rows="3" placeholder="Como foi sua experiência com este personal?" style="width: 100%; padding: 12px; background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 8px; color: var(--text-color); font-size: 13px; margin-bottom: 10px; resize: none;"></textarea>
+                <textarea id="new-review-text" rows="3" placeholder="Como foi sua experiência?" style="width: 100%; padding: 12px; background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 8px; color: var(--text-color); font-size: 13px; margin-bottom: 10px; resize: none;"></textarea>
                 <button class="btn btn-primary" style="padding: 10px; font-size: 13px;" onclick="submitReview()">Publicar Avaliação</button>
             </div>
         </div>
     </div>
 
-    <!-- API do Google Maps -->
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCYuhjdqUwLqt1wBkq4SkkUcC3FDaPXspU&libraries=geometry&callback=initMap" async defer></script>
     <script type="module" src="script.js"></script>
 </body>
