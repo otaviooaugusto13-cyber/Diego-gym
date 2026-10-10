@@ -17,7 +17,7 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
 
-const ADMIN_CPF = "11122233344";
+
 
 let dadosPerfil = {
     nome: "Professor",
