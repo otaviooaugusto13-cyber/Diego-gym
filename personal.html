@@ -414,45 +414,40 @@
         </div>
     </div>
 
-    <!-- TELA TÁTIL 3: PREFERÊNCIAS DE ATENDIMENTO -->
+    <!-- TELA TÁTIL 3: PREFERÊNCIAS DE ATENDIMENTO E HORÁRIOS -->
     <div id="subscreen-preferencias-atendimento" class="app-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0b0b0d; z-index: 999999; overflow-y: auto;">
         <div style="max-width: 480px; width: 100%; margin: 0 auto; padding: 20px; box-sizing: border-box;">
             <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 25px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px;">
                 <button onclick="fecharSubtela('subscreen-preferencias-atendimento')" style="background: transparent; border: none; color: var(--neon-green, #39ff14); font-size: 22px; font-weight: bold; cursor: pointer; padding: 0;">❮</button>
-                <h2 style="margin: 0; color: #ffffff; font-size: 18px; font-weight: bold;">Preferências de Atendimento</h2>
+                <h2 style="margin: 0; color: #ffffff; font-size: 18px; font-weight: bold;">Preferências e Horários</h2>
             </div>
             
-            <p style="font-size: 12px; color: #a1a1aa; margin-bottom: 20px; line-height: 1.4;">
-                Defina seu perfil de treino e foco de atuação para conectar-se com os alunos ideais no radar.
-            </p>
-
-            <label style="font-size: 12px; font-weight: bold; color: #e4e4e7; display: block; margin-bottom: 6px;">Foco Principal de Treino / Metodologia</label>
-            <select id="pref-select-foco" style="width: 100%; padding: 12px; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; font-size: 13px; color: #ffffff; background: #1f1f23; margin-bottom: 15px; outline: none; box-sizing: border-box;">
-                <option value="Força Bruta & Hipertrofia Pesada">💪 Força Bruta & Hipertrofia Pesada (Sobrepeso / Carga)</option>
-                <option value="Emagrecimento & Definição">🔥 Emagrecimento & Definição (Cardio / Funcional)</option>
-                <option value="Condicionamento Geral & Saúde">⚡ Condicionamento Geral & Saúde Preventiva</option>
-                <option value="Reabilitação & Correção Postural">🛡️ Reabilitação & Correção Postural</option>
+            <label style="font-size: 12px; font-weight: bold; color: var(--gold); display: block; margin-bottom: 10px;">💪 Estilo de Treino / Abordagem Principal</label>
+            <select id="pref-estilo" style="width: 100%; padding: 12px; background: #1f1f23; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; color: #fff; margin-bottom: 20px; box-sizing: border-box;">
+                <option value="forca">Força Bruta & Sobrecarga Progressiva (Hipertrofia)</option>
+                <option value="emagrecimento">Emagrecimento & Cardio Intenso</option>
+                <option value="funcional">Condicionamento Funcional & Saúde</option>
             </select>
 
-            <label style="font-size: 12px; font-weight: bold; color: #e4e4e7; display: block; margin-bottom: 6px;">Intensidade dos Treinos</label>
-            <select id="pref-select-intensidade" style="width: 100%; padding: 12px; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; font-size: 13px; color: #ffffff; background: #1f1f23; margin-bottom: 15px; outline: none; box-sizing: border-box;">
-                <option value="Alta (Hardcore / Exigente)">🔥 Alta (Hardcore / Máximo Desempenho)</option>
-                <option value="Moderada (Equilibrada / Progressiva)">⚖️ Moderada (Constância & Progressão Segura)</option>
-                <option value="Iniciante / Foco em Adaptação">🌱 Iniciante (Foco em Aprendizado Motor)</option>
-            </select>
+            <label style="font-size: 12px; font-weight: bold; color: var(--gold); display: block; margin-bottom: 10px;">⏰ Horário de Trabalho (Início e Fim)</label>
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <input type="time" id="pref-hora-inicio" value="06:00" style="flex: 1; padding: 12px; background: #1f1f23; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; color: #fff; box-sizing: border-box;">
+                <span style="color: #fff; align-self: center;">até</span>
+                <input type="time" id="pref-hora-fim" value="22:00" style="flex: 1; padding: 12px; background: #1f1f23; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; color: #fff; box-sizing: border-box;">
+            </div>
 
-            <label style="font-size: 12px; font-weight: bold; color: #e4e4e7; display: block; margin-bottom: 6px;">Raio Máximo de Atendimento (km)</label>
-            <input type="number" id="pref-input-raio" placeholder="Ex: 10" value="10" style="width: 100%; padding: 12px; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; font-size: 13px; color: #ffffff; background: #1f1f23; margin-bottom: 15px; outline: none; box-sizing: border-box;">
+            <label style="font-size: 12px; font-weight: bold; color: var(--gold); display: block; margin-bottom: 10px;">📅 Dias de Atendimento e Folgas (Selecione os dias ativos)</label>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 25px;">
+                <button type="button" class="btn-dia active" onclick="toggleDiaTrabalho(this)" style="padding: 10px; background: rgba(57,255,20,0.2); border: 1px solid var(--neon-green); color: #fff; border-radius: 8px; font-size: 12px; cursor: pointer;">Seg</button>
+                <button type="button" class="btn-dia active" onclick="toggleDiaTrabalho(this)" style="padding: 10px; background: rgba(57,255,20,0.2); border: 1px solid var(--neon-green); color: #fff; border-radius: 8px; font-size: 12px; cursor: pointer;">Ter</button>
+                <button type="button" class="btn-dia active" onclick="toggleDiaTrabalho(this)" style="padding: 10px; background: rgba(57,255,20,0.2); border: 1px solid var(--neon-green); color: #fff; border-radius: 8px; font-size: 12px; cursor: pointer;">Qua</button>
+                <button type="button" class="btn-dia active" onclick="toggleDiaTrabalho(this)" style="padding: 10px; background: rgba(57,255,20,0.2); border: 1px solid var(--neon-green); color: #fff; border-radius: 8px; font-size: 12px; cursor: pointer;">Qui</button>
+                <button type="button" class="btn-dia active" onclick="toggleDiaTrabalho(this)" style="padding: 10px; background: rgba(57,255,20,0.2); border: 1px solid var(--neon-green); color: #fff; border-radius: 8px; font-size: 12px; cursor: pointer;">Sex</button>
+                <button type="button" class="btn-dia" onclick="toggleDiaTrabalho(this)" style="padding: 10px; background: #1f1f23; border: 1px solid rgba(255,255,255,0.15); color: #888; border-radius: 8px; font-size: 12px; cursor: pointer;">Sáb (Folga)</button>
+                <button type="button" class="btn-dia" onclick="toggleDiaTrabalho(this)" style="padding: 10px; background: #1f1f23; border: 1px solid rgba(255,255,255,0.15); color: #888; border-radius: 8px; font-size: 12px; cursor: pointer;">Dom (Folga)</button>
+            </div>
 
-            <label style="font-size: 12px; font-weight: bold; color: #e4e4e7; display: block; margin-bottom: 6px;">Disponibilidade Preferida</label>
-            <select id="pref-select-periodo" style="width: 100%; padding: 12px; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; font-size: 13px; color: #ffffff; background: #1f1f23; margin-bottom: 25px; outline: none; box-sizing: border-box;">
-                <option value="Manhã (06:00 às 12:00)">🌅 Manhã (06:00 às 12:00)</option>
-                <option value="Tarde (12:00 às 18:00)">☀️ Tarde (12:00 às 18:00)</option>
-                <option value="Noite (18:00 às 22:00)">🌙 Noite (18:00 às 22:00)</option>
-                <option value="Flexível / Horário Comercial">⚡ Flexível / Período Integral</option>
-            </select>
-
-            <button class="btn" onclick="salvarPreferenciasAtendimento()" style="width: 100%; background: var(--neon-green, #39ff14); color: #000000; font-weight: bold; padding: 14px; border: none; border-radius: 12px; font-size: 14px; cursor: pointer; margin-bottom: 30px;">Salvar Preferências</button>
+            <button class="btn" onclick="salvarPreferenciasAtendimento()" style="width: 100%; background: var(--neon-green, #39ff14); color: #000000; font-weight: bold; padding: 14px; border: none; border-radius: 12px; font-size: 14px; cursor: pointer; margin-bottom: 30px;">Salvar Preferências e Escala</button>
         </div>
     </div>
 
@@ -473,13 +468,63 @@
 
             <label style="font-size: 12px; font-weight: bold; color: #e4e4e7; display: block; margin-bottom: 6px;">Seu Link de Indicação Exclusivo</label>
             <div style="display: flex; gap: 8px; margin-bottom: 20px;">
-                <input type="text" id="input-link-indicacao" readonly style="flex: 1; padding: 12px; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; font-size: 12px; color: var(--gold, #ffcc00); background: #1f1f23; outline: none; box-sizing: border-box;" value="https://tapago.com.br/personal/cadastro?ref=PENDENTE">
+                <input type="text" id="input-link-indicacao" readonly style="flex: 1; padding: 12px; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; font-size: 12px; color: var(--gold, #ffcc00); background: #1f1f23; outline: none; box-sizing: border-box;" value="https://tapago.com.br/personal/cadastro?ref=OTAVIO">
                 <button onclick="copiarLinkIndicacao()" style="background: #27272a; border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 0 15px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 12px;">Copiar</button>
             </div>
 
             <button class="btn" onclick="compartilharWhatsApp()" style="width: 100%; background: #25d366; color: #ffffff; font-weight: bold; padding: 14px; border: none; border-radius: 12px; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 30px;">
                 Compartilhar via WhatsApp
             </button>
+        </div>
+    </div>
+
+    <!-- TELA TÁTIL 5: NOTIFICAÇÕES -->
+    <div id="subscreen-notificacoes" class="app-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0b0b0d; z-index: 999999; overflow-y: auto;">
+        <div style="max-width: 480px; width: 100%; margin: 0 auto; padding: 20px; box-sizing: border-box;">
+            <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 25px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px;">
+                <button onclick="fecharSubtela('subscreen-notificacoes')" style="background: transparent; border: none; color: var(--neon-green); font-size: 22px; font-weight: bold; cursor: pointer;">❮</button>
+                <h2 style="margin: 0; color: #ffffff; font-size: 18px;">Configurações de Notificação</h2>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 15px; margin-bottom: 25px;">
+                <label style="display: flex; align-items: center; justify-content: space-between; background: #1f1f23; padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); cursor: pointer;">
+                    <span style="font-size: 13px; color: #fff;">📲 Notificações com tela desligada (Push)</span>
+                    <input type="checkbox" id="notif-push" checked style="width: 18px; height: 18px; accent-color: var(--neon-green);">
+                </label>
+                <label style="display: flex; align-items: center; justify-content: space-between; background: #1f1f23; padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); cursor: pointer;">
+                    <span style="font-size: 13px; color: #fff;">💬 Notificar ao receber mensagens no chat</span>
+                    <input type="checkbox" id="notif-chat" checked style="width: 18px; height: 18px; accent-color: var(--neon-green);">
+                </label>
+                <label style="display: flex; align-items: center; justify-content: space-between; background: #1f1f23; padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); cursor: pointer;">
+                    <span style="font-size: 13px; color: #fff;">⚡ Notificar apenas quando houver ofertas no radar</span>
+                    <input type="checkbox" id="notif-radar" style="width: 18px; height: 18px; accent-color: var(--neon-green);">
+                </label>
+            </div>
+
+            <button class="btn" onclick="fecharSubtela('subscreen-notificacoes')" style="width: 100%; background: var(--neon-green); color: #000; font-weight: bold; padding: 14px; border: none; border-radius: 12px;">Salvar Notificações</button>
+        </div>
+    </div>
+
+    <!-- TELA TÁTIL 6: AJUDA E SUPORTE (DEV) -->
+    <div id="subscreen-ajuda" class="app-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0b0b0d; z-index: 999999; overflow-y: auto;">
+        <div style="max-width: 480px; width: 100%; margin: 0 auto; padding: 20px; box-sizing: border-box;">
+            <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 25px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px;">
+                <button onclick="fecharSubtela('subscreen-ajuda')" style="background: transparent; border: none; color: var(--neon-green); font-size: 22px; font-weight: bold; cursor: pointer;">❮</button>
+                <h2 style="margin: 0; color: #ffffff; font-size: 18px;">Ajuda e Suporte</h2>
+            </div>
+            
+            <div class="glass" style="padding: 20px; border-radius: 16px; margin-bottom: 20px; border: 1px solid var(--gold);">
+                <h3 style="color: var(--gold); font-size: 16px; margin: 0 0 10px 0;">💻 Desenvolvedor & Suporte Técnico</h3>
+                <p style="font-size: 13px; color: #e4e4e7; line-height: 1.6; margin: 0 0 15px 0;">
+                    Precisa de suporte com o sistema, ajustes no painel ou dúvidas sobre os repasses? Entre em contato diretamente com o desenvolvedor responsável:
+                </p>
+                <div style="font-size: 13px; color: #fff; display: flex; flex-direction: column; gap: 8px;">
+                    <div>📧 <strong>E-mail:</strong> otaviomtelini@gmail.com</div>
+                    <div>📱 <strong>WhatsApp de Suporte:</strong> (19) 99999-9999</div>
+                </div>
+            </div>
+
+            <button class="btn" onclick="fecharSubtela('subscreen-ajuda')" style="width: 100%; background: #27272a; color: #fff; font-weight: bold; padding: 14px; border: 1px solid rgba(255,255,255,0.2); border-radius: 12px;">Voltar ao Menu</button>
         </div>
     </div>
 
@@ -531,7 +576,7 @@
     </div>
 
     <script>
-        // Sistema unificado de navegação tátil por páginas
+        // Função unificada corrigida para abrir corretamente todas as subscreens táteis
         window.abrirOpcaoMenu = function(nomeOpcao) {
             if (nomeOpcao === 'Perfil') {
                 document.getElementById('subscreen-perfil-detalhes').style.display = 'block';
@@ -542,9 +587,13 @@
             } else if (nomeOpcao === 'Convidar Amigos') {
                 const sub = document.getElementById('subscreen-indicar-amigo');
                 sub.style.display = 'block';
-                const cpfPersonal = dadosPerfil && dadosPerfil.cpf ? dadosPerfil.cpf : "geral";
+                const cpfPersonal = dadosPerfil && dadosPerfil.cpf ? dadosPerfil.cpf : "OTAVIO";
                 const linkInput = document.getElementById('input-link-indicacao');
                 if (linkInput) linkInput.value = `https://tapago.com.br/personal/cadastro?ref=${cpfPersonal}`;
+            } else if (nomeOpcao === 'Notificações') {
+                document.getElementById('subscreen-notificacoes').style.display = 'block';
+            } else if (nomeOpcao === 'Ajuda') {
+                document.getElementById('subscreen-ajuda').style.display = 'block';
             } else {
                 alert(`📌 Em breve: Redirecionando para ${nomeOpcao}.`);
             }
@@ -552,6 +601,26 @@
 
         window.fecharSubtela = function(idTela) {
             document.getElementById(idTela).style.display = 'none';
+        }
+
+        window.toggleDiaTrabalho = function(btn) {
+            const isAtivo = btn.classList.toggle('active');
+            if (isAtivo) {
+                btn.style.background = 'rgba(57,255,20,0.2)';
+                btn.style.borderColor = 'var(--neon-green)';
+                btn.style.color = '#fff';
+                btn.innerText = btn.innerText.replace(' (Folga)', '');
+            } else {
+                btn.style.background = '#1f1f23';
+                btn.style.borderColor = 'rgba(255,255,255,0.15)';
+                btn.style.color = '#888';
+                if (!btn.innerText.includes('Folga')) btn.innerText += ' (Folga)';
+            }
+        }
+
+        window.salvarPreferenciasAtendimento = function() {
+            alert("✅ Preferências, horários e dias de trabalho salvos com sucesso!");
+            fecharSubtela('subscreen-preferencias-atendimento');
         }
 
         window.copiarLinkIndicacao = function() {
@@ -567,11 +636,6 @@
             const link = input ? input.value : "https://tapago.com.br/personal/cadastro";
             const texto = encodeURIComponent(`Fala, meu caro! Vem pro TAPAGO, o app que mais paga bem para Personal Trainers. Cadastre-se por este link e comece a atender: ${link}`);
             window.open(`https://api.whatsapp.com/send?text=${texto}`, '_blank');
-        }
-
-        window.salvarPreferenciasAtendimento = function() {
-            alert("✅ Preferências de atendimento salvas com sucesso!");
-            window.fecharSubtela('subscreen-preferencias-atendimento');
         }
     </script>
 
