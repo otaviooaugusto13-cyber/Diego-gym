@@ -35,8 +35,14 @@ let conversaAtiva = null;
 let unsubscribePersonalChat = null;
 let ganhosAvulsos = 450;
 let agendaDeHoje = [];
+let primeiraCargaChamadas = true;
 
 window.addEventListener('DOMContentLoaded', () => {
+    // Solicitar Permissão de Notificações
+    if ("Notification" in window && Notification.permission !== "granted") {
+        Notification.requestPermission();
+    }
+
     const savedProfile = localStorage.getItem('tapago_personal_user');
     if (savedProfile) {
         const parsed = JSON.parse(savedProfile);
@@ -46,6 +52,40 @@ window.addEventListener('DOMContentLoaded', () => {
         finalizarLogin(true, parsed.nome, parsed.cpf, parsed.cref);
     }
 });
+
+// DISPARADOR DE NOTIFICAÇÃO (SOM + VIBRAÇÃO + PUSH)
+function dispararNotificacaoNovaChamada(nomeAluno, foco) {
+    // 1. Vibração do Celular
+    if ("vibrate" in navigator) {
+        navigator.vibrate([200, 100, 200]);
+    }
+
+    // 2. Som de Alerta em Tempo Real (Web Audio API)
+    try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // Nota D5
+        osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.3); // Nota A5
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.5);
+    } catch (e) {
+        console.error("Erro som alerta:", e);
+    }
+
+    // 3. Notificação Nativa do Sistema
+    if ("Notification" in window && Notification.permission === "granted") {
+        new Notification("⚡ Novo Treino Solicitado no TAPAGO!", {
+            body: `${nomeAluno} está procurando um Personal para ${foco}!`,
+            icon: "manifest-icon.png"
+        });
+    }
+}
 
 function iniciarRastreamentoGPS() {
     if (navigator.geolocation && dadosPerfil.cpf) {
@@ -177,7 +217,7 @@ function finalizarLogin(lembreme, nome, cpf, cref) {
     escutarChamadasUberPersonal();
 }
 
-// Escuta chamadas instantâneas dos alunos (Modo Uber)
+// Escuta chamadas instantâneas dos alunos (Modo Uber) com alarme sonoro
 function escutarChamadasUberPersonal() {
     const container = document.getElementById('painel-chamadas-uber');
     if (!container) return;
@@ -185,27 +225,36 @@ function escutarChamadasUberPersonal() {
     const q = query(collection(db, "chamadas_uber"), where("status", "==", "pendente"));
     onSnapshot(q, (snapshot) => {
         container.innerHTML = "";
-        if (snapshot.empty) return;
+        
+        if (!snapshot.empty) {
+            snapshot.docChanges().forEach((change) => {
+                if (change.type === "added" && !primeiraCargaChamadas) {
+                    const novaChamada = change.doc.data();
+                    dispararNotificacaoNovaChamada(novaChamada.alunoNome, novaChamada.foco);
+                }
+            });
 
-        snapshot.forEach((docItem) => {
-            const c = docItem.data();
-            const card = document.createElement('div');
-            card.className = "glass";
-            card.style.cssText = "padding: 15px; border-left: 4px solid var(--neon-green); margin-bottom: 10px; background: rgba(57, 255, 20, 0.08); border: 1px solid var(--neon-green);";
-            card.innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                    <span style="font-size: 11px; font-weight: bold; color: var(--neon-green); text-transform: uppercase;">⚡ Chamada Solicitada (Estilo Uber)</span>
-                    <span style="font-size: 13px; font-weight: bold; color: var(--gold);">R$ ${c.valor},00</span>
-                </div>
-                <h4 style="margin: 0; font-size: 15px;">${c.alunoNome}</h4>
-                <p style="font-size: 12px; color: var(--text-muted); margin: 3px 0;">Foco: <strong>${c.foco}</strong> • Horário: <strong>${c.horario}</strong></p>
-                <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px;">Local: ${c.local}</p>
-                <button onclick="aceitarChamadaUber('${docItem.id}', '${c.alunoNome}', '${c.horario}', ${c.valor}, '${c.foco}')" style="width: 100%; background: var(--neon-green); color: #000; font-weight: bold; padding: 10px; border: none; border-radius: 8px; cursor: pointer; font-size: 13px;">
-                    ⚡ Aceitar Chamada Agora (Quem Clicar Primeiro Leva)
-                </button>
-            `;
-            container.appendChild(card);
-        });
+            snapshot.forEach((docItem) => {
+                const c = docItem.data();
+                const card = document.createElement('div');
+                card.className = "glass";
+                card.style.cssText = "padding: 15px; border-left: 4px solid var(--neon-green); margin-bottom: 10px; background: rgba(57, 255, 20, 0.08); border: 1px solid var(--neon-green);";
+                card.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <span style="font-size: 11px; font-weight: bold; color: var(--neon-green); text-transform: uppercase;">⚡ Chamada Solicitada ${c.ehPico ? '🔥 Pico' : ''}</span>
+                        <span style="font-size: 14px; font-weight: bold; color: var(--gold);">R$ ${c.valor},00</span>
+                    </div>
+                    <h4 style="margin: 0; font-size: 15px;">${c.alunoNome}</h4>
+                    <p style="font-size: 12px; color: var(--text-muted); margin: 3px 0;">Foco: <strong>${c.foco}</strong> • Horário: <strong>${c.horario}</strong></p>
+                    <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px;">Local: ${c.local}</p>
+                    <button onclick="aceitarChamadaUber('${docItem.id}', '${c.alunoNome}', '${c.horario}', ${c.valor}, '${c.foco}')" style="width: 100%; background: var(--neon-green); color: #000; font-weight: bold; padding: 10px; border: none; border-radius: 8px; cursor: pointer; font-size: 13px;">
+                        ⚡ Aceitar Chamada Agora (Quem Clicar Primeiro Leva)
+                    </button>
+                `;
+                container.appendChild(card);
+            });
+        }
+        primeiraCargaChamadas = false;
     });
 }
 
