@@ -128,8 +128,7 @@ window.initMap = function() {
 function estaNoHorarioTrabalho(data) {
     const agora = new Date();
     const horaAtual = agora.getHours();
-    const diaSemana = agora.getDay(); // 0 = Domingo, 6 = Sábado
-
+    const diaSemana = agora.getDay();
     const inicio = data.horaInicio ? parseInt(data.horaInicio) : 8;
     const fim = data.horaFim ? parseInt(data.horaFim) : 21;
     const diaFolga = data.diaFolga !== undefined ? parseInt(data.diaFolga) : 0;
@@ -145,7 +144,6 @@ function escutarPersonaisEmTempoReal() {
 
     onSnapshot(collection(db, "profissionais"), (snapshot) => {
         container.innerHTML = "";
-
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition((pos) => {
                 const localAluno = { lat: pos.coords.latitude, lng: pos.coords.longitude };
@@ -167,8 +165,6 @@ function processarSnapshotPersonais(snapshot, localAluno, container) {
         if (data.status === "ativo") {
             count++;
             const onlinePorHorario = estaNoHorarioTrabalho(data);
-            
-            // Posição ajustada caso não haja coordenadas válidas
             const pLat = data.lat || (-22.4389 + (count * 0.003));
             const pLng = data.lng || (-46.8258 + (count * 0.003));
             const nomeProf = data.nome || "Personal";
@@ -188,7 +184,7 @@ function processarSnapshotPersonais(snapshot, localAluno, container) {
                 marcadoresPersonal[docItem.id].setMap(null);
             }
 
-            let distanciaTexto = "Distância não mapeada";
+            let distanciaTexto = "Próximo";
             if (window.google && google.maps && google.maps.geometry) {
                 const pAluno = new google.maps.LatLng(localAluno.lat, localAluno.lng);
                 const pProf = new google.maps.LatLng(pLat, pLng);
@@ -206,9 +202,9 @@ function processarSnapshotPersonais(snapshot, localAluno, container) {
                     <div class="trainer-info">
                         <h4>${nomeProf} <span class="badge badge-gold">Verificado</span></h4>
                         <p>CREF: ${data.cref || 'Ativo'}</p>
-                        <div class="trainer-status ${onlinePorHorario ? 'status-online' : ''}" style="color: ${onlinePorHorario ? '#39ff14' : '#ff3333'};">
+                        <div class="trainer-status" style="color: ${onlinePorHorario ? '#39ff14' : '#ff3333'};">
                             <span class="dot" style="background:${onlinePorHorario ? '#39ff14' : '#ff3333'};"></span> 
-                            ${onlinePorHorario ? 'ONLINE' : 'OFFLINE (Fora do Horário)'} • <span>${distanciaTexto}</span>
+                            ${onlinePorHorario ? 'ONLINE' : 'OFFLINE'} • <span>${distanciaTexto}</span>
                         </div>
                     </div>
                 </div>
@@ -362,12 +358,46 @@ function ouvirMensagensFirestore() {
         snapshot.forEach((docItem) => {
             const msg = docItem.data();
             const bubble = document.createElement('div');
-            bubble.className = `chat-bubble ${msg.remetente === alunoLogado.uid ? 'bubble-user' : 'bubble-trainer'}`;
-            bubble.innerText = msg.texto;
+            
+            if (msg.tipo === "proposta") {
+                bubble.className = `chat-bubble bubble-trainer`;
+                bubble.innerHTML = `
+                    <strong>${msg.texto}</strong><br>
+                    <button onclick="aceitarProposta('${msg.horario}', '${msg.preco}', '${conversaAtivaPersonal}')" style="margin-top:8px; background:var(--neon-green); color:#000; border:none; padding:8px 12px; border-radius:6px; font-weight:bold; cursor:pointer; width:100%;">Aceitar e Agendar no Google Agenda</button>
+                `;
+            } else {
+                bubble.className = `chat-bubble ${msg.remetente === alunoLogado.uid ? 'bubble-user' : 'bubble-trainer'}`;
+                bubble.innerText = msg.texto;
+            }
             msgsArea.appendChild(bubble);
         });
         msgsArea.scrollTop = msgsArea.scrollHeight;
     });
+}
+
+// Aluno Aceita a Proposta -> Salva na Agenda e abre o Google Agenda
+window.aceitarProposta = async function(horario, preco, nomeProf) {
+    try {
+        await addDoc(collection(db, "agenda"), {
+            nome: alunoLogado.nome,
+            objetivo: "Treino Personalizado",
+            preco: parseFloat(preco),
+            horario: horario,
+            diaSemana: "Hoje",
+            frequencia: "Avulso",
+            status: "ativo",
+            criadoEm: new Date().toISOString()
+        });
+
+        const hojeStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
+        const horaFormatada = horario.replace(':', '') + '00';
+        const gCalendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=Treino+com+${encodeURIComponent(nomeProf)}&dates=${hojeStr}T${horaFormatada}/${hojeStr}T${parseInt(horario)+1}0000&details=Treino+contratado+via+TAPAGO+por+R$${preco}&location=Itapira+SP`;
+
+        alert(`🎉 Proposta aceita com sucesso!\n\nSalvando horário na sua agenda do Google...`);
+        window.open(gCalendarUrl, '_blank');
+    } catch (e) {
+        console.error("Erro ao aceitar proposta:", e);
+    }
 }
 
 window.handleEnter = function(event) { if (event.key === 'Enter') sendMessage(); }
