@@ -191,18 +191,16 @@ async function salvarHorarioAtendimento() {
     }
 }
 
-// Inicialização Global do Mapa do Personal exigida pelo Google Maps API
 window.initMapAlunos = function() {
     const mapaElemento = document.getElementById("mapa-alunos");
     if (!mapaElemento) return;
 
-    const pontoInicial = { lat: -22.4389, lng: -46.8258 }; // Itapira-SP
+    const pontoInicial = { lat: -22.4389, lng: -46.8258 };
     mapAlunos = new google.maps.Map(mapaElemento, {
         zoom: 14,
         center: pontoInicial,
         disableDefaultUI: true
     });
-
     carregarAlunosNoMapa();
 }
 
@@ -404,6 +402,28 @@ async function enviarMensagemChat() {
     }
 }
 
+// Enviar Proposta de Horário e Preço Direto no Chat
+async function enviarPropostaPersonal() {
+    if (!conversaAtiva) return alert("Abra uma conversa primeiro.");
+    const horario = prompt("Digite o horário da aula (Ex: 15:00):", "15:00");
+    const preco = prompt("Digite o valor da aula (R$):", "60");
+    if (!horario || !preco) return;
+
+    const chatId = `${conversaAtiva}_${dadosPerfil.nome}`;
+    try {
+        await addDoc(collection(db, "chats", chatId, "mensagens"), {
+            remetente: dadosPerfil.nome,
+            tipo: "proposta",
+            horario: horario,
+            preco: preco,
+            texto: `📋 Proposta de Treino: Horário às ${horario} - Valor: R$ ${preco},00`,
+            data: new Date().toISOString()
+        });
+    } catch (e) {
+        console.error("Erro proposta:", e);
+    }
+}
+
 function abrirQRCode(index) {
     const randomPayId = "TAPAGO-PIX-" + Math.floor(Math.random() * 900000 + 100000);
     const imgEl = document.getElementById('qr-code-img');
@@ -482,6 +502,7 @@ window.confirmarCadastroAluno = confirmarCadastroAluno;
 window.abrirConversa = abrirConversa;
 window.fecharConversa = fecharConversa;
 window.enviarMensagemChat = enviarMensagemChat;
+window.enviarPropostaPersonal = enviarPropostaPersonal;
 window.salvarHorarioAtendimento = salvarHorarioAtendimento;
 window.atualizarFotoPerfil = atualizarFotoPerfil;
 window.alternarTema = alternarTema;
