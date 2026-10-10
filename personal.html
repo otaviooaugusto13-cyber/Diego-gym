@@ -66,17 +66,51 @@
 
     <!-- TELA 2: Dashboard Principal -->
     <div id="screen-dashboard" class="screen main-app-screen">
-        
-    
+
         <!-- ABA 1: INÍCIO -->
         <div id="tab-inicio" class="tab-content active" style="padding-bottom: 120px;">
-            <div class="header-personal glass">
-                <div>
-                    <h2 style="margin: 0; font-size: 20px;">Olá, <span id="nome-exibicao" class="highlight">Professor</span></h2>
-                    <p style="margin: 0; font-size: 12px; color: var(--gold);">Profissional Verificado ✓ (Split Mercado Pago 85/15)</p>
+            
+            <!-- PAINEL DE STATUS DA ANÁLISE (ESTILO DA FOTO) -->
+            <div id="card-status-analise" class="glass" style="padding: 20px; border-radius: 16px; margin: 15px 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <span style="font-size: 11px; font-weight: bold; color: var(--gold); background: rgba(255, 215, 0, 0.15); padding: 4px 10px; border-radius: 12px;">• EM ANÁLISE</span>
+                </div>
+                
+                <h3 style="font-size: 18px; margin: 0 0 5px 0; color: var(--text-color);">Estamos analisando seu documento</h3>
+                <p style="font-size: 12px; color: var(--text-muted); margin: 0 0 20px 0;">Avisaremos por aqui assim que a análise estiver concluída.</p>
+
+                <div class="section-title" style="margin-bottom: 15px;">O QUE ACONTECE AGORA</div>
+
+                <div style="display: flex; flex-direction: column; gap: 15px; position: relative;">
+                    <!-- PASSO 1 -->
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="width: 24px; height: 24px; border-radius: 50%; background: #28a745; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold;">✓</div>
+                        <span style="font-size: 13px; color: var(--text-color); font-weight: 500;">Documento recebido</span>
+                    </div>
+                    <!-- PASSO 2 -->
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--gold); color: var(--gold); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold;">🔍</div>
+                        <span style="font-size: 13px; color: var(--text-color); font-weight: 500;">Análise em andamento</span>
+                    </div>
+                    <!-- PASSO 3 -->
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="width: 24px; height: 24px; border-radius: 50%; background: rgba(255,255,255,0.1); color: var(--text-muted); display: flex; align-items: center; justify-content: center; font-size: 12px;">🔔</div>
+                        <span style="font-size: 13px; color: var(--text-muted);">Avisaremos quando estiver pronto</span>
+                    </div>
                 </div>
             </div>
 
+            <!-- CARD DE AJUDA -->
+            <div class="glass" style="padding: 20px; border-radius: 16px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h3 style="margin: 0 0 5px 0; font-size: 16px;">Ajuda</h3>
+                    <p style="margin: 0 0 10px 0; font-size: 12px; color: var(--text-muted);">Ficou com alguma dúvida?<br>Estamos aqui para esclarecê-las!</p>
+                    <a href="#" onclick="abrirOpcaoMenu('Ajuda'); return false;" style="color: var(--gold); font-size: 12px; font-weight: bold; text-decoration: none;">Saber mais ›</a>
+                </div>
+                <div style="font-size: 40px; line-height: 1;">❓</div>
+            </div>
+
+            <!-- PROJEÇÃO FINANCEIRA -->
             <div class="glass finance-card">
                 <div class="finance-header">Projeção Financeira Real (Líquido Personal)</div>
                 <div class="finance-values">
@@ -110,14 +144,13 @@
             <div id="lista-demandas-cards" style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;"></div>
         </div>
 
-        <!-- ABA 3: AGENDA (VISUAL HELPPI / GOOGLE CALENDAR) -->
+        <!-- ABA 3: AGENDA -->
         <div id="tab-agenda" class="tab-content" style="padding-bottom: 120px;">
             <div class="header-personal glass" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                 <h2 style="margin: 0; font-size: 20px;">Agenda</h2>
                 <button class="btn btn-outline" style="padding: 6px 12px; font-size: 11px; border-color: var(--gold); color: var(--gold);" onclick="abrirModalCadastrarAluno()">+ Cadastrar Aluno</button>
             </div>
 
-            <!-- BANNER DE STATUS DO CADASTRO -->
             <div class="glass" style="padding: 12px 15px; background: rgba(255, 204, 0, 0.08); border-left: 4px solid var(--gold); margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
                 <span style="font-size: 20px;">⏳</span>
                 <p style="margin: 0; font-size: 11px; color: var(--text-muted); line-height: 1.3;">
@@ -125,7 +158,6 @@
                 </p>
             </div>
 
-            <!-- WIDGET DE CALENDÁRIO MENSAL ESTILO GOOGLE AGENDA -->
             <div class="glass" style="padding: 15px; border-radius: 16px; margin-bottom: 15px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                     <button onclick="mudarMesCalendario(-1)" style="background: transparent; border: none; color: var(--gold); font-size: 16px; cursor: pointer;">◀</button>
@@ -133,12 +165,10 @@
                     <button onclick="mudarMesCalendario(1)" style="background: transparent; border: none; color: var(--gold); font-size: 16px; cursor: pointer;">▶</button>
                 </div>
 
-                <!-- DIAS DA SEMANA -->
                 <div style="display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 11px; font-weight: bold; color: var(--text-muted); margin-bottom: 10px;">
                     <div>S</div><div>T</div><div>Q</div><div>Q</div><div>S</div><div>S</div><div>D</div>
                 </div>
 
-                <!-- GRADE DE DIAS -->
                 <div id="calendar-days-grid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; text-align: center;"></div>
             </div>
 
@@ -146,17 +176,15 @@
                 Escolha uma data para conferir os atendimentos agendados.
             </div>
 
-            <!-- LISTA DOS ALUNOS DA DATA SELECIONADA -->
             <div id="lista-agenda" style="display: flex; flex-direction: column; gap: 10px;"></div>
         </div>
 
-        <!-- ABA 4: CARTEIRA (LAYOUT REAL CONFORME A FOTO) -->
+        <!-- ABA 4: CARTEIRA -->
         <div id="tab-carteira" class="tab-content" style="padding-bottom: 120px;">
             <div class="header-personal glass" style="margin-bottom: 15px;">
                 <h2 style="margin: 0; font-size: 20px;">Carteira</h2>
             </div>
 
-            <!-- CARD 1: SEUS GANHOS APARECERÃO AQUI -->
             <div class="glass" style="padding: 25px 20px; text-align: center; margin-bottom: 15px;">
                 <div style="width: 50px; height: 50px; border-radius: 50%; background: #28a745; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; margin: 0 auto 15px auto;">
                     $
@@ -167,7 +195,6 @@
                 </p>
             </div>
 
-            <!-- CARD 2: VOCÊ JÁ CADASTROU SEUS DADOS BANCÁRIOS? -->
             <div class="glass" style="padding: 20px; text-align: center; margin-bottom: 15px; border-left: 4px solid #ff3b30;">
                 <div style="margin-bottom: 10px;">
                     <span style="font-size: 32px;">💳</span>
@@ -182,7 +209,7 @@
             </div>
         </div>
 
-        <!-- ABA 5: MENU (ESTILO DAS FOTOS) -->
+        <!-- ABA 5: MENU -->
         <div id="tab-menu" class="tab-content" style="padding-bottom: 120px;">
             <div class="header-personal glass" style="margin-bottom: 15px;">
                 <div style="display: flex; align-items: center; gap: 12px;">
@@ -197,7 +224,6 @@
                 </div>
             </div>
 
-            <!-- CARD DESEMPENHO -->
             <div class="glass" style="padding: 15px; margin-bottom: 15px; text-align: center;">
                 <div style="display: flex; justify-content: space-around; margin-bottom: 10px;">
                     <div>
@@ -228,7 +254,6 @@
                 </div>
             </div>
 
-            <!-- LISTA DE OPÇÕES CLICÁVEIS DO MENU -->
             <div class="glass-list">
                 <div class="menu-option-item" onclick="abrirOpcaoMenu('Perfil')">
                     <div class="option-left"><span>👤</span><span>Perfil</span></div>
