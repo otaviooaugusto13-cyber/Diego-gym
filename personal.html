@@ -113,22 +113,28 @@
 
         <!-- ABA 3: CHAT -->
         <div id="tab-chat" class="tab-content" style="padding-bottom: 100px;">
-            <div class="header-personal glass">
-                <h2 style="margin: 0; font-size: 20px;">Mensagens</h2>
-            </div>
-            <div id="chat-list-view"></div>
-            <div id="chat-conversation-view" style="display: none;">
-                <div class="chat-header-active">
+        <div class="header-personal glass">
+            <h2 style="margin: 0; font-size: 20px;">Mensagens</h2>
+        </div>
+        <div id="chat-list-view"></div>
+        
+        <div id="chat-conversation-view" style="display: none;">
+            <div class="chat-header-active" style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 10px;">
                     <button class="btn-back-chat" onclick="fecharConversa()">← Voltar</button>
                     <h3 id="chat-active-name" style="font-size: 15px; margin: 0;">Aluno</h3>
                 </div>
-                <div class="chat-messages-container" id="chat-box"></div>
-                <div class="chat-input-bar">
-                    <input type="text" id="input-chat-msg" placeholder="Digite uma mensagem..." onkeypress="if(event.key==='Enter')enviarMensagemChat()">
-                    <button onclick="enviarMensagemChat()">Enviar</button>
-                </div>
+                <!-- BOTÃO DE ENVIAR PROPOSTA -->
+                <button onclick="enviarPropostaPersonal()" style="background: var(--gold); color: #000; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size: 11px; cursor: pointer;">📋 Enviar Proposta</button>
             </div>
-        </div>
+            
+            <div class="chat-messages-container" id="chat-box"></div>
+            
+            <div class="chat-input-bar">
+                <input type="text" id="input-chat-msg" placeholder="Digite uma mensagem..." onkeypress="if(event.key==='Enter')enviarMensagemChat()">
+                <button onclick="enviarMensagemChat()">Enviar</button>
+            </div>
+        </
 
         <!-- ABA 4: PERFIL -->
         <div id="tab-perfil" class="tab-content" style="padding-bottom: 100px;">
