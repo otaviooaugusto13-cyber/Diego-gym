@@ -33,33 +33,75 @@ let mapAlunos;
 let marcadoresAlunosMap = {};
 let conversaAtiva = null;
 let unsubscribePersonalChat = null;
-let ganhosAvulsos = 450;
+let ganhosAvulsos = 0;
 let agendaDeHoje = [];
 let primeiraCargaChamadas = true;
 let audioCtx = null;
 
 // ==========================================
-// CONFIGURAÇÃO MERCADO PAGO (PRONTO PARA API)
+// CALENDÁRIO MENSAL (ESTILO GOOGLE AGENDA)
+// ==========================================
+let dataAtualCalendario = new Date(2026, 9, 10); // Outubro de 2026
+let diaSelecionadoCalendario = 10;
+
+function renderizarCalendario() {
+    const monthYearText = document.getElementById('calendar-month-year');
+    const grid = document.getElementById('calendar-days-grid');
+    if (!grid || !monthYearText) return;
+
+    const meses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+    const ano = dataAtualCalendario.getFullYear();
+    const mes = dataAtualCalendario.getMonth();
+
+    monthYearText.innerText = `${meses[mes]} ${ano}`;
+    grid.innerHTML = "";
+
+    const primeiroDiaSemana = new Date(ano, mes, 1).getDay();
+    const totalDiasMes = new Date(ano, mes + 1, 0).getDate();
+
+    for (let i = 0; i < primeiroDiaSemana; i++) {
+        grid.innerHTML += `<div></div>`;
+    }
+
+    for (let dia = 1; dia <= totalDiasMes; dia++) {
+        const ehHoje = (dia === diaSelecionadoCalendario);
+        grid.innerHTML += `
+            <div onclick="selecionarDiaCalendario(${dia})" style="padding: 8px 0; border-radius: 50%; font-size: 12px; cursor: pointer; font-weight: ${ehHoje ? 'bold' : 'normal'}; background: ${ehHoje ? 'var(--gold)' : 'transparent'}; color: ${ehHoje ? '#000' : 'var(--text-color)'};">
+                ${dia}
+            </div>
+        `;
+    }
+}
+
+window.mudarMesCalendario = function(delta) {
+    dataAtualCalendario.setMonth(dataAtualCalendario.getMonth() + delta);
+    renderizarCalendario();
+}
+
+window.selecionarDiaCalendario = function(dia) {
+    diaSelecionadoCalendario = dia;
+    renderizarCalendario();
+    const label = document.getElementById('selected-date-label');
+    if (label) label.innerText = `Atendimentos agendados para o dia ${dia}/${dataAtualCalendario.getMonth() + 1}/${dataAtualCalendario.getFullYear()}:`;
+    carregarAgendaDoBanco();
+}
+
+// ==========================================
+// CONFIGURAÇÃO MERCADO PAGO
 // ==========================================
 const MP_PUBLIC_KEY = "APP_USR-xxxx-xxxx-xxxx-xxxx"; 
 
 window.iniciarCheckoutMercadoPago = function(valorAula = 80) {
     try {
-        const mp = new MercadoPago(MP_PUBLIC_KEY, {
-            locale: 'pt-BR'
-        });
-
-        alert(`⚡ Conectando ao Mercado Pago...\n\nValor: R$ ${valorAula},00\n- 85% para ${dadosPerfil.nome}\n- 15% para Plataforma TAPAGO\n\n(Insira seu Access Token no backend para gerar o QR Code real do PIX).`);
-
+        const mp = new MercadoPago(MP_PUBLIC_KEY, { locale: 'pt-BR' });
+        alert(`⚡ Conectando ao Mercado Pago...\n\nValor: R$ ${valorAula},00\n- 85% para ${dadosPerfil.nome}\n- 15% para Plataforma TAPAGO`);
         setTimeout(() => {
-            fecharModalQRCode();
-            alert("✅ Pagamento aprovado via Mercado Pago! Crédito dividido com sucesso.");
+            alert("✅ Pagamento aprovado via Mercado Pago! Split concluído com sucesso.");
             carregarAgendaDoBanco();
         }, 1500);
-
     } catch (e) {
         console.error("Erro Mercado Pago:", e);
-        alert("Erro ao iniciar pagamento. Verifique a chave pública do Mercado Pago.");
+        alert("Erro ao iniciar pagamento. Verifique a chave pública.");
     }
 }
 
@@ -77,6 +119,7 @@ window.addEventListener('DOMContentLoaded', () => {
         dadosPerfil.cref = parsed.cref;
         finalizarLogin(true, parsed.nome, parsed.cpf, parsed.cref);
     }
+    renderizarCalendario();
 });
 
 window.solicitarPermissaoNotificacao = function() {
@@ -346,25 +389,19 @@ function renderizarAgenda() {
     if (resumo) resumo.innerHTML = "";
 
     if (agendaDeHoje.length === 0) {
-        lista.innerHTML = "<p style='color: var(--text-muted); font-size: 13px;'>Nenhum aluno cadastrado.</p>";
-        if (resumo) resumo.innerHTML = "<p style='color: var(--text-muted); font-size: 13px;'>Nenhum atendimento para hoje.</p>";
+        lista.innerHTML = "<p style='color: var(--text-muted); font-size: 12px; text-align: center; padding: 15px;'>Nenhum atendimento agendado para esta data.</p>";
+        if (resumo) resumo.innerHTML = "<p style='color: var(--text-muted); font-size: 12px;'>Nenhum atendimento para hoje.</p>";
         return;
     }
 
     agendaDeHoje.forEach((slot, index) => {
         const itemHtml = `
-            <div class="glass agenda-slot slot-ocupado">
-                <div class="slot-time">${slot.horario || '08:00'}</div>
-                <div class="slot-info">
-                    <div class="slot-info-name">${slot.nome || slot.aluno}</div>
-                    <div class="slot-info-desc">Foco: ${slot.objetivo} | ${slot.frequencia || '3x'} (${slot.diaSemana || 'Seg, Qua, Sex'}) - R$ ${slot.preco || 0}</div>
+            <div class="glass" style="padding: 12px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <div>
+                    <h4 style="margin: 0; font-size: 14px;">${slot.nome || slot.aluno} (${slot.horario || '08:00'})</h4>
+                    <p style="font-size: 11px; color: var(--gold); margin: 2px 0;">Foco: ${slot.objetivo} • R$ ${slot.preco || 0}</p>
                 </div>
-                <div style="display:flex; flex-direction:column; align-items:flex-end; gap: 5px;">
-                    <button class="btn-slot-action btn-qr" onclick="abrirQRCode(${index})">Pagar Mercado Pago</button>
-                    <button onclick="desmarcarTreinoPersonal('${slot.id}', '${slot.nome || slot.aluno}')" style="background: rgba(255, 51, 51, 0.2); color: #ff3333; border: 1px solid #ff3333; padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: bold; cursor: pointer;">
-                        ✕ Desmarcar (Taxa R$15)
-                    </button>
-                </div>
+                <button onclick="desmarcarTreinoPersonal('${slot.id}', '${slot.nome || slot.aluno}')" style="background: rgba(255, 51, 51, 0.2); color: #ff3333; border: 1px solid #ff3333; padding: 4px 8px; border-radius: 6px; font-size: 10px; cursor: pointer;">✕ Desmarcar</button>
             </div>
         `;
         lista.innerHTML += itemHtml;
@@ -627,6 +664,34 @@ window.salvarBioPersonal = async function() {
     }
 }
 
+// MODAL DADOS BANCÁRIOS
+window.abrirModalDadosBancarios = function() {
+    document.getElementById('modal-dados-bancarios').classList.add('active');
+}
+window.fecharModalDadosBancarios = function() {
+    document.getElementById('modal-dados-bancarios').classList.remove('active');
+}
+window.salvarDadosBancarios = async function() {
+    const banco = document.getElementById('bank-nome').value.trim();
+    const ag = document.getElementById('bank-agencia').value.trim();
+    const conta = document.getElementById('bank-conta').value.trim();
+    const pix = document.getElementById('bank-pix').value.trim();
+
+    if (!banco || !conta || !pix) return alert("Preencha ao menos o Banco, Conta e Chave PIX.");
+
+    if (dadosPerfil.cpf) {
+        try {
+            await setDoc(doc(db, "profissionais", dadosPerfil.cpf), {
+                dadosBancarios: { banco, agencia: ag, conta, pix, atualizadoEm: new Date().toISOString() }
+            }, { merge: true });
+            alert("✅ Dados bancários cadastrados com sucesso!");
+            fecharModalDadosBancarios();
+        } catch (e) {
+            console.error("Erro ao salvar dados bancários:", e);
+        }
+    }
+}
+
 // MAPA E RADAR DO PERSONAL
 window.initMapAlunos = function() {
     const mapElement = document.getElementById('mapa-alunos');
@@ -704,7 +769,7 @@ window.carregarAlunosNoMapa = async function() {
 }
 
 // ==========================================
-// CONTROLE DAS 5 ABAS E DO MENU (ATUALIZADO)
+// CONTROLE DAS 5 ABAS E DO MENU
 // ==========================================
 window.switchTabPersonal = function(tabId, navElement) {
     document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
@@ -714,7 +779,6 @@ window.switchTabPersonal = function(tabId, navElement) {
     document.querySelectorAll('#nav-personal .nav-item').forEach(item => item.classList.remove('active'));
     if (navElement) navElement.classList.add('active');
 
-    // Fechar subtelas do perfil se abertas
     const sub = document.getElementById('subscreen-perfil-detalhes');
     if (sub) sub.style.display = 'none';
 
@@ -804,3 +868,8 @@ window.fecharModalTermos = fecharModalTermos;
 window.aceitarTermosModal = aceitarTermosModal;
 window.abrirOpcaoMenu = abrirOpcaoMenu;
 window.fecharSubtelaPerfil = fecharSubtelaPerfil;
+window.abrirModalDadosBancarios = abrirModalDadosBancarios;
+window.fecharModalDadosBancarios = fecharModalDadosBancarios;
+window.salvarDadosBancarios = salvarDadosBancarios;
+window.mudarMesCalendario = mudarMesCalendario;
+window.selecionarDiaCalendario = selecionarDiaCalendario;
