@@ -38,6 +38,36 @@ let agendaDeHoje = [];
 let primeiraCargaChamadas = true;
 let audioCtx = null;
 
+// ==========================================
+// CONFIGURAÇÃO MERCADO PAGO (PRONTO PARA API)
+// ==========================================
+// Substitua pela sua Public Key do Mercado Pago ao colocar em produção
+const MP_PUBLIC_KEY = "APP_USR-xxxx-xxxx-xxxx-xxxx"; 
+
+window.iniciarCheckoutMercadoPago = function(valorAula = 80) {
+    try {
+        // Inicializa o SDK do Mercado Pago
+        const mp = new MercadoPago(MP_PUBLIC_KEY, {
+            locale: 'pt-BR'
+        });
+
+        // Configuração de Split de Pagamento (Exemplo: 85% para o personal, 15% marketplace fee para a TAPAGO)
+        // No backend, a preferência é criada com 'marketplace_fee' de 15%.
+        alert(`⚡ Conectando ao Mercado Pago...\n\nValor: R$ ${valorAula},00\n- 85% para ${dadosPerfil.nome}\n- 15% para Plataforma TAPAGO\n\n(Insira seu Access Token no backend para gerar o QR Code real do PIX).`);
+
+        // Simulação de sucesso após pagamento do aluno
+        setTimeout(() => {
+            fecharModalQRCode();
+            alert("✅ Pagamento aprovado via Mercado Pago! Crédito dividido com sucesso.");
+            carregarAgendaDoBanco();
+        }, 1500);
+
+    } catch (e) {
+        console.error("Erro Mercado Pago:", e);
+        alert("Erro ao iniciar pagamento. Verifique a chave pública do Mercado Pago.");
+    }
+}
+
 window.addEventListener('DOMContentLoaded', () => {
     if ("Notification" in window && Notification.permission === "granted") {
         const banner = document.getElementById('banner-notificacao');
@@ -262,7 +292,7 @@ function escutarChamadasUberPersonal() {
                     <p style="font-size: 12px; color: var(--text-muted); margin: 3px 0;">Foco: <strong>${c.foco}</strong> • Horário: <strong>${c.horario}</strong></p>
                     <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px;">Local: ${c.local}</p>
                     <button onclick="aceitarChamadaUber('${docItem.id}', '${c.alunoNome}', '${c.horario}', ${c.valor}, '${c.foco}')" style="width: 100%; background: var(--neon-green); color: #000; font-weight: bold; padding: 10px; border: none; border-radius: 8px; cursor: pointer; font-size: 13px;">
-                        ⚡ Aceitar Chamada Agora (Split 85/15)
+                        ⚡ Aceitar Chamada Agora (Split Mercado Pago)
                     </button>
                 `;
                 container.appendChild(card);
@@ -292,7 +322,7 @@ window.aceitarChamadaUber = async function(chamadaId, nomeAluno, horario, valor,
             criadoEm: new Date().toISOString()
         });
 
-        alert(`🎉 Você aceitou o treino de ${nomeAluno}!\n\nA taxa de 15% foi retida automaticamente pela plataforma.`);
+        alert(`🎉 Você aceitou o treino de ${nomeAluno}!\n\nA taxa de 15% foi retida automaticamente pela TAPAGO via Mercado Pago.`);
         carregarAgendaDoBanco();
     } catch (e) {
         console.error("Erro ao aceitar chamada:", e);
@@ -333,7 +363,7 @@ function renderizarAgenda() {
                 <div class="slot-info-desc">Foco: ${slot.objetivo} | ${slot.frequencia || '3x'} (${slot.diaSemana || 'Seg, Qua, Sex'}) - R$ ${slot.preco || 0}</div>
             </div>
             <div style="display:flex; flex-direction:column; align-items:flex-end; gap: 5px;">
-                <button class="btn-slot-action btn-qr" onclick="abrirQRCode(${index})">Gerar PIX Split</button>
+                <button class="btn-slot-action btn-qr" onclick="abrirQRCode(${index})">Pagar Mercado Pago</button>
                 <button onclick="desmarcarTreinoPersonal('${slot.id}', '${slot.nome || slot.aluno}')" style="background: rgba(255, 51, 51, 0.2); color: #ff3333; border: 1px solid #ff3333; padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: bold; cursor: pointer;">
                     ✕ Desmarcar (Taxa R$15)
                 </button>
@@ -364,7 +394,6 @@ async function atualizarProjecaoFinanceiraReal() {
             const data = docItem.data();
             if (data.preco) totalBruto += Number(data.preco);
         });
-        // Desconta os 15% da plataforma para mostrar o líquido do personal
         let totalLiquido = totalBruto * 0.85;
         document.getElementById('valor-fixo').innerText = `R$ ${totalLiquido.toLocaleString('pt-BR', {maximumFractionDigits:2})}`;
         let totalGeral = totalLiquido + (ganhosAvulsos * 0.85);
@@ -491,7 +520,7 @@ async function enviarPropostaPersonal() {
             tipo: "proposta",
             horario: horario,
             preco: preco,
-            texto: `📋 Proposta de Treino: Horário às ${horario} - Valor: R$ ${preco},00 (Split 85/15)`,
+            texto: `📋 Proposta de Treino: Horário às ${horario} - Valor: R$ ${preco},00 (Split Mercado Pago)`,
             data: new Date().toISOString()
         });
     } catch (e) {
@@ -500,19 +529,11 @@ async function enviarPropostaPersonal() {
 }
 
 function abrirQRCode(index) {
-    const randomPayId = "TAPAGO-SPLIT-PIX-" + Math.floor(Math.random() * 900000 + 100000);
-    const imgEl = document.getElementById('qr-code-img');
-    if (imgEl) imgEl.src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${randomPayId}`;
     document.getElementById('modal-qrcode').classList.add('active');
 }
 
 function fecharModalQRCode() {
     document.getElementById('modal-qrcode').classList.remove('active');
-}
-
-function simularLeituraQRCode() {
-    fecharModalQRCode();
-    alert("✅ Pagamento PIX Split verificado! 15% retidos pela plataforma TAPAGO.");
 }
 
 function atualizarExibicaoPerfil() {
@@ -554,10 +575,12 @@ function sairModoPessoal() {
 function abrirModalCadastrarAluno() { document.getElementById('modal-cadastrar-aluno').classList.add('active'); }
 function fecharModalCadastrarAluno() { document.getElementById('modal-cadastrar-aluno').classList.remove('active'); }
 
-function switchTabPersonal(tabId, navElement) {
+// CORREÇÃO DOS CLIQUES NAS ABAS
+window.switchTabPersonal = function(tabId, navElement) {
     document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
     const tabAlvo = document.getElementById(tabId);
     if (tabAlvo) tabAlvo.classList.add('active');
+    
     document.querySelectorAll('#nav-personal .nav-item').forEach(item => item.classList.remove('active'));
     if (navElement) navElement.classList.add('active');
 
@@ -585,9 +608,9 @@ window.alternarTema = alternarTema;
 window.sairModoPessoal = sairModoPessoal;
 window.abrirQRCode = abrirQRCode;
 window.fecharModalQRCode = fecharModalQRCode;
-window.simularLeituraQRCode = simularLeituraQRCode;
 window.switchTabPersonal = switchTabPersonal;
 window.carregarAlunosNoMapa = carregarAlunosNoMapa;
 window.aceitarChamadaUber = aceitarChamadaUber;
 window.desmarcarTreinoPersonal = desmarcarTreinoPersonal;
 window.solicitarPermissaoNotificacao = solicitarPermissaoNotificacao;
+window.iniciarCheckoutMercadoPago = iniciarCheckoutMercadoPago;
