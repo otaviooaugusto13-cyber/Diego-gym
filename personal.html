@@ -325,19 +325,112 @@
         </div>
     </div>
 
-    <!-- MODAL: CADASTRAR DADOS BANCÁRIOS -->
+    <!-- MODAL / SUBTELA DADOS BANCÁRIOS (IDÊNTICO ÀS FOTOS) -->
     <div id="modal-dados-bancarios" class="app-overlay">
-        <div class="glass modal-box">
-            <h3 style="margin-bottom: 12px; color: var(--gold);">Cadastrar Dados Bancários</h3>
-            <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 12px;">Preencha a conta bancária para recebimento dos repasses.</p>
+        <div class="glass modal-box" style="max-width: 480px; width: 100%; height: 90vh; overflow-y: auto; padding: 0; border-radius: 20px; background: #ffffff; color: #1f2937; text-align: left;">
             
-            <input type="text" id="bank-nome" placeholder="Nome do Banco (Ex: Nubank, Itaú)">
-            <input type="text" id="bank-agencia" placeholder="Agência (Sem dígito)">
-            <input type="text" id="bank-conta" placeholder="Conta com Dígito">
-            <input type="text" id="bank-pix" placeholder="Chave PIX (CPF/E-mail/Tel/Aleatória)">
-            
-            <button class="btn btn-primary" onclick="salvarDadosBancarios()">Salvar Dados Bancários</button>
-            <button class="btn btn-outline" style="margin-top: 8px;" onclick="fecharModalDadosBancarios()">Cancelar</button>
+            <!-- CABEÇALHO ROSA / GRADIENTE -->
+            <div style="background: linear-gradient(90deg, #ff0055, #ff007f); padding: 18px 20px; display: flex; align-items: center; gap: 15px; border-top-left-radius: 20px; border-top-right-radius: 20px;">
+                <button onclick="fecharModalDadosBancarios()" style="background: transparent; border: none; color: #ffffff; font-size: 20px; font-weight: bold; cursor: pointer; padding: 0;">❮</button>
+                <h2 style="margin: 0; color: #ffffff; font-size: 18px; font-weight: bold; flex: 1; text-align: center; margin-right: 20px;">Dados bancários</h2>
+            </div>
+
+            <div style="padding: 20px;">
+                <!-- TEXTO ORIENTATIVO -->
+                <h3 style="margin: 0 0 10px 0; font-size: 15px; color: #1f2a44; font-weight: bold; line-height: 1.3;">
+                    Configure seus dados para recebimento e mantenha-os sempre atualizados.
+                </h3>
+                
+                <p style="font-size: 13px; color: #374151; line-height: 1.4; margin-bottom: 20px;">
+                    <strong>Atenção:</strong> Atualize seus dados bancários até <strong>terça-feira</strong> para garantir que lancemos os valores na data certa. Alterações após essa data só serão processadas na semana seguinte, podendo gerar atrasos de até 7 dias.
+                </p>
+
+                <!-- CAMPO: BANCO -->
+                <label style="font-size: 12px; font-weight: bold; color: #1f2a44; display: block; margin-bottom: 5px;">Banco</label>
+                <select id="bank-select-banco" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 10px; font-size: 13px; color: #1f2937; background: #fff; margin-bottom: 15px;">
+                    <option value="237 BANCO BRADESCO S.A.">237 BANCO BRADESCO S.A.</option>
+                    <option value="001 BANCO DO BRASIL S.A.">001 BANCO DO BRASIL S.A.</option>
+                    <option value="104 CAIXA ECONOMICA FEDERAL">104 CAIXA ECONOMICA FEDERAL</option>
+                    <option value="341 ITAU UNIBANCO S.A.">341 ITAU UNIBANCO S.A.</option>
+                    <option value="033 BANCO SANTANDER (BRASIL) S.A.">033 BANCO SANTANDER (BRASIL) S.A.</option>
+                    <option value="260 NUBANK - NU PAGAMENTOS S.A.">260 NUBANK - NU PAGAMENTOS S.A.</option>
+                    <option value="077 BANCO INTER S.A.">077 BANCO INTER S.A.</option>
+                </select>
+
+                <!-- CAMPO: TIPO DE CONTA -->
+                <label style="font-size: 12px; font-weight: bold; color: #1f2a44; display: block; margin-bottom: 5px;">Tipo de conta</label>
+                <select id="bank-select-tipo-conta" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 10px; font-size: 13px; color: #1f2937; background: #fff; margin-bottom: 15px;">
+                    <option value="Conta corrente">Conta corrente</option>
+                    <option value="Conta poupança">Conta poupança</option>
+                    <option value="Conta pagamento">Conta pagamento</option>
+                </select>
+
+                <!-- CAMPO: AGÊNCIA -->
+                <label style="font-size: 12px; font-weight: bold; color: #1f2a44; display: block; margin-bottom: 5px;">Agencia</label>
+                <input type="text" id="bank-input-agencia" placeholder="Ex: 402" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 10px; font-size: 13px; color: #1f2937; background: #fff; margin-bottom: 15px;">
+
+                <!-- CAMPO: NÚMERO DA CONTA E DÍGITO -->
+                <div style="display: flex; gap: 10px; align-items: flex-end; margin-bottom: 25px;">
+                    <div style="flex: 3;">
+                        <label style="font-size: 12px; font-weight: bold; color: #1f2a44; display: block; margin-bottom: 5px;">Numero da conta</label>
+                        <input type="text" id="bank-input-conta" placeholder="Ex: 346521" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 10px; font-size: 13px; color: #1f2937; background: #fff;">
+                    </div>
+                    <span style="font-size: 18px; color: #6b7280; padding-bottom: 10px;">-</span>
+                    <div style="flex: 1;">
+                        <label style="font-size: 12px; font-weight: bold; color: #1f2a44; display: block; margin-bottom: 5px;">Digito</label>
+                        <input type="text" id="bank-input-digito" placeholder="7" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 10px; font-size: 13px; color: #1f2937; background: #fff; text-align: center;">
+                    </div>
+                </div>
+
+                <!-- SEÇÃO PIX -->
+                <div style="text-align: center; margin-bottom: 15px;">
+                    <h2 style="margin: 0 0 8px 0; font-size: 20px; font-weight: bold; color: #1f2a44; letter-spacing: 1px;">PIX</h2>
+                    <p style="margin: 0; font-size: 13px; color: #374151; line-height: 1.3;">
+                        Informe os dados cadastrados do Pix para agilizar o processo de recebimento.
+                    </p>
+                </div>
+
+                <!-- CAMPO: TIPO DE CHAVE -->
+                <label style="font-size: 12px; font-weight: bold; color: #1f2a44; display: block; margin-bottom: 5px;">Tipo de Chave</label>
+                <select id="bank-select-tipo-pix" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 10px; font-size: 13px; color: #1f2937; background: #fff; margin-bottom: 15px;">
+                    <option value="Celular">Celular</option>
+                    <option value="CPF">CPF</option>
+                    <option value="E-mail">E-mail</option>
+                    <option value="Chave Aleatória">Chave Aleatória</option>
+                </select>
+
+                <!-- CAMPO: CHAVE PIX -->
+                <label style="font-size: 12px; font-weight: bold; color: #1f2a44; display: block; margin-bottom: 5px;">Chave pix</label>
+                <input type="text" id="bank-input-chave-pix" placeholder="(19) 99325-4538" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 10px; font-size: 13px; color: #1f2937; background: #fff; margin-bottom: 25px;">
+
+                <!-- BOTÃO SALVAR -->
+                <button class="btn" onclick="salvarDadosBancarios()" style="width: 100%; background: #e5e7eb; color: #374151; font-weight: bold; padding: 14px; border: none; border-radius: 12px; font-size: 14px; cursor: pointer; transition: background 0.3s;" onmouseover="this.style.background='#d1d5db'" onmouseout="this.style.background='#e5e7eb'">
+                    Salvar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE CHAT FLUTUANTE -->
+    <div id="modal-chat-flutuante" class="app-overlay">
+        <div class="glass modal-box" style="max-width: 450px; width: 100%; height: 80vh; display: flex; flex-direction: column; padding: 15px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--glass-border); padding-bottom: 10px; margin-bottom: 10px;">
+                <h3 id="chat-active-name" style="margin: 0; color: var(--gold); font-size: 16px;">Conversa</h3>
+                <button onclick="fecharConversaModal()" style="background: transparent; border: none; color: #ff3333; font-size: 18px; font-weight: bold; cursor: pointer;">✕</button>
+            </div>
+
+            <!-- LISTA E CONVERSAS -->
+            <div id="chat-list-view" style="flex: 1; overflow-y: auto;"></div>
+
+            <div id="chat-conversation-view" style="display: none; flex: 1; flex-direction: column;">
+                <div id="chat-box" class="chat-messages-container" style="flex: 1; overflow-y: auto; margin-bottom: 10px;"></div>
+                
+                <div class="chat-input-bar" style="display: flex; gap: 8px;">
+                    <input type="text" id="input-chat-msg" placeholder="Digite sua mensagem..." style="flex: 1; margin: 0;">
+                    <button onclick="enviarMensagemChat()" style="background: var(--gold); color: #000; border: none; padding: 0 15px; border-radius: 8px; font-weight: bold;">Enviar</button>
+                </div>
+                <button onclick="enviarPropostaPersonal()" style="background: rgba(57, 255, 20, 0.15); border: 1px solid var(--neon-green); color: var(--neon-green); width: 100%; padding: 8px; border-radius: 8px; font-size: 11px; font-weight: bold; margin-top: 8px; cursor: pointer;">📋 Enviar Proposta de Treino (Split MP)</button>
+            </div>
         </div>
     </div>
 
