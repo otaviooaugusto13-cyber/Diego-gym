@@ -33,7 +33,7 @@ let mapAlunos;
 let marcadoresAlunosMap = {};
 let conversaAtiva = null;
 let unsubscribePersonalChat = null;
-let ganhosAvulsos = 450;
+let ganhosAvulsos = ;
 let agendaDeHoje = [];
 
 window.addEventListener('DOMContentLoaded', () => {
