@@ -33,7 +33,7 @@ let mapAlunos;
 let marcadoresAlunosMap = {};
 let conversaAtiva = null;
 let unsubscribePersonalChat = null;
-let ganhosAvulsos = ;
+let ganhosAvulsos = 450;
 let agendaDeHoje = [];
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -191,6 +191,23 @@ async function salvarHorarioAtendimento() {
     }
 }
 
+window.salvarBioPersonal = async function() {
+    if (!dadosPerfil.cpf) return alert("Erro ao identificar o perfil.");
+    const bio = document.getElementById('personal-input-bio').value.trim();
+    const pix = document.getElementById('personal-input-pix').value.trim();
+
+    try {
+        await setDoc(doc(db, "profissionais", dadosPerfil.cpf), {
+            bio: bio,
+            chavePix: pix,
+            atualizadoEm: new Date().toISOString()
+        }, { merge: true });
+        alert("✅ Bio e Chave PIX salvas com sucesso!");
+    } catch (e) {
+        console.error("Erro ao salvar perfil personal:", e);
+    }
+}
+
 window.initMapAlunos = function() {
     const mapaElemento = document.getElementById("mapa-alunos");
     if (!mapaElemento) return;
@@ -201,6 +218,7 @@ window.initMapAlunos = function() {
         center: pontoInicial,
         disableDefaultUI: true
     });
+
     carregarAlunosNoMapa();
 }
 
@@ -402,7 +420,6 @@ async function enviarMensagemChat() {
     }
 }
 
-// Enviar Proposta de Horário e Preço Direto no Chat
 async function enviarPropostaPersonal() {
     if (!conversaAtiva) return alert("Abra uma conversa primeiro.");
     const horario = prompt("Digite o horário da aula (Ex: 15:00):", "15:00");
@@ -511,20 +528,3 @@ window.abrirQRCode = abrirQRCode;
 window.fecharModalQRCode = fecharModalQRCode;
 window.simularLeituraQRCode = simularLeituraQRCode;
 window.switchTabPersonal = switchTabPersonal;
-// Salva Bio e Chave PIX do Personal
-window.salvarBioPersonal = async function() {
-    if (!dadosPerfil.cpf) return alert("Erro ao identificar o perfil.");
-    const bio = document.getElementById('personal-input-bio').value.trim();
-    const pix = document.getElementById('personal-input-pix').value.trim();
-
-    try {
-        await setDoc(doc(db, "profissionais", dadosPerfil.cpf), {
-            bio: bio,
-            chavePix: pix,
-            atualizadoEm: new Date().toISOString()
-        }, { merge: true });
-        alert("✅ Bio e Chave PIX salvas com sucesso!");
-    } catch (e) {
-        console.error("Erro ao salvar perfil personal:", e);
-    }
-}
