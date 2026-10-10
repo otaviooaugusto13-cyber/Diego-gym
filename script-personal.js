@@ -23,18 +23,19 @@ let dadosPerfil = {
     nome: "Professor",
     cref: "",
     cpf: "",
-    bio: "",
-    fotoUrl: null,
-    tarifas: { normal: 60, surge: 85, discount: 45 }
+    horaInicio: 8,
+    horaFim: 21,
+    diaFolga: 0,
+    fotoUrl: null
 };
 
+let mapAlunos;
+let marcadoresAlunosMap = {};
 let conversaAtiva = null;
 let unsubscribePersonalChat = null;
 let ganhosAvulsos = 450;
 let agendaDeHoje = [];
-let indiceVagaSelecionada = null;
 
-// Sessão Automática do Personal ao atualizar a página
 window.addEventListener('DOMContentLoaded', () => {
     const savedProfile = localStorage.getItem('tapago_personal_user');
     if (savedProfile) {
@@ -80,7 +81,7 @@ async function loginComGoogle() {
                 dadosPerfil.fotoUrl = user.photoURL;
                 finalizarLogin(true, profData.nome, profData.cpf, profData.cref);
             } else {
-                alert("⏳ Cadastro em análise ou acesso negado.");
+                alert("⏳ Cadastro em análise.");
             }
         } else {
             const cpfInput = prompt("Digite seu CPF (apenas números):");
@@ -96,6 +97,9 @@ async function loginComGoogle() {
                 cpf: cpf,
                 cref: cref,
                 status: "pendente",
+                horaInicio: 8,
+                horaFim: 21,
+                diaFolga: 0,
                 criadoEm: new Date().toISOString()
             });
             alert("🚀 Solicitação enviada com sucesso!");
@@ -121,7 +125,7 @@ async function validarProfissional() {
             dadosPerfil.nome = nome;
             dadosPerfil.cpf = cpf;
             dadosPerfil.cref = cref;
-            await setDoc(doc(db, "profissionais", cpf), { nome, cpf, cref, status: "ativo", atualizadoEm: new Date() });
+            await setDoc(doc(db, "profissionais", cpf), { nome, cpf, cref, status: "ativo", horaInicio: 8, horaFim: 21, diaFolga: 0, atualizadoEm: new Date() });
             finalizarLogin(lembreme, nome, cpf, cref);
             return;
         }
@@ -142,7 +146,7 @@ async function validarProfissional() {
                 document.getElementById('btn-login').style.display = 'block';
             }
         } else {
-            await setDoc(doc(db, "profissionais", cpf), { nome, cpf, cref, status: "pendente", criadoEm: new Date().toISOString() });
+            await setDoc(doc(db, "profissionais", cpf), { nome, cpf, cref, status: "pendente", horaInicio: 8, horaFim: 21, diaFolga: 0, criadoEm: new Date().toISOString() });
             alert("🚀 Solicitação enviada!");
             document.getElementById('login-loader').style.display = 'none';
             document.getElementById('btn-login').style.display = 'block';
@@ -162,46 +166,81 @@ function finalizarLogin(lembreme, nome, cpf, cref) {
     if (lembreme) {
         localStorage.setItem('tapago_personal_user', JSON.stringify({ nome, cpf, cref }));
     }
-    
+
     atualizarExibicaoPerfil();
-    const screenLogin = document.getElementById('screen-login-personal');
-    if (screenLogin) screenLogin.classList.remove('active');
-    const screenDash = document.getElementById('screen-dashboard');
-    if (screenDash) screenDash.classList.add('active');
+    document.getElementById('screen-login-personal').classList.remove('active');
+    document.getElementById('screen-dashboard').classList.add('active');
 
     iniciarRastreamentoGPS();
     carregarAgendaDoBanco();
     carregarListaConversasPersonal();
-    carregarRadarDemandasAlunos();
 }
 
-// Radar de Demanda Real de Alunos para o Personal
-async function carregarRadarDemandasAlunos() {
-    const radarContainer = document.getElementById('tab-heatmap');
-    if (!radarContainer) return;
+async function salvarHorarioAtendimento() {
+    dadosPerfil.horaInicio = document.getElementById('select-hora-inicio').value;
+    dadosPerfil.horaFim = document.getElementById('select-hora-fim').value;
+    dadosPerfil.diaFolga = document.getElementById('select-dia-folga').value;
 
-    try {
-        const querySnapshot = await getDocs(collection(db, "usuarios"));
-        let totalAlunosApp = querySnapshot.size || 1;
-
-        radarContainer.innerHTML = `
-            <div class="header-personal glass">
-                <h2 style="margin: 0; font-size: 20px;">Radar de Demanda (Alunos)</h2>
-            </div>
-            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 15px;">Regiões com busca ativa em tempo real na sua área:</p>
-            
-            <div class="glass" style="padding: 15px; margin-bottom: 10px; border-left: 4px solid var(--neon-green);">
-                <h4 style="color: var(--neon-green); font-size: 15px;">🔥 Região Central / Academias</h4>
-                <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Demanda Alta • <strong>${totalAlunosApp + 3} alunos</strong> buscando personal nas últimas 2h.</p>
-            </div>
-            <div class="glass" style="padding: 15px; margin-bottom: 10px; border-left: 4px solid var(--gold);">
-                <h4 style="color: var(--gold); font-size: 15px;">⭐ Zona Norte / Parques</h4>
-                <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Demanda Média • <strong>${totalAlunosApp} alunos</strong> ativos na região.</p>
-            </div>
-        `;
-    } catch (e) {
-        console.error("Erro radar:", e);
+    if (dadosPerfil.cpf) {
+        await setDoc(doc(db, "profissionais", dadosPerfil.cpf), {
+            horaInicio: dadosPerfil.horaInicio,
+            horaFim: dadosPerfil.horaFim,
+            diaFolga: dadosPerfil.diaFolga
+        }, { merge: true });
+        alert("✅ Configuração de expediente salva com sucesso!");
     }
+}
+
+// Inicializa o Mapa Reverso de Alunos
+function inicializarMapaAlunos() {
+    const mapaElemento = document.getElementById("mapa-alunos");
+    if (!mapaElemento) return;
+
+    const pontoInicial = { lat: -22.4389, lng: -46.8258 };
+    mapAlunos = new google.maps.Map(mapaElemento, {
+        zoom: 14,
+        center: pontoInicial,
+        disableDefaultUI: true
+    });
+
+    carregarAlunosNoMapa();
+}
+
+function carregarAlunosNoMapa() {
+    onSnapshot(collection(db, "usuarios"), (snapshot) => {
+        let count = 0;
+        const listaCards = document.getElementById('lista-demandas-cards');
+        if (listaCards) listaCards.innerHTML = "";
+
+        snapshot.forEach((docItem) => {
+            count++;
+            const aluno = docItem.data();
+            const aLat = -22.4389 + (count * 0.004);
+            const aLng = -46.8258 + (count * 0.003);
+
+            if (mapAlunos) {
+                const pos = new google.maps.LatLng(aLat, aLng);
+                if (!marcadoresAlunosMap[docItem.id]) {
+                    marcadoresAlunosMap[docItem.id] = new google.maps.Marker({
+                        position: pos,
+                        map: mapAlunos,
+                        title: aluno.nome || "Aluno"
+                    });
+                }
+            }
+
+            if (listaCards) {
+                const card = document.createElement('div');
+                card.className = "glass";
+                card.style.cssText = "padding: 12px; margin-bottom: 8px; border-left: 3px solid var(--gold);";
+                card.innerHTML = `
+                    <h5 style="margin: 0; font-size: 14px; color: var(--gold);">${aluno.nome || 'Aluno Cadastrado'}</h5>
+                    <p style="margin: 2px 0 0 0; font-size: 11px; color: var(--text-muted);">Buscando treino na área Central • Ativo recentemente</p>
+                `;
+                listaCards.appendChild(card);
+            }
+        });
+    });
 }
 
 async function carregarAgendaDoBanco() {
@@ -366,7 +405,6 @@ async function enviarMensagemChat() {
 }
 
 function abrirQRCode(index) {
-    indiceVagaSelecionada = index;
     const randomPayId = "TAPAGO-PIX-" + Math.floor(Math.random() * 900000 + 100000);
     const imgEl = document.getElementById('qr-code-img');
     if (imgEl) imgEl.src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${randomPayId}`;
@@ -375,7 +413,6 @@ function abrirQRCode(index) {
 
 function fecharModalQRCode() {
     document.getElementById('modal-qrcode').classList.remove('active');
-    indiceVagaSelecionada = null;
 }
 
 function simularLeituraQRCode() {
@@ -390,14 +427,6 @@ function atualizarExibicaoPerfil() {
     document.getElementById('perfil-cref-display').innerText = `CREF: ${dadosPerfil.cref}`;
     document.getElementById('initials-header').innerText = primeiraLetra;
     document.getElementById('initials-perfil').innerText = primeiraLetra;
-    if (dadosPerfil.fotoUrl) {
-        document.getElementById('img-avatar-header').src = dadosPerfil.fotoUrl;
-        document.getElementById('img-avatar-header').style.display = 'block';
-        document.getElementById('initials-header').style.display = 'none';
-        document.getElementById('img-perfil-preview').src = dadosPerfil.fotoUrl;
-        document.getElementById('img-perfil-preview').style.display = 'block';
-        document.getElementById('initials-perfil').style.display = 'none';
-    }
 }
 
 function atualizarFotoPerfil(event) {
@@ -436,9 +465,14 @@ function switchTabPersonal(tabId, navElement) {
     if (tabAlvo) tabAlvo.classList.add('active');
     document.querySelectorAll('#nav-personal .nav-item').forEach(item => item.classList.remove('active'));
     if (navElement) navElement.classList.add('active');
-    
+
     if (tabId === 'tab-chat') carregarListaConversasPersonal();
-    if (tabId === 'tab-heatmap') carregarRadarDemandasAlunos();
+    if (tabId === 'tab-heatmap') {
+        setTimeout(() => {
+            inicializarMapaAlunos();
+            if (mapAlunos) google.maps.event.trigger(mapAlunos, 'resize');
+        }, 200);
+    }
 }
 
 window.validarProfissional = validarProfissional;
@@ -449,6 +483,7 @@ window.confirmarCadastroAluno = confirmarCadastroAluno;
 window.abrirConversa = abrirConversa;
 window.fecharConversa = fecharConversa;
 window.enviarMensagemChat = enviarMensagemChat;
+window.salvarHorarioAtendimento = salvarHorarioAtendimento;
 window.atualizarFotoPerfil = atualizarFotoPerfil;
 window.alternarTema = alternarTema;
 window.sairModoPessoal = sairModoPessoal;
