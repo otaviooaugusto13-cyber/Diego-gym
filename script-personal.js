@@ -26,7 +26,8 @@ let dadosPerfil = {
     horaInicio: 8,
     horaFim: 21,
     diaFolga: 0,
-    fotoUrl: null
+    fotoUrl: null,
+    status: "pendente"
 };
 
 let mapAlunos;
@@ -41,7 +42,7 @@ let audioCtx = null;
 // ==========================================
 // CALENDÁRIO MENSAL (ESTILO GOOGLE AGENDA)
 // ==========================================
-let dataAtualCalendario = new Date(2026, 9, 10); // Outubro de 2026
+let dataAtualCalendario = new Date(2026, 9, 10);
 let diaSelecionadoCalendario = 10;
 
 function renderizarCalendario() {
@@ -101,7 +102,7 @@ window.iniciarCheckoutMercadoPago = function(valorAula = 80) {
         }, 1500);
     } catch (e) {
         console.error("Erro Mercado Pago:", e);
-        alert("Erro ao iniciar pagamento. Verifique a chave pública.");
+        alert("Erro ao iniciar pagamento.");
     }
 }
 
@@ -133,7 +134,7 @@ window.solicitarPermissaoNotificacao = function() {
             if (permission === "granted") {
                 const banner = document.getElementById('banner-notificacao');
                 if (banner) banner.style.display = 'none';
-                alert("🔔 Notificações e alertas sonoros ativados com sucesso!");
+                alert("🔔 Notificações e alertas sonoros ativados!");
                 dispararNotificacaoNovaChamada("Teste de Notificação", "Sistema Ativo");
             }
         });
@@ -197,15 +198,12 @@ async function loginComGoogle() {
 
         if (!querySnapshot.empty) {
             const profData = querySnapshot.docs[0].data();
-            if (profData.status === "ativo") {
-                dadosPerfil.nome = profData.nome || user.displayName;
-                dadosPerfil.cpf = profData.cpf;
-                dadosPerfil.cref = profData.cref;
-                dadosPerfil.fotoUrl = user.photoURL;
-                finalizarLogin(true, profData.nome, profData.cpf, profData.cref);
-            } else {
-                alert("⏳ Cadastro em análise.");
-            }
+            dadosPerfil.nome = profData.nome || user.displayName;
+            dadosPerfil.cpf = profData.cpf;
+            dadosPerfil.cref = profData.cref;
+            dadosPerfil.fotoUrl = user.photoURL;
+            dadosPerfil.status = profData.status || "pendente";
+            finalizarLogin(true, profData.nome, profData.cpf, profData.cref);
         } else {
             const cpfInput = prompt("Digite seu CPF (apenas números):");
             if (!cpfInput) return;
@@ -213,6 +211,11 @@ async function loginComGoogle() {
             if (!crefInput) return;
             const cpf = cpfInput.replace(/\D/g, '');
             const cref = crefInput.trim();
+
+            dadosPerfil.nome = user.displayName;
+            dadosPerfil.cpf = cpf;
+            dadosPerfil.cref = cref;
+            dadosPerfil.status = "pendente";
 
             await setDoc(doc(db, "profissionais", cpf), {
                 nome: user.displayName,
@@ -225,7 +228,8 @@ async function loginComGoogle() {
                 diaFolga: 0,
                 criadoEm: new Date().toISOString()
             });
-            alert("🚀 Solicitação enviada com sucesso!");
+
+            finalizarLogin(true, user.displayName, cpf, cref);
         }
     } catch (error) {
         console.error("Erro Google personal:", error);
@@ -244,36 +248,27 @@ async function validarProfissional() {
     document.getElementById('btn-login').style.display = 'none';
 
     try {
+        dadosPerfil.nome = nome;
+        dadosPerfil.cpf = cpf;
+        dadosPerfil.cref = cref;
+
         if (cpf === ADMIN_CPF) {
-            dadosPerfil.nome = nome;
-            dadosPerfil.cpf = cpf;
-            dadosPerfil.cref = cref;
+            dadosPerfil.status = "ativo";
             await setDoc(doc(db, "profissionais", cpf), { nome, cpf, cref, status: "ativo", horaInicio: 8, horaFim: 21, diaFolga: 0, atualizadoEm: new Date() });
-            finalizarLogin(lembreme, nome, cpf, cref);
-            return;
-        }
-
-        const q = query(collection(db, "profissionais"), where("cpf", "==", cpf));
-        const querySnapshot = await getDocs(q);
-
-        if (!querySnapshot.empty) {
-            const profData = querySnapshot.docs[0].data();
-            if (profData.status === "ativo") {
-                dadosPerfil.nome = profData.nome;
-                dadosPerfil.cpf = profData.cpf;
-                dadosPerfil.cref = profData.cref;
-                finalizarLogin(lembreme, profData.nome, cpf, cref);
-            } else {
-                alert("⏳ Cadastro em análise.");
-                document.getElementById('login-loader').style.display = 'none';
-                document.getElementById('btn-login').style.display = 'block';
-            }
         } else {
-            await setDoc(doc(db, "profissionais", cpf), { nome, cpf, cref, status: "pendente", horaInicio: 8, horaFim: 21, diaFolga: 0, criadoEm: new Date().toISOString() });
-            alert("🚀 Solicitação enviada!");
-            document.getElementById('login-loader').style.display = 'none';
-            document.getElementById('btn-login').style.display = 'block';
+            const q = query(collection(db, "profissionais"), where("cpf", "==", cpf));
+            const querySnapshot = await getDocs(q);
+
+            if (!querySnapshot.empty) {
+                const profData = querySnapshot.docs[0].data();
+                dadosPerfil.status = profData.status || "pendente";
+            } else {
+                dadosPerfil.status = "pendente";
+                await setDoc(doc(db, "profissionais", cpf), { nome, cpf, cref, status: "pendente", horaInicio: 8, horaFim: 21, diaFolga: 0, criadoEm: new Date().toISOString() });
+            }
         }
+
+        finalizarLogin(lembreme, nome, cpf, cref);
     } catch (e) {
         console.error(e);
         document.getElementById('login-loader').style.display = 'none';
@@ -415,7 +410,7 @@ window.desmarcarTreinoPersonal = async function(agendamentoId, nomeAluno) {
 
     try {
         await deleteDoc(doc(db, "agenda", agendamentoId));
-        alert("✅ Aula desmarcada. A taxa administrativa de cancelamento foi aplicada.");
+        alert("✅ Aula desmarcada com sucesso.");
         carregarAgendaDoBanco();
     } catch (e) {
         console.error("Erro ao desmarcar treino:", e);
@@ -579,13 +574,11 @@ function atualizarExibicaoPerfil() {
     const elNome = document.getElementById('nome-exibicao');
     const elPerfilNome = document.getElementById('perfil-nome-display');
     const elPerfilCref = document.getElementById('perfil-cref-display');
-    const elInitHeader = document.getElementById('initials-header');
     const elInitPerfil = document.getElementById('initials-perfil');
 
     if (elNome) elNome.innerText = dadosPerfil.nome;
     if (elPerfilNome) elPerfilNome.innerText = dadosPerfil.nome;
     if (elPerfilCref) elPerfilCref.innerText = `CREF: ${dadosPerfil.cref}`;
-    if (elInitHeader) elInitHeader.innerText = primeiraLetra;
     if (elInitPerfil) elInitPerfil.innerText = primeiraLetra;
 }
 
@@ -700,14 +693,7 @@ window.initMapAlunos = function() {
     mapAlunos = new google.maps.Map(mapElement, {
         center: { lat: -22.4243, lng: -46.8427 },
         zoom: 14,
-        disableDefaultUI: true,
-        styles: [
-            { elementType: "geometry", stylers: [{ color: "#1d2c4d" }] },
-            { elementType: "labels.text.fill", stylers: [{ color: "#8ec3b9" }] },
-            { elementType: "labels.text.stroke", stylers: [{ color: "#1a3646" }] },
-            { featureType: "road", elementType: "geometry", stylers: [{ color: "#304a7d" }] },
-            { featureType: "water", elementType: "geometry", stylers: [{ color: "#0e1626" }] }
-        ]
+        disableDefaultUI: true
     });
 
     carregarAlunosNoMapa();
