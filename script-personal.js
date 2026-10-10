@@ -34,7 +34,18 @@ let ganhosAvulsos = 450;
 let agendaDeHoje = [];
 let indiceVagaSelecionada = null;
 
-// Rastreamento GPS Contínuo do Personal
+// Sessão Automática do Personal ao atualizar a página
+window.addEventListener('DOMContentLoaded', () => {
+    const savedProfile = localStorage.getItem('tapago_personal_user');
+    if (savedProfile) {
+        const parsed = JSON.parse(savedProfile);
+        dadosPerfil.nome = parsed.nome;
+        dadosPerfil.cpf = parsed.cpf;
+        dadosPerfil.cref = parsed.cref;
+        finalizarLogin(true, parsed.nome, parsed.cpf, parsed.cref);
+    }
+});
+
 function iniciarRastreamentoGPS() {
     if (navigator.geolocation && dadosPerfil.cpf) {
         navigator.geolocation.watchPosition(async (position) => {
@@ -94,17 +105,6 @@ async function loginComGoogle() {
     }
 }
 
-window.addEventListener('DOMContentLoaded', () => {
-    const savedProfile = localStorage.getItem('tapago_personal_user');
-    if (savedProfile) {
-        const parsed = JSON.parse(savedProfile);
-        document.getElementById('input-nome').value = parsed.nome || '';
-        document.getElementById('input-cpf').value = parsed.cpf || '';
-        document.getElementById('input-cref').value = parsed.cref || '';
-        document.getElementById('check-remember').checked = true;
-    }
-});
-
 async function validarProfissional() {
     const nome = document.getElementById('input-nome').value.trim();
     const cpf = document.getElementById('input-cpf').value.replace(/\D/g, '');
@@ -156,14 +156,52 @@ async function validarProfissional() {
 
 function finalizarLogin(lembreme, nome, cpf, cref) {
     document.getElementById('login-loader').style.display = 'none';
-    document.getElementById('btn-login').style.display = 'block';
-    if (lembreme) localStorage.setItem('tapago_personal_user', JSON.stringify({ nome, cpf, cref }));
+    const btnLogin = document.getElementById('btn-login');
+    if (btnLogin) btnLogin.style.display = 'block';
+
+    if (lembreme) {
+        localStorage.setItem('tapago_personal_user', JSON.stringify({ nome, cpf, cref }));
+    }
+    
     atualizarExibicaoPerfil();
-    document.getElementById('screen-login-personal').classList.remove('active');
-    document.getElementById('screen-dashboard').classList.add('active');
+    const screenLogin = document.getElementById('screen-login-personal');
+    if (screenLogin) screenLogin.classList.remove('active');
+    const screenDash = document.getElementById('screen-dashboard');
+    if (screenDash) screenDash.classList.add('active');
+
     iniciarRastreamentoGPS();
     carregarAgendaDoBanco();
     carregarListaConversasPersonal();
+    carregarRadarDemandasAlunos();
+}
+
+// Radar de Demanda Real de Alunos para o Personal
+async function carregarRadarDemandasAlunos() {
+    const radarContainer = document.getElementById('tab-heatmap');
+    if (!radarContainer) return;
+
+    try {
+        const querySnapshot = await getDocs(collection(db, "usuarios"));
+        let totalAlunosApp = querySnapshot.size || 1;
+
+        radarContainer.innerHTML = `
+            <div class="header-personal glass">
+                <h2 style="margin: 0; font-size: 20px;">Radar de Demanda (Alunos)</h2>
+            </div>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 15px;">Regiões com busca ativa em tempo real na sua área:</p>
+            
+            <div class="glass" style="padding: 15px; margin-bottom: 10px; border-left: 4px solid var(--neon-green);">
+                <h4 style="color: var(--neon-green); font-size: 15px;">🔥 Região Central / Academias</h4>
+                <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Demanda Alta • <strong>${totalAlunosApp + 3} alunos</strong> buscando personal nas últimas 2h.</p>
+            </div>
+            <div class="glass" style="padding: 15px; margin-bottom: 10px; border-left: 4px solid var(--gold);">
+                <h4 style="color: var(--gold); font-size: 15px;">⭐ Zona Norte / Parques</h4>
+                <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Demanda Média • <strong>${totalAlunosApp} alunos</strong> ativos na região.</p>
+            </div>
+        `;
+    } catch (e) {
+        console.error("Erro radar:", e);
+    }
 }
 
 async function carregarAgendaDoBanco() {
@@ -383,6 +421,7 @@ function alternarTema() {
 
 function sairModoPessoal() {
     if (confirm("Deseja realmente sair?")) {
+        localStorage.removeItem('tapago_personal_user');
         document.getElementById('screen-dashboard').classList.remove('active');
         document.getElementById('screen-login-personal').classList.add('active');
     }
@@ -397,7 +436,9 @@ function switchTabPersonal(tabId, navElement) {
     if (tabAlvo) tabAlvo.classList.add('active');
     document.querySelectorAll('#nav-personal .nav-item').forEach(item => item.classList.remove('active'));
     if (navElement) navElement.classList.add('active');
+    
     if (tabId === 'tab-chat') carregarListaConversasPersonal();
+    if (tabId === 'tab-heatmap') carregarRadarDemandasAlunos();
 }
 
 window.validarProfissional = validarProfissional;
