@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, doc, setDoc, query, where, onSnapshot, orderBy, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, doc, setDoc, query, where, onSnapshot, orderBy, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 const firebaseConfig = {
@@ -36,11 +36,12 @@ let unsubscribePersonalChat = null;
 let ganhosAvulsos = 450;
 let agendaDeHoje = [];
 let primeiraCargaChamadas = true;
+let audioCtx = null;
 
 window.addEventListener('DOMContentLoaded', () => {
-    // Solicitar Permissão de Notificações
-    if ("Notification" in window && Notification.permission !== "granted") {
-        Notification.requestPermission();
+    if ("Notification" in window && Notification.permission === "granted") {
+        const banner = document.getElementById('banner-notificacao');
+        if (banner) banner.style.display = 'none';
     }
 
     const savedProfile = localStorage.getItem('tapago_personal_user');
@@ -53,21 +54,36 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// DISPARADOR DE NOTIFICAÇÃO (SOM + VIBRAÇÃO + PUSH)
+window.solicitarPermissaoNotificacao = function() {
+    try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        audioCtx.resume();
+    } catch(e) {}
+
+    if ("Notification" in window) {
+        Notification.requestPermission().then(permission => {
+            if (permission === "granted") {
+                const banner = document.getElementById('banner-notificacao');
+                if (banner) banner.style.display = 'none';
+                alert("🔔 Notificações e alertas sonoros ativados com sucesso!");
+                dispararNotificacaoNovaChamada("Teste de Notificação", "Sistema Ativo");
+            }
+        });
+    }
+}
+
 function dispararNotificacaoNovaChamada(nomeAluno, foco) {
-    // 1. Vibração do Celular
     if ("vibrate" in navigator) {
-        navigator.vibrate([200, 100, 200]);
+        navigator.vibrate([300, 150, 300]);
     }
 
-    // 2. Som de Alerta em Tempo Real (Web Audio API)
     try {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // Nota D5
-        osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.3); // Nota A5
+        osc.frequency.setValueAtTime(587.33, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.3);
         gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
         osc.connect(gain);
@@ -78,7 +94,6 @@ function dispararNotificacaoNovaChamada(nomeAluno, foco) {
         console.error("Erro som alerta:", e);
     }
 
-    // 3. Notificação Nativa do Sistema
     if ("Notification" in window && Notification.permission === "granted") {
         new Notification("⚡ Novo Treino Solicitado no TAPAGO!", {
             body: `${nomeAluno} está procurando um Personal para ${foco}!`,
@@ -217,7 +232,6 @@ function finalizarLogin(lembreme, nome, cpf, cref) {
     escutarChamadasUberPersonal();
 }
 
-// Escuta chamadas instantâneas dos alunos (Modo Uber) com alarme sonoro
 function escutarChamadasUberPersonal() {
     const container = document.getElementById('painel-chamadas-uber');
     if (!container) return;
@@ -248,7 +262,7 @@ function escutarChamadasUberPersonal() {
                     <p style="font-size: 12px; color: var(--text-muted); margin: 3px 0;">Foco: <strong>${c.foco}</strong> • Horário: <strong>${c.horario}</strong></p>
                     <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px;">Local: ${c.local}</p>
                     <button onclick="aceitarChamadaUber('${docItem.id}', '${c.alunoNome}', '${c.horario}', ${c.valor}, '${c.foco}')" style="width: 100%; background: var(--neon-green); color: #000; font-weight: bold; padding: 10px; border: none; border-radius: 8px; cursor: pointer; font-size: 13px;">
-                        ⚡ Aceitar Chamada Agora (Quem Clicar Primeiro Leva)
+                        ⚡ Aceitar Chamada Agora (Split 85/15)
                     </button>
                 `;
                 container.appendChild(card);
@@ -278,121 +292,11 @@ window.aceitarChamadaUber = async function(chamadaId, nomeAluno, horario, valor,
             criadoEm: new Date().toISOString()
         });
 
-        alert(`🎉 Você aceitou o treino de ${nomeAluno}!\n\nO aluno foi notificado e a aula foi adicionada à sua agenda.`);
+        alert(`🎉 Você aceitou o treino de ${nomeAluno}!\n\nA taxa de 15% foi retida automaticamente pela plataforma.`);
         carregarAgendaDoBanco();
     } catch (e) {
         console.error("Erro ao aceitar chamada:", e);
     }
-}
-
-async function salvarHorarioAtendimento() {
-    dadosPerfil.horaInicio = document.getElementById('select-hora-inicio').value;
-    dadosPerfil.horaFim = document.getElementById('select-hora-fim').value;
-    dadosPerfil.diaFolga = document.getElementById('select-dia-folga').value;
-
-    if (dadosPerfil.cpf) {
-        await setDoc(doc(db, "profissionais", dadosPerfil.cpf), {
-            horaInicio: dadosPerfil.horaInicio,
-            horaFim: dadosPerfil.horaFim,
-            diaFolga: dadosPerfil.diaFolga
-        }, { merge: true });
-        alert("✅ Configuração de expediente salva com sucesso!");
-    }
-}
-
-window.salvarBioPersonal = async function() {
-    if (!dadosPerfil.cpf) return alert("Erro ao identificar o perfil.");
-    const bio = document.getElementById('personal-input-bio').value.trim();
-    const pix = document.getElementById('personal-input-pix').value.trim();
-
-    try {
-        await setDoc(doc(db, "profissionais", dadosPerfil.cpf), {
-            bio: bio,
-            chavePix: pix,
-            atualizadoEm: new Date().toISOString()
-        }, { merge: true });
-        alert("✅ Bio e Chave PIX salvas com sucesso!");
-    } catch (e) {
-        console.error("Erro ao salvar perfil personal:", e);
-    }
-}
-
-window.initMapAlunos = function() {
-    const mapaElemento = document.getElementById("mapa-alunos");
-    if (!mapaElemento) return;
-
-    const pontoInicial = { lat: -22.4389, lng: -46.8258 };
-    mapAlunos = new google.maps.Map(mapaElemento, {
-        zoom: 14,
-        center: pontoInicial,
-        disableDefaultUI: true
-    });
-
-    carregarAlunosNoMapa();
-}
-
-function carregarAlunosNoMapa() {
-    const filtroSelect = document.getElementById('select-filtro-objetivo');
-    const filtroObjetivo = filtroSelect ? filtroSelect.value : "Todos";
-
-    onSnapshot(collection(db, "usuarios"), (snapshot) => {
-        let count = 0;
-        const listaCards = document.getElementById('lista-demandas-cards');
-        if (listaCards) listaCards.innerHTML = "";
-
-        Object.keys(marcadoresAlunosMap).forEach(key => {
-            marcadoresAlunosMap[key].setMap(null);
-        });
-        marcadoresAlunosMap = {};
-
-        snapshot.forEach((docItem) => {
-            const aluno = docItem.data();
-            const objetivoAluno = aluno.objetivo || "Hipertrofia";
-
-            if (filtroObjetivo !== "Todos" && objetivoAluno !== filtroObjetivo) {
-                return;
-            }
-
-            count++;
-            const aLat = -22.4389 + (count * 0.003);
-            const aLng = -46.8258 + (count * 0.003);
-
-            if (mapAlunos) {
-                const pos = new google.maps.LatLng(aLat, aLng);
-                marcadoresAlunosMap[docItem.id] = new google.maps.Marker({
-                    position: pos,
-                    map: mapAlunos,
-                    title: aluno.nome || "Aluno"
-                });
-            }
-
-            if (listaCards) {
-                const card = document.createElement('div');
-                card.className = "glass";
-                card.style.cssText = "padding: 12px; margin-bottom: 8px; border-left: 3px solid var(--gold); display: flex; justify-content: space-between; align-items: center;";
-                card.innerHTML = `
-                    <div>
-                        <h5 style="margin: 0; font-size: 14px; color: var(--gold);">${aluno.nome || 'Aluno Cadastrado'}</h5>
-                        <p style="margin: 2px 0 0 0; font-size: 11px; color: var(--text-muted);">Objetivo: <strong>${objetivoAluno}</strong></p>
-                        <span style="font-size: 10px; color: #39ff14;">🟢 Online na região</span>
-                    </div>
-                    <button onclick="chamarAlunoNoChat('${docItem.id}', '${aluno.nome || 'Aluno'}')" style="background: var(--gold); color: #000; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size: 11px; cursor: pointer;">
-                        Chamar no Chat 💬
-                    </button>
-                `;
-                listaCards.appendChild(card);
-            }
-        });
-
-        if (listaCards && count === 0) {
-            listaCards.innerHTML = `<p style="font-size:12px; color:var(--text-muted); text-align:center; padding:10px;">Nenhum aluno encontrado para o objetivo <strong>${filtroObjetivo}</strong>.</p>`;
-        }
-    });
-}
-
-window.chamarAlunoNoChat = function(alunoUid, nomeAluno) {
-    switchTabPersonal('tab-chat', document.querySelectorAll('#nav-personal .nav-item')[2]);
-    abrirConversa(alunoUid, nomeAluno);
 }
 
 async function carregarAgendaDoBanco() {
@@ -428,25 +332,43 @@ function renderizarAgenda() {
                 <div class="slot-info-name">${slot.nome || slot.aluno}</div>
                 <div class="slot-info-desc">Foco: ${slot.objetivo} | ${slot.frequencia || '3x'} (${slot.diaSemana || 'Seg, Qua, Sex'}) - R$ ${slot.preco || 0}</div>
             </div>
-            <div style="display:flex; flex-direction:column; align-items:flex-end;">
-                <button class="btn-slot-action btn-qr" onclick="abrirQRCode(${index})">Gerar PIX QR</button>
+            <div style="display:flex; flex-direction:column; align-items:flex-end; gap: 5px;">
+                <button class="btn-slot-action btn-qr" onclick="abrirQRCode(${index})">Gerar PIX Split</button>
+                <button onclick="desmarcarTreinoPersonal('${slot.id}', '${slot.nome || slot.aluno}')" style="background: rgba(255, 51, 51, 0.2); color: #ff3333; border: 1px solid #ff3333; padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: bold; cursor: pointer;">
+                    ✕ Desmarcar (Taxa R$15)
+                </button>
             </div>
         `;
         lista.appendChild(div);
     });
 }
 
+window.desmarcarTreinoPersonal = async function(agendamentoId, nomeAluno) {
+    const confirma = confirm(`⚠️ TAXA DE CANCELAMENTO:\n\nTem certeza que deseja desmarcar a aula com ${nomeAluno}?\n\nO cancelamento gera uma taxa administrativa de R$ 15,00 retida pela plataforma para ressarcimento da agenda.`);
+    if (!confirma) return;
+
+    try {
+        await deleteDoc(doc(db, "agenda", agendamentoId));
+        alert("✅ Aula desmarcada. A taxa administrativa de cancelamento foi aplicada.");
+        carregarAgendaDoBanco();
+    } catch (e) {
+        console.error("Erro ao desmarcar treino:", e);
+    }
+}
+
 async function atualizarProjecaoFinanceiraReal() {
     try {
         const querySnapshot = await getDocs(collection(db, "agenda"));
-        let totalFixo = 0;
+        let totalBruto = 0;
         querySnapshot.forEach((docItem) => {
             const data = docItem.data();
-            if (data.preco) totalFixo += Number(data.preco);
+            if (data.preco) totalBruto += Number(data.preco);
         });
-        document.getElementById('valor-fixo').innerText = `R$ ${totalFixo.toLocaleString('pt-BR')}`;
-        let totalGeral = totalFixo + ganhosAvulsos;
-        document.getElementById('valor-total').innerText = `R$ ${totalGeral.toLocaleString('pt-BR')}`;
+        // Desconta os 15% da plataforma para mostrar o líquido do personal
+        let totalLiquido = totalBruto * 0.85;
+        document.getElementById('valor-fixo').innerText = `R$ ${totalLiquido.toLocaleString('pt-BR', {maximumFractionDigits:2})}`;
+        let totalGeral = totalLiquido + (ganhosAvulsos * 0.85);
+        document.getElementById('valor-total').innerText = `R$ ${totalGeral.toLocaleString('pt-BR', {maximumFractionDigits:2})}`;
     } catch (e) {
         console.error("Erro finanças:", e);
     }
@@ -569,7 +491,7 @@ async function enviarPropostaPersonal() {
             tipo: "proposta",
             horario: horario,
             preco: preco,
-            texto: `📋 Proposta de Treino: Horário às ${horario} - Valor: R$ ${preco},00`,
+            texto: `📋 Proposta de Treino: Horário às ${horario} - Valor: R$ ${preco},00 (Split 85/15)`,
             data: new Date().toISOString()
         });
     } catch (e) {
@@ -578,7 +500,7 @@ async function enviarPropostaPersonal() {
 }
 
 function abrirQRCode(index) {
-    const randomPayId = "TAPAGO-PIX-" + Math.floor(Math.random() * 900000 + 100000);
+    const randomPayId = "TAPAGO-SPLIT-PIX-" + Math.floor(Math.random() * 900000 + 100000);
     const imgEl = document.getElementById('qr-code-img');
     if (imgEl) imgEl.src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${randomPayId}`;
     document.getElementById('modal-qrcode').classList.add('active');
@@ -590,7 +512,7 @@ function fecharModalQRCode() {
 
 function simularLeituraQRCode() {
     fecharModalQRCode();
-    alert("✅ Pagamento PIX verificado e creditado!");
+    alert("✅ Pagamento PIX Split verificado! 15% retidos pela plataforma TAPAGO.");
 }
 
 function atualizarExibicaoPerfil() {
@@ -667,3 +589,5 @@ window.simularLeituraQRCode = simularLeituraQRCode;
 window.switchTabPersonal = switchTabPersonal;
 window.carregarAlunosNoMapa = carregarAlunosNoMapa;
 window.aceitarChamadaUber = aceitarChamadaUber;
+window.desmarcarTreinoPersonal = desmarcarTreinoPersonal;
+window.solicitarPermissaoNotificacao = solicitarPermissaoNotificacao;
