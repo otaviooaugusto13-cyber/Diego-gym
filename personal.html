@@ -76,7 +76,7 @@
                 <div class="finance-header">Projeção Financeira Real</div>
                 <div class="finance-values">
                     <div class="finance-item">
-                        <span>Alunos Fixos (Alunos Reais)</span>
+                        <span>Alunos Fixos</span>
                         <h3 id="valor-fixo">R$ 0</h3>
                     </div>
                     <div class="finance-item">
@@ -129,7 +129,8 @@
                 </div>
             </div>
         </div>
-        <!-- ABA 4: PERFIL COM CONFIGURAÇÃO DE HORÁRIO -->
+
+        <!-- ABA 4: PERFIL -->
         <div id="tab-perfil" class="tab-content" style="padding-bottom: 100px;">
             <div class="header-personal glass">
                 <h2 style="margin: 0; font-size: 20px;">Meu Perfil & Horários</h2>
@@ -173,7 +174,7 @@
                     <option value="6">Sábado</option>
                     <option value="1">Segunda-feira</option>
                 </select>
-                <button class="btn btn-primary" style="font-size: 12px; padding: 8px;" onclick="salvarHorarioAtendimento()">Salvar Configuração de Expediente</button>
+                <button class="btn btn-primary" style="font-size: 12px; padding: 8px;" onclick="salvarHorarioAtendimento()">Salvar Expediente</button>
             </div>
 
             <div class="glass" style="padding: 15px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
@@ -207,12 +208,10 @@
         </div>
     </div>
 
-    <!-- MODAL: CADASTRAR ALUNO COM DETALHES -->
+    <!-- MODAL: CADASTRAR ALUNO -->
     <div id="modal-cadastrar-aluno" class="app-overlay">
         <div class="glass modal-box">
             <h3 style="margin-bottom: 10px; color: var(--gold);">Cadastrar Aluno</h3>
-            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 15px;">Insira os dados e valores para a projeção financeira.</p>
-
             <input type="text" id="cad-aluno-cpf" placeholder="CPF do Aluno (apenas números)" maxlength="11">
             <input type="text" id="cad-aluno-nome" placeholder="Nome Completo do Aluno">
             <input type="text" id="cad-aluno-objetivo" placeholder="Objetivo (ex: Hipertrofia)">
@@ -220,17 +219,15 @@
             <input type="text" id="cad-aluno-dias" placeholder="Dias de Treino (Ex: Seg, Qua, Sex)">
             <input type="text" id="cad-aluno-horario" placeholder="Horário (Ex: 08:00)">
             <input type="text" id="cad-aluno-frequencia" placeholder="Frequência (Ex: 3x na semana)">
-
             <button class="btn btn-primary" onclick="confirmarCadastroAluno()">Confirmar Matrícula</button>
             <button class="btn btn-outline" style="margin-top: 8px;" onclick="fecharModalCadastrarAluno()">Cancelar</button>
         </div>
     </div>
 
-    <!-- MODAL: CHECK-IN QR CODE PIX -->
+    <!-- MODAL: QR CODE PIX -->
     <div id="modal-qrcode" class="app-overlay">
         <div class="glass modal-box" style="text-align: center;">
             <h3 style="margin-bottom: 5px;">PIX / Check-in</h3>
-            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 20px;">QR Code dinâmico para pagamento da aula.</p>
             <div class="qr-code-placeholder" style="background: #fff; padding: 10px; display: inline-block;">
                 <img id="qr-code-img" src="" alt="QR Code PIX" width="160" height="160">
             </div>
@@ -239,6 +236,8 @@
         </div>
     </div>
 
+    <!-- Google Maps API com callback initMapAlunos -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCYuhjdqUwLqt1wBkq4SkkUcC3FDaPXspU&libraries=geometry&callback=initMapAlunos" async defer></script>
     <script type="module" src="script-personal.js"></script>
 </body>
 </html>
