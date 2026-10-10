@@ -58,12 +58,20 @@
     <!-- TELA 2: Dashboard Principal -->
     <div id="screen-dashboard" class="screen main-app-screen">
         
+        <!-- BANNER DE PERMISSÃO DE NOTIFICAÇÃO E SOM -->
+        <div id="banner-notificacao" class="glass" style="padding: 10px 15px; background: rgba(255, 204, 0, 0.15); border: 1px solid var(--gold); border-radius: 12px; margin: 10px 15px 0 15px; display: flex; justify-content: space-between; align-items: center;">
+            <div style="font-size: 11px; color: var(--gold);">
+                <strong>🔔 Notificações Desativadas:</strong> Clique ao lado para receber alertas com som/vibração.
+            </div>
+            <button onclick="solicitarPermissaoNotificacao()" style="background: var(--gold); color: #000; border: none; padding: 6px 10px; border-radius: 6px; font-weight: bold; font-size: 11px; cursor: pointer; white-space: nowrap;">Ativar Agora</button>
+        </div>
+
         <!-- ABA 1: AGENDA -->
         <div id="tab-agenda" class="tab-content active" style="padding-bottom: 100px;">
             <div class="header-personal glass">
                 <div>
                     <h2 style="margin: 0; font-size: 20px;">Olá, <span id="nome-exibicao" class="highlight">Professor</span></h2>
-                    <p style="margin: 0; font-size: 12px; color: var(--gold);">Profissional Verificado ✓ </p>
+                    <p style="margin: 0; font-size: 12px; color: var(--gold);">Profissional Verificado ✓ (Split 85/15)</p>
                 </div>
                 <div class="avatar-header" id="avatar-header" onclick="switchTabPersonal('tab-perfil', document.querySelectorAll('.nav-item')[3])">
                     <img id="img-avatar-header" src="" alt="Foto" style="display:none; width:100%; height:100%; border-radius:50%; object-fit:cover;">
@@ -73,7 +81,7 @@
 
             <!-- PROJEÇÃO FINANCEIRA -->
             <div class="glass finance-card">
-                <div class="finance-header">Projeção Financeira Real</div>
+                <div class="finance-header">Projeção Financeira Real (Líquido Personal)</div>
                 <div class="finance-values">
                     <div class="finance-item">
                         <span>Alunos Fixos</span>
@@ -85,7 +93,7 @@
                     </div>
                 </div>
                 <div class="finance-total">
-                    <span>Total Projetado:</span>
+                    <span>Total Líquido Projetado:</span>
                     <span id="valor-total" style="color: var(--gold); font-size: 18px; font-weight: bold;">R$ 450</span>
                 </div>
             </div>
@@ -173,7 +181,7 @@
                 <h4 style="font-size: 14px; margin-bottom: 8px; color: var(--gold);">📝 Apresentação / Bio</h4>
                 <textarea id="personal-input-bio" rows="3" placeholder="Escreva um breve resumo da sua experiência e método de treino..." style="width: 100%; padding: 10px; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); border-radius: 8px; color: var(--text-color); font-size: 12px; resize: none; margin-bottom: 10px;"></textarea>
 
-                <label style="font-size: 11px; color: var(--text-muted);">Chave PIX Principal (para QR Code):</label>
+                <label style="font-size: 11px; color: var(--text-muted);">Chave PIX Principal (para Split / QR Code):</label>
                 <input type="text" id="personal-input-pix" placeholder="CPF, E-mail ou Celular" style="width: 100%; padding: 10px; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); border-radius: 8px; color: var(--text-color); font-size: 13px; margin-top: 4px; margin-bottom: 10px;">
 
                 <button class="btn btn-primary" style="padding: 10px; font-size: 12px;" onclick="salvarBioPersonal()">Salvar Dados Profissionais</button>
@@ -262,12 +270,13 @@
         </div>
     </div>
 
-    <!-- MODAL: QR CODE PIX -->
+    <!-- MODAL: QR CODE PIX SPLIT -->
     <div id="modal-qrcode" class="app-overlay">
         <div class="glass modal-box" style="text-align: center;">
-            <h3 style="margin-bottom: 5px;">PIX / Check-in</h3>
+            <h3 style="margin-bottom: 5px;">PIX Split / Check-in</h3>
+            <p style="font-size: 11px; color: var(--gold); margin-bottom: 10px;">⚡ Taxa da Plataforma (15%) dividida automaticamente</p>
             <div class="qr-code-placeholder" style="background: #fff; padding: 10px; display: inline-block;">
-                <img id="qr-code-img" src="" alt="QR Code PIX" width="160" height="160">
+                <img id="qr-code-img" src="" alt="QR Code PIX Split" width="160" height="160">
             </div>
             <button class="btn btn-primary" style="margin-top: 20px;" onclick="simularLeituraQRCode()">Simular Pagamento</button>
             <button class="btn btn-outline" style="margin-top: 10px;" onclick="fecharModalQRCode()">Fechar</button>
