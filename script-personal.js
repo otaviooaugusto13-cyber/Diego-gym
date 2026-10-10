@@ -614,3 +614,39 @@ window.aceitarChamadaUber = aceitarChamadaUber;
 window.desmarcarTreinoPersonal = desmarcarTreinoPersonal;
 window.solicitarPermissaoNotificacao = solicitarPermissaoNotificacao;
 window.iniciarCheckoutMercadoPago = iniciarCheckoutMercadoPago;
+
+// VALIDAÇÃO E CONTROLE DOS TERMOS DE USO
+window.validarCheckTermos = function() {
+    const checkbox = document.getElementById('check-termos');
+    const btnLogin = document.getElementById('btn-login');
+    
+    if (checkbox.checked) {
+        btnLogin.disabled = false;
+        btnLogin.style.opacity = '1';
+        btnLogin.style.cursor = 'pointer';
+    } else {
+        btnLogin.disabled = true;
+        btnLogin.style.opacity = '0.5';
+        btnLogin.style.cursor = 'not-allowed';
+    }
+}
+
+window.abrirModalTermos = function() {
+    document.getElementById('modal-termos').classList.add('active');
+}
+
+window.fecharModalTermos = function() {
+    document.getElementById('modal-termos').classList.remove('active');
+}
+
+window.aceitarTermosModal = function() {
+    document.getElementById('check-termos').checked = true;
+    validarCheckTermos();
+    fecharModalTermos();
+}
+
+// Lembre-se de incluir na lista global de exports no final do script-personal.js:
+window.validarCheckTermos = validarCheckTermos;
+window.abrirModalTermos = abrirModalTermos;
+window.fecharModalTermos = fecharModalTermos;
+window.aceitarTermosModal = aceitarTermosModal;
