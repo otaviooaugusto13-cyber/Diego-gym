@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, doc, setDoc, query, where, onSnapshot, orderBy, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, doc, setDoc, query, where, onSnapshot, orderBy, updateDoc, deleteDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 const firebaseConfig = {
@@ -27,7 +27,8 @@ let dadosPerfil = {
     horaFim: 21,
     diaFolga: 0,
     fotoUrl: null,
-    status: "pendente"
+    status: "pendente",
+    dadosBancarios: null
 };
 
 let mapAlunos;
@@ -135,7 +136,6 @@ window.solicitarPermissaoNotificacao = function() {
                 const banner = document.getElementById('banner-notificacao');
                 if (banner) banner.style.display = 'none';
                 alert("🔔 Notificações e alertas sonoros ativados!");
-                dispararNotificacaoNovaChamada("Teste de Notificação", "Sistema Ativo");
             }
         });
     }
@@ -144,23 +144,6 @@ window.solicitarPermissaoNotificacao = function() {
 function dispararNotificacaoNovaChamada(nomeAluno, foco) {
     if ("vibrate" in navigator) {
         navigator.vibrate([300, 150, 300]);
-    }
-
-    try {
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(587.33, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.3);
-        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.5);
-    } catch (e) {
-        console.error("Erro som alerta:", e);
     }
 
     if ("Notification" in window && Notification.permission === "granted") {
@@ -197,13 +180,15 @@ async function loginComGoogle() {
         const querySnapshot = await getDocs(q);
 
         if (!querySnapshot.empty) {
-            const profData = querySnapshot.docs[0].data();
+            const profDoc = querySnapshot.docs[0];
+            const profData = profDoc.data();
             dadosPerfil.nome = profData.nome || user.displayName;
             dadosPerfil.cpf = profData.cpf;
             dadosPerfil.cref = profData.cref;
             dadosPerfil.fotoUrl = user.photoURL;
             dadosPerfil.status = profData.status || "pendente";
-            finalizarLogin(true, profData.nome, profData.cpf, profData.cref);
+            dadosPerfil.dadosBancarios = profData.dadosBancarios || null;
+            finalizarLogin(true, dadosPerfil.nome, dadosPerfil.cpf, dadosPerfil.cref);
         } else {
             const cpfInput = prompt("Digite seu CPF (apenas números):");
             if (!cpfInput) return;
@@ -216,6 +201,7 @@ async function loginComGoogle() {
             dadosPerfil.cpf = cpf;
             dadosPerfil.cref = cref;
             dadosPerfil.status = "pendente";
+            dadosPerfil.dadosBancarios = null;
 
             await setDoc(doc(db, "profissionais", cpf), {
                 nome: user.displayName,
@@ -252,20 +238,20 @@ async function validarProfissional() {
         dadosPerfil.cpf = cpf;
         dadosPerfil.cref = cref;
 
+        const docRef = doc(db, "profissionais", cpf);
+        const docSnap = await getDoc(docRef);
+
         if (cpf === ADMIN_CPF) {
             dadosPerfil.status = "ativo";
-            await setDoc(doc(db, "profissionais", cpf), { nome, cpf, cref, status: "ativo", horaInicio: 8, horaFim: 21, diaFolga: 0, atualizadoEm: new Date() });
+            await setDoc(docRef, { nome, cpf, cref, status: "ativo", horaInicio: 8, horaFim: 21, diaFolga: 0, atualizadoEm: new Date() }, { merge: true });
+        } else if (docSnap.exists()) {
+            const profData = docSnap.data();
+            dadosPerfil.status = profData.status || "pendente";
+            dadosPerfil.dadosBancarios = profData.dadosBancarios || null;
         } else {
-            const q = query(collection(db, "profissionais"), where("cpf", "==", cpf));
-            const querySnapshot = await getDocs(q);
-
-            if (!querySnapshot.empty) {
-                const profData = querySnapshot.docs[0].data();
-                dadosPerfil.status = profData.status || "pendente";
-            } else {
-                dadosPerfil.status = "pendente";
-                await setDoc(doc(db, "profissionais", cpf), { nome, cpf, cref, status: "pendente", horaInicio: 8, horaFim: 21, diaFolga: 0, criadoEm: new Date().toISOString() });
-            }
+            dadosPerfil.status = "pendente";
+            dadosPerfil.dadosBancarios = null;
+            await setDoc(docRef, { nome, cpf, cref, status: "pendente", horaInicio: 8, horaFim: 21, diaFolga: 0, criadoEm: new Date().toISOString() });
         }
 
         finalizarLogin(lembreme, nome, cpf, cref);
@@ -335,7 +321,35 @@ function escutarChamadasUberPersonal() {
     });
 }
 
+// ==========================================
+// TRAVA DE SEGURANÇA PARA ACEITAR CHAMADA
+// ==========================================
 window.aceitarChamadaUber = async function(chamadaId, nomeAluno, horario, valor, foco) {
+    // Verificar se está ativo no Firebase antes de aceitar
+    try {
+        if (dadosPerfil.cpf) {
+            const docRef = doc(db, "profissionais", dadosPerfil.cpf);
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                dadosPerfil.status = data.status || "pendente";
+                dadosPerfil.dadosBancarios = data.dadosBancarios || null;
+            }
+        }
+    } catch (e) {
+        console.error("Erro ao verificar status:", e);
+    }
+
+    if (dadosPerfil.status !== "ativo") {
+        alert("⏳ Cadastro em Análise!\n\nVocê ainda não pode aceitar chamadas de treino enquanto seu cadastro estiver pendente de aprovação pela administração.");
+        return;
+    }
+
+    if (!dadosPerfil.dadosBancarios) {
+        alert("💳 Dados Bancários Pendentes!\n\nPara receber os repasses das aulas, cadastre sua conta bancária na aba 'Carteira' antes de aceitar treinos.");
+        return;
+    }
+
     try {
         await updateDoc(doc(db, "chamadas_uber", chamadaId), {
             status: "aceito",
@@ -561,14 +575,6 @@ async function enviarPropostaPersonal() {
     }
 }
 
-function abrirQRCode(index) {
-    document.getElementById('modal-qrcode').classList.add('active');
-}
-
-function fecharModalQRCode() {
-    document.getElementById('modal-qrcode').classList.remove('active');
-}
-
 function atualizarExibicaoPerfil() {
     const primeiraLetra = dadosPerfil.nome.charAt(0).toUpperCase();
     const elNome = document.getElementById('nome-exibicao');
@@ -580,27 +586,6 @@ function atualizarExibicaoPerfil() {
     if (elPerfilNome) elPerfilNome.innerText = dadosPerfil.nome;
     if (elPerfilCref) elPerfilCref.innerText = `CREF: ${dadosPerfil.cref}`;
     if (elInitPerfil) elInitPerfil.innerText = primeiraLetra;
-}
-
-function atualizarFotoPerfil(event) {
-    const file = event.target.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            dadosPerfil.fotoUrl = e.target.result;
-            atualizarExibicaoPerfil();
-        };
-        reader.readAsDataURL(file);
-    }
-}
-
-function alternarTema() {
-    document.body.classList.toggle('light-theme');
-    const claro = document.body.classList.contains('light-theme');
-    const elLabel = document.getElementById('label-tema');
-    const elIcon = document.getElementById('icon-tema');
-    if (elLabel) elLabel.innerText = claro ? "Modo Claro Ativo" : "Modo Escuro Ativo";
-    if (elIcon) elIcon.innerText = claro ? "☀️" : "🌙";
 }
 
 window.sairModoPessoal = function() {
@@ -615,47 +600,6 @@ window.sairModoPessoal = function() {
 
 function abrirModalCadastrarAluno() { document.getElementById('modal-cadastrar-aluno').classList.add('active'); }
 function fecharModalCadastrarAluno() { document.getElementById('modal-cadastrar-aluno').classList.remove('active'); }
-
-window.salvarHorarioAtendimento = async function() {
-    const hInicio = document.getElementById('select-hora-inicio').value;
-    const hFim = document.getElementById('select-hora-fim').value;
-    const dFolga = document.getElementById('select-dia-folga').value;
-
-    dadosPerfil.horaInicio = hInicio;
-    dadosPerfil.horaFim = hFim;
-    dadosPerfil.diaFolga = dFolga;
-
-    if (dadosPerfil.cpf) {
-        try {
-            await setDoc(doc(db, "profissionais", dadosPerfil.cpf), {
-                horaInicio: hInicio,
-                horaFim: hFim,
-                diaFolga: dFolga
-            }, { merge: true });
-            alert("🕒 Horário de atendimento salvo com sucesso!");
-        } catch (e) {
-            console.error("Erro ao salvar expediente:", e);
-        }
-    }
-}
-
-window.salvarBioPersonal = async function() {
-    const bioText = document.getElementById('personal-input-bio').value;
-    const pixText = document.getElementById('personal-input-pix').value;
-
-    if (dadosPerfil.cpf) {
-        try {
-            await setDoc(doc(db, "profissionais", dadosPerfil.cpf), {
-                bio: bioText,
-                pixChave: pixText
-            }, { merge: true });
-            alert("📝 Dados profissionais salvos com sucesso!");
-            fecharSubtelaPerfil();
-        } catch (e) {
-            console.error("Erro ao salvar bio:", e);
-        }
-    }
-}
 
 // MODAL DADOS BANCÁRIOS
 window.abrirModalDadosBancarios = function() {
@@ -674,8 +618,10 @@ window.salvarDadosBancarios = async function() {
 
     if (dadosPerfil.cpf) {
         try {
+            const dadosBancariosObj = { banco, agencia: ag, conta, pix, atualizadoEm: new Date().toISOString() };
+            dadosPerfil.dadosBancarios = dadosBancariosObj;
             await setDoc(doc(db, "profissionais", dadosPerfil.cpf), {
-                dadosBancarios: { banco, agencia: ag, conta, pix, atualizadoEm: new Date().toISOString() }
+                dadosBancarios: dadosBancariosObj
             }, { merge: true });
             alert("✅ Dados bancários cadastrados com sucesso!");
             fecharModalDadosBancarios();
@@ -686,7 +632,7 @@ window.salvarDadosBancarios = async function() {
 }
 
 // ==========================================
-// MAPA E CHAT DE ALUNOS
+// MAPA E LISTAGEM DE ALUNOS ONLINE NO RADAR
 // ==========================================
 window.initMapAlunos = function() {
     const mapElement = document.getElementById('mapa-alunos');
@@ -703,20 +649,20 @@ window.initMapAlunos = function() {
 
 window.carregarAlunosNoMapa = async function() {
     if (!mapAlunos) return;
-    const filtroObjetivo = document.getElementById('select-filtro-objetivo')?.value || "Todos";
     const containerDemandas = document.getElementById('lista-demandas-cards');
     if (containerDemandas) containerDemandas.innerHTML = "";
 
     try {
         const querySnapshot = await getDocs(collection(db, "usuarios"));
         
+        if (querySnapshot.empty) {
+            if (containerDemandas) containerDemandas.innerHTML = "<p style='color: var(--text-muted); font-size: 12px; text-align: center; padding: 10px;'>Nenhum aluno online no momento.</p>";
+            return;
+        }
+
         querySnapshot.forEach((docItem) => {
             const aluno = docItem.data();
             const uid = docItem.id;
-
-            if (filtroObjetivo !== "Todos" && aluno.objetivo && aluno.objetivo !== filtroObjetivo) {
-                return;
-            }
 
             if (aluno.lat && aluno.lng) {
                 const pos = { lat: aluno.lat, lng: aluno.lng };
@@ -743,7 +689,7 @@ window.carregarAlunosNoMapa = async function() {
                 card.style.cssText = "padding: 12px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;";
                 card.innerHTML = `
                     <div>
-                        <h4 style="margin: 0; font-size: 14px;">${aluno.nome || 'Aluno TAPAGO'}</h4>
+                        <h4 style="margin: 0; font-size: 14px;">${aluno.nome || 'Aluno TAPAGO'} <span style="font-size: 10px; color: var(--neon-green);">● Online</span></h4>
                         <p style="font-size: 11px; color: var(--gold); margin: 2px 0;">Foco: ${aluno.objetivo || 'Geral'}</p>
                     </div>
                     <button onclick="abrirConversaModal('${uid}', '${aluno.nome || 'Aluno'}')" style="background: var(--gold); color: #000; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size: 11px; cursor: pointer;">💬 Conversar</button>
@@ -756,7 +702,6 @@ window.carregarAlunosNoMapa = async function() {
     }
 }
 
-// FUNÇÕES PARA ABRIR O CHAT EM OVERLAY/MODAL
 window.abrirConversaModal = function(alunoUid, nomeAluno) {
     const modalChat = document.getElementById('modal-chat-flutuante');
     if (modalChat) {
@@ -812,7 +757,6 @@ window.fecharSubtelaPerfil = function() {
     if (sub) sub.style.display = 'none';
 }
 
-// VALIDAÇÃO E CONTROLE DOS TERMOS DE USO
 window.validarCheckTermos = function() {
     const checkbox = document.getElementById('check-termos');
     const btnLogin = document.getElementById('btn-login');
@@ -854,13 +798,18 @@ window.abrirConversa = abrirConversa;
 window.fecharConversa = fecharConversa;
 window.enviarMensagemChat = enviarMensagemChat;
 window.enviarPropostaPersonal = enviarPropostaPersonal;
-window.salvarHorarioAtendimento = salvarHorarioAtendimento;
-window.salvarBioPersonal = salvarBioPersonal;
-window.atualizarFotoPerfil = atualizarFotoPerfil;
-window.alternarTema = alternarTema;
+window.salvarBioPersonal = (async function() {
+    const bioText = document.getElementById('personal-input-bio').value;
+    const pixText = document.getElementById('personal-input-pix').value;
+    if (dadosPerfil.cpf) {
+        try {
+            await setDoc(doc(db, "profissionais", dadosPerfil.cpf), { bio: bioText, pixChave: pixText }, { merge: true });
+            alert("📝 Dados profissionais salvos com sucesso!");
+            fecharSubtelaPerfil();
+        } catch (e) { console.error(e); }
+    }
+});
 window.sairModoPessoal = sairModoPessoal;
-window.abrirQRCode = abrirQRCode;
-window.fecharModalQRCode = fecharModalQRCode;
 window.switchTabPersonal = switchTabPersonal;
 window.carregarAlunosNoMapa = carregarAlunosNoMapa;
 window.aceitarChamadaUber = aceitarChamadaUber;
