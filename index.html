@@ -20,12 +20,20 @@
     <!-- TELA 1: Login do Aluno -->
     <div id="screen-login" class="screen active">
         <div class="glass login-box" style="padding: 40px 30px; max-width: 400px; width: 100%;">
-            <div style="text-align: center; margin-bottom: 30px;">
+            <div style="text-align: center; margin-bottom: 25px;">
                 <h1>TAPA<span class="highlight">GO</span></h1>
                 <p class="subtitle">Encontre o seu Personal Ideal</p>
             </div>
+
+            <!-- CHECKBOX OBRIGATÓRIO DOS TERMOS -->
+            <div class="remember-box" style="margin-bottom: 20px; background: rgba(57, 255, 20, 0.08); padding: 10px; border-radius: 8px; border: 1px solid rgba(57, 255, 20, 0.2); text-align: left;">
+                <input type="checkbox" id="check-termos-aluno" onchange="validarCheckTermosAluno()">
+                <label for="check-termos-aluno" style="font-size: 11px; color: var(--text-color);">
+                    Li e concordo com os <a href="#" onclick="abrirModalTermosAluno(); return false;" style="color: var(--neon-green); text-decoration: underline; font-weight: bold;">Termos de Uso e Regras de Cancelamento</a>.
+                </label>
+            </div>
             
-            <button class="btn btn-primary ripple-btn" onclick="loginGoogleAluno()" style="display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; border-color: var(--neon-green); color: var(--text-color); margin-bottom: 15px;">
+            <button id="btn-login-aluno" class="btn btn-primary ripple-btn" onclick="loginGoogleAluno()" disabled style="display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; border-color: var(--neon-green); color: var(--text-color); opacity: 0.5; cursor: not-allowed; margin-bottom: 15px;">
                 <svg width="18" height="18" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                     <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -180,6 +188,29 @@
         </div>
     </div>
 
+    <!-- MODAL: TERMOS DE USO DO ALUNO -->
+    <div id="modal-termos-aluno" class="app-overlay">
+        <div class="glass modal-box" style="max-height: 80vh; overflow-y: auto; text-align: left; padding: 25px;">
+            <h3 style="color: var(--neon-green); margin-bottom: 10px;">📜 Termos de Uso - Aluno TAPAGO</h3>
+            
+            <p style="font-size: 12px; color: var(--text-color); line-height: 1.5; margin-bottom: 10px;">
+                Bem-vindo ao <strong>TAPAGO</strong>. Ao acessar com sua conta Google, você concorda com as diretrizes de agendamento e pagamento:
+            </p>
+
+            <h4 style="font-size: 13px; color: var(--gold); margin-top: 10px;">1. Pagamentos e Taxa da Plataforma</h4>
+            <p style="font-size: 11px; color: var(--text-muted); line-height: 1.4;">
+                As transações são processadas via gateway de pagamento (Mercado Pago). A plataforma retém a taxa operacional de intermediação automaticamente para garantir o suporte e o funcionamento do sistema de geolocalização.
+            </p>
+
+            <h4 style="font-size: 13px; color: var(--gold); margin-top: 10px;">2. Taxa de Cancelamento (R$ 15,00)</h4>
+            <p style="font-size: 11px; color: var(--text-muted); line-height: 1.4;">
+                Caso precise desmarcar um treino agendado ou solicitado em cima da hora, será aplicada uma taxa administrativa de cancelamento no valor de **R$ 15,00** para compensar o tempo reservado pelo profissional na academia.
+            </p>
+
+            <button class="btn btn-primary" style="margin-top: 20px; width: 100%;" onclick="aceitarTermosAlunoModal()">Li e Concordo</button>
+        </div>
+    </div>
+
     <!-- OVERLAY: CHAT ATIVO -->
     <div id="active-chat-screen" class="app-overlay">
         <div class="chat-header-bar">
@@ -223,6 +254,31 @@
             </div>
         </div>
     </div>
+
+    <!-- Funções de validação de termos para o Aluno -->
+    <script>
+        function validarCheckTermosAluno() {
+            const checkbox = document.getElementById('check-termos-aluno');
+            const btnLogin = document.getElementById('btn-login-aluno');
+            if (checkbox.checked) {
+                btnLogin.disabled = false;
+                btnLogin.style.opacity = '1';
+                btnLogin.style.cursor = 'pointer';
+            } else {
+                btnLogin.disabled = true;
+                btnLogin.style.opacity = '0.5';
+                btnLogin.style.cursor = 'not-allowed';
+            }
+        }
+        function abrirModalTermosAluno() {
+            document.getElementById('modal-termos-aluno').classList.add('active');
+        }
+        function aceitarTermosAlunoModal() {
+            document.getElementById('check-termos-aluno').checked = true;
+            validarCheckTermosAluno();
+            document.getElementById('modal-termos-aluno').classList.remove('active');
+        }
+    </script>
 
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCYuhjdqUwLqt1wBkq4SkkUcC3FDaPXspU&libraries=geometry&callback=initMap" async defer></script>
     <script type="module" src="script.js"></script>
