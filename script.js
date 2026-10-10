@@ -98,11 +98,24 @@ function iniciarAppAluno() {
     carregarProximoAgendamentoAluno();
 }
 
+// CALCULA O PREÇO DINÂMICO BASEADO NO HORÁRIO DE PICO (PICO DA ACADEMIA)
+function calcularPrecoDinamico() {
+    const horaAtual = new Date().getHours();
+    // Horário de Pico: Manhã (6h - 8h) e Noite (17h - 20h)
+    const ehPico = (horaAtual >= 6 && horaAtual <= 8) || (horaAtual >= 17 && horaAtual <= 20);
+    return {
+        valor: ehPico ? 80 : 60,
+        ehPico: ehPico
+    };
+}
+
 window.solicitarTreinoModoUber = async function() {
     if (!alunoLogado) return alert("Faça login para solicitar um treino.");
     const horario = document.getElementById('solicitacao-horario').value;
     const foco = document.getElementById('solicitacao-foco').value;
     const local = document.getElementById('solicitacao-local').value.trim() || "Localização Atual (GPS)";
+
+    const tarifa = calcularPrecoDinamico();
 
     try {
         await addDoc(collection(db, "chamadas_uber"), {
@@ -111,11 +124,14 @@ window.solicitarTreinoModoUber = async function() {
             horario: horario,
             foco: foco,
             local: local,
-            valor: 60,
+            valor: tarifa.valor,
+            ehPico: tarifa.ehPico,
             status: "pendente",
             criadoEm: new Date().toISOString()
         });
-        alert("🚀 Chamada enviada em TEMPO REAL para os personais da área!\n\nAguarde o aceite de um profissional...");
+        
+        const msgPico = tarifa.ehPico ? "\n⚡ (Tarifa ajustada para Horário de Pico nas Academias: R$ 80,00)" : "";
+        alert(`🚀 Chamada enviada em TEMPO REAL para os personais da área!${msgPico}\n\nAguarde o aceite de um profissional...`);
     } catch (e) {
         console.error("Erro ao solicitar treino:", e);
     }
