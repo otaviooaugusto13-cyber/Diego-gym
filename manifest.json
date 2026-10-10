@@ -1,5 +1,5 @@
 {
-  "name": "TAPAGO - Plataforma de Personal Trainers",
+  "name": "TAPAGO - Personal Trainers",
   "short_name": "TAPAGO",
   "start_url": "/index.html",
   "display": "standalone",
@@ -7,7 +7,7 @@
   "theme_color": "#39ff14",
   "icons": [
     {
-      "src": "icon.png",
+      "src": "https://cdn-icons-png.flaticon.com/512/2965/2965567.png",
       "sizes": "192x192",
       "type": "image/png"
     }
