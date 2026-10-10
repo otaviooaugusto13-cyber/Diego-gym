@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, doc, setDoc, query, where, onSnapshot, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs, doc, setDoc, query, where, onSnapshot, orderBy, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyA2PVDpo4X3G8ok_Mk5MU1WeRUaxwIhEpg",
@@ -17,565 +17,582 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
 
-let alunoLogado = null;
-let mapRadar;
-let marcadoresPersonal = {};
-let conversaAtivaPersonal = null;
-let avaliacaoEstrelasSelecionadas = 5;
-let unsubscribeChat = null;
+const ADMIN_CPF = "11122233344";
+
+let dadosPerfil = {
+    nome: "Professor",
+    cref: "",
+    cpf: "",
+    horaInicio: 8,
+    horaFim: 21,
+    diaFolga: 0,
+    fotoUrl: null
+};
+
+let mapAlunos;
+let marcadoresAlunosMap = {};
+let conversaAtiva = null;
+let unsubscribePersonalChat = null;
+let ganhosAvulsos = 450;
+let agendaDeHoje = [];
+let primeiraCargaChamadas = true;
+let audioCtx = null;
 
 window.addEventListener('DOMContentLoaded', () => {
-    onAuthStateChanged(auth, async (user) => {
-        if (user) {
-            alunoLogado = {
-                uid: user.uid,
-                nome: user.displayName || "Aluno",
-                email: user.email,
-                foto: user.photoURL
-            };
-            iniciarAppAluno();
-        }
-    });
+    // Checar Permissão de Notificação
+    if ("Notification" in window && Notification.permission === "granted") {
+        const banner = document.getElementById('banner-notificacao');
+        if (banner) banner.style.display = 'none';
+    }
+
+    const savedProfile = localStorage.getItem('tapago_personal_user');
+    if (savedProfile) {
+        const parsed = JSON.parse(savedProfile);
+        dadosPerfil.nome = parsed.nome;
+        dadosPerfil.cpf = parsed.cpf;
+        dadosPerfil.cref = parsed.cref;
+        finalizarLogin(true, parsed.nome, parsed.cpf, parsed.cref);
+    }
 });
 
-async function loginGoogleAluno() {
+// SOLICITAR PERMISSÃO EXPLÍCITA E DESBLOQUEAR ÁUDIO NO PRIMEIRO CLIQUE
+window.solicitarPermissaoNotificacao = function() {
+    // Inicializa contexto de áudio com toque do usuário
+    try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        audioCtx.resume();
+    } catch(e) {}
+
+    if ("Notification" in window) {
+        Notification.requestPermission().then(permission => {
+            if (permission === "granted") {
+                const banner = document.getElementById('banner-notificacao');
+                if (banner) banner.style.display = 'none';
+                alert("🔔 Notificações e alertas sonoros ativados com sucesso!");
+                dispararNotificacaoNovaChamada("Teste de Notificação", "Sistema Ativo");
+            }
+        });
+    }
+}
+
+// DISPARADOR DE NOTIFICAÇÃO (SOM + VIBRAÇÃO + BANNER)
+function dispararNotificacaoNovaChamada(nomeAluno, foco) {
+    // 1. Vibração do Celular
+    if ("vibrate" in navigator) {
+        navigator.vibrate([300, 150, 300]);
+    }
+
+    // 2. Som de Alerta Sonoro
+    try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // Nota D5
+        osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.3); // Nota A5
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.5);
+    } catch (e) {
+        console.error("Erro som alerta:", e);
+    }
+
+    // 3. Notificação Nativa PWA
+    if ("Notification" in window && Notification.permission === "granted") {
+        new Notification("⚡ Novo Treino Solicitado no TAPAGO!", {
+            body: `${nomeAluno} está procurando um Personal para ${foco}!`,
+            icon: "manifest-icon.png"
+        });
+    }
+}
+
+function iniciarRastreamentoGPS() {
+    if (navigator.geolocation && dadosPerfil.cpf) {
+        navigator.geolocation.watchPosition(async (position) => {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            try {
+                await setDoc(doc(db, "profissionais", dadosPerfil.cpf), {
+                    lat: lat,
+                    lng: lng,
+                    ultimaAtualizacao: new Date().toISOString()
+                }, { merge: true });
+            } catch (e) {
+                console.error("Erro GPS personal:", e);
+            }
+        }, (err) => console.error(err), { enableHighAccuracy: true });
+    }
+}
+
+async function loginComGoogle() {
     try {
         const result = await signInWithPopup(auth, googleProvider);
         const user = result.user;
-        alunoLogado = {
-            uid: user.uid,
-            nome: user.displayName || "Aluno",
-            email: user.email,
-            foto: user.photoURL
-        };
-        await setDoc(doc(db, "usuarios", user.uid), {
-            nome: alunoLogado.nome,
-            email: alunoLogado.email,
-            foto: alunoLogado.foto || "",
-            criadoEm: new Date().toISOString()
-        }, { merge: true });
-        iniciarAppAluno();
-    } catch (error) {
-        console.error("Erro login aluno:", error);
-    }
-}
+        const q = query(collection(db, "profissionais"), where("email", "==", user.email));
+        const querySnapshot = await getDocs(q);
 
-function iniciarAppAluno() {
-    document.getElementById('display-name-home').innerText = alunoLogado.nome;
-    document.getElementById('display-name-profile').innerText = alunoLogado.nome;
-    
-    const initial = alunoLogado.nome.charAt(0).toUpperCase();
-    const mainAvatar = document.getElementById('main-user-avatar');
-    const profileSpan = document.getElementById('display-avatar-profile');
-    const profileImg = document.getElementById('img-aluno-perfil-preview');
-
-    if (mainAvatar) {
-        mainAvatar.innerText = initial;
-        if (alunoLogado.foto) {
-            mainAvatar.innerHTML = `<img src="${alunoLogado.foto}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
-        }
-    }
-
-    if (profileSpan && profileImg) {
-        if (alunoLogado.foto) {
-            profileImg.src = alunoLogado.foto;
-            profileImg.style.display = 'block';
-            profileSpan.style.display = 'none';
+        if (!querySnapshot.empty) {
+            const profData = querySnapshot.docs[0].data();
+            if (profData.status === "ativo") {
+                dadosPerfil.nome = profData.nome || user.displayName;
+                dadosPerfil.cpf = profData.cpf;
+                dadosPerfil.cref = profData.cref;
+                dadosPerfil.fotoUrl = user.photoURL;
+                finalizarLogin(true, profData.nome, profData.cpf, profData.cref);
+            } else {
+                alert("⏳ Cadastro em análise.");
+            }
         } else {
-            profileSpan.innerText = initial;
-            profileImg.style.display = 'none';
-            profileSpan.style.display = 'block';
+            const cpfInput = prompt("Digite seu CPF (apenas números):");
+            if (!cpfInput) return;
+            const crefInput = prompt("Digite seu CREF (Ex: 123456-G/SP):");
+            if (!crefInput) return;
+            const cpf = cpfInput.replace(/\D/g, '');
+            const cref = crefInput.trim();
+
+            await setDoc(doc(db, "profissionais", cpf), {
+                nome: user.displayName,
+                email: user.email,
+                cpf: cpf,
+                cref: cref,
+                status: "pendente",
+                horaInicio: 8,
+                horaFim: 21,
+                diaFolga: 0,
+                criadoEm: new Date().toISOString()
+            });
+            alert("🚀 Solicitação enviada com sucesso!");
         }
+    } catch (error) {
+        console.error("Erro Google personal:", error);
     }
-
-    const btnWp = document.getElementById('btn-whatsapp-suporte');
-    if (btnWp) btnWp.style.display = 'none';
-
-    navTo('screen-main');
-    setTimeout(() => { if (mapRadar) google.maps.event.trigger(mapRadar, 'resize'); }, 400);
-    escutarPersonaisEmTempoReal();
-    carregarListaConversasAluno();
-    carregarProximoAgendamentoAluno();
 }
 
-// CALCULA O PREÇO DINÂMICO BASEADO NO HORÁRIO DE PICO (PICO DA ACADEMIA)
-function calcularPrecoDinamico() {
-    const horaAtual = new Date().getHours();
-    // Horário de Pico: Manhã (6h - 8h) e Noite (17h - 20h)
-    const ehPico = (horaAtual >= 6 && horaAtual <= 8) || (horaAtual >= 17 && horaAtual <= 20);
-    return {
-        valor: ehPico ? 80 : 60,
-        ehPico: ehPico
-    };
-}
+async function validarProfissional() {
+    const nome = document.getElementById('input-nome').value.trim();
+    const cpf = document.getElementById('input-cpf').value.replace(/\D/g, '');
+    const cref = document.getElementById('input-cref').value.trim();
+    const lembreme = document.getElementById('check-remember').checked;
 
-window.solicitarTreinoModoUber = async function() {
-    if (!alunoLogado) return alert("Faça login para solicitar um treino.");
-    const horario = document.getElementById('solicitacao-horario').value;
-    const foco = document.getElementById('solicitacao-foco').value;
-    const local = document.getElementById('solicitacao-local').value.trim() || "Localização Atual (GPS)";
+    if (!nome || !cpf || !cref) return alert("Preencha todos os campos.");
 
-    const tarifa = calcularPrecoDinamico();
+    document.getElementById('login-loader').style.display = 'block';
+    document.getElementById('btn-login').style.display = 'none';
 
     try {
-        await addDoc(collection(db, "chamadas_uber"), {
-            alunoId: alunoLogado.uid,
-            alunoNome: alunoLogado.nome,
-            horario: horario,
-            foco: foco,
-            local: local,
-            valor: tarifa.valor,
-            ehPico: tarifa.ehPico,
-            status: "pendente",
-            criadoEm: new Date().toISOString()
-        });
-        
-        const msgPico = tarifa.ehPico ? "\n⚡ (Tarifa ajustada para Horário de Pico nas Academias: R$ 80,00)" : "";
-        alert(`🚀 Chamada enviada em TEMPO REAL para os personais da área!${msgPico}\n\nAguarde o aceite de um profissional...`);
+        if (cpf === ADMIN_CPF) {
+            dadosPerfil.nome = nome;
+            dadosPerfil.cpf = cpf;
+            dadosPerfil.cref = cref;
+            await setDoc(doc(db, "profissionais", cpf), { nome, cpf, cref, status: "ativo", horaInicio: 8, horaFim: 21, diaFolga: 0, atualizadoEm: new Date() });
+            finalizarLogin(lembreme, nome, cpf, cref);
+            return;
+        }
+
+        const q = query(collection(db, "profissionais"), where("cpf", "==", cpf));
+        const querySnapshot = await getDocs(q);
+
+        if (!querySnapshot.empty) {
+            const profData = querySnapshot.docs[0].data();
+            if (profData.status === "ativo") {
+                dadosPerfil.nome = profData.nome;
+                dadosPerfil.cpf = profData.cpf;
+                dadosPerfil.cref = profData.cref;
+                finalizarLogin(lembreme, profData.nome, cpf, cref);
+            } else {
+                alert("⏳ Cadastro em análise.");
+                document.getElementById('login-loader').style.display = 'none';
+                document.getElementById('btn-login').style.display = 'block';
+            }
+        } else {
+            await setDoc(doc(db, "profissionais", cpf), { nome, cpf, cref, status: "pendente", horaInicio: 8, horaFim: 21, diaFolga: 0, criadoEm: new Date().toISOString() });
+            alert("🚀 Solicitação enviada!");
+            document.getElementById('login-loader').style.display = 'none';
+            document.getElementById('btn-login').style.display = 'block';
+        }
     } catch (e) {
-        console.error("Erro ao solicitar treino:", e);
+        console.error(e);
+        document.getElementById('login-loader').style.display = 'none';
+        document.getElementById('btn-login').style.display = 'block';
     }
 }
 
-window.atualizarFotoPerfilAluno = function(event) {
-    const file = event.target.files[0];
-    if (file && alunoLogado) {
-        const reader = new FileReader();
-        reader.onload = async function(e) {
-            const base64Img = e.target.result;
-            alunoLogado.foto = base64Img;
-            
-            const profileImg = document.getElementById('img-aluno-perfil-preview');
-            const profileSpan = document.getElementById('display-avatar-profile');
-            if (profileImg && profileSpan) {
-                profileImg.src = base64Img;
-                profileImg.style.display = 'block';
-                profileSpan.style.display = 'none';
-            }
-            const mainAvatar = document.getElementById('main-user-avatar');
-            if (mainAvatar) {
-                mainAvatar.innerHTML = `<img src="${base64Img}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
-            }
+function finalizarLogin(lembreme, nome, cpf, cref) {
+    document.getElementById('login-loader').style.display = 'none';
+    const btnLogin = document.getElementById('btn-login');
+    if (btnLogin) btnLogin.style.display = 'block';
 
-            try {
-                await setDoc(doc(db, "usuarios", alunoLogado.uid), {
-                    foto: base64Img
-                }, { merge: true });
-                alert("✅ Foto de perfil atualizada com sucesso!");
-            } catch (err) {
-                console.error("Erro ao salvar foto no Firestore:", err);
-            }
+    if (lembreme) {
+        localStorage.setItem('tapago_personal_user', JSON.stringify({ nome, cpf, cref }));
+    }
+
+    atualizarExibicaoPerfil();
+    document.getElementById('screen-login-personal').classList.remove('active');
+    document.getElementById('screen-dashboard').classList.add('active');
+
+    iniciarRastreamentoGPS();
+    carregarAgendaDoBanco();
+    carregarListaConversasPersonal();
+    escutarChamadasUberPersonal();
+}
+
+// Escuta chamadas instantâneas dos alunos (Modo Uber) com alarme sonoro
+function escutarChamadasUberPersonal() {
+    const container = document.getElementById('painel-chamadas-uber');
+    if (!container) return;
+
+    const q = query(collection(db, "chamadas_uber"), where("status", "==", "pendente"));
+    onSnapshot(q, (snapshot) => {
+        container.innerHTML = "";
+        
+        if (!snapshot.empty) {
+            snapshot.docChanges().forEach((change) => {
+                if (change.type === "added" && !primeiraCargaChamadas) {
+                    const novaChamada = change.doc.data();
+                    dispararNotificacaoNovaChamada(novaChamada.alunoNome, novaChamada.foco);
+                }
+            });
+
+            snapshot.forEach((docItem) => {
+                const c = docItem.data();
+                const card = document.createElement('div');
+                card.className = "glass";
+                card.style.cssText = "padding: 15px; border-left: 4px solid var(--neon-green); margin-bottom: 10px; background: rgba(57, 255, 20, 0.08); border: 1px solid var(--neon-green);";
+                card.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <span style="font-size: 11px; font-weight: bold; color: var(--neon-green); text-transform: uppercase;">⚡ Chamada Solicitada ${c.ehPico ? '🔥 Pico' : ''}</span>
+                        <span style="font-size: 14px; font-weight: bold; color: var(--gold);">R$ ${c.valor},00</span>
+                    </div>
+                    <h4 style="margin: 0; font-size: 15px;">${c.alunoNome}</h4>
+                    <p style="font-size: 12px; color: var(--text-muted); margin: 3px 0;">Foco: <strong>${c.foco}</strong> • Horário: <strong>${c.horario}</strong></p>
+                    <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px;">Local: ${c.local}</p>
+                    <button onclick="aceitarChamadaUber('${docItem.id}', '${c.alunoNome}', '${c.horario}', ${c.valor}, '${c.foco}')" style="width: 100%; background: var(--neon-green); color: #000; font-weight: bold; padding: 10px; border: none; border-radius: 8px; cursor: pointer; font-size: 13px;">
+                        ⚡ Aceitar Chamada Agora (Quem Clicar Primeiro Leva)
+                    </button>
+                `;
+                container.appendChild(card);
+            });
+        }
+        primeiraCargaChamadas = false;
+    });
+}
+
+window.aceitarChamadaUber = async function(chamadaId, nomeAluno, horario, valor, foco) {
+    try {
+        await updateDoc(doc(db, "chamadas_uber", chamadaId), {
+            status: "aceito",
+            personalAceitou: dadosPerfil.nome
+        });
+
+        await addDoc(collection(db, "agenda"), {
+            nome: nomeAluno,
+            aluno: nomeAluno,
+            professor: dadosPerfil.nome,
+            objetivo: foco || "Treino Rápido",
+            preco: parseFloat(valor),
+            horario: horario,
+            diaSemana: "Hoje",
+            frequencia: "Chamada Instantânea",
+            status: "ativo",
+            criadoEm: new Date().toISOString()
+        });
+
+        alert(`🎉 Você aceitou o treino de ${nomeAluno}!\n\nO aluno foi notificado e a aula foi adicionada à sua agenda.`);
+        carregarAgendaDoBanco();
+    } catch (e) {
+        console.error("Erro ao aceitar chamada:", e);
+    }
+}
+
+async function carregarAgendaDoBanco() {
+    try {
+        const querySnapshot = await getDocs(collection(db, "agenda"));
+        agendaDeHoje = [];
+        querySnapshot.forEach((docItem) => {
+            agendaDeHoje.push({ id: docItem.id, ...docItem.data() });
+        });
+        renderizarAgenda();
+        atualizarProjecaoFinanceiraReal();
+    } catch (error) {
+        console.error("Erro agenda:", error);
+    }
+}
+
+function renderizarAgenda() {
+    const lista = document.getElementById('lista-agenda');
+    if (!lista) return;
+    lista.innerHTML = "";
+
+    if (agendaDeHoje.length === 0) {
+        lista.innerHTML = "<p style='color: var(--text-muted); font-size: 13px;'>Nenhum aluno cadastrado.</p>";
+        return;
+    }
+
+    agendaDeHoje.forEach((slot, index) => {
+        const div = document.createElement('div');
+        div.className = `glass agenda-slot slot-ocupado`;
+        div.innerHTML = `
+            <div class="slot-time">${slot.horario || '08:00'}</div>
+            <div class="slot-info">
+                <div class="slot-info-name">${slot.nome || slot.aluno}</div>
+                <div class="slot-info-desc">Foco: ${slot.objetivo} | ${slot.frequencia || '3x'} (${slot.diaSemana || 'Seg, Qua, Sex'}) - R$ ${slot.preco || 0}</div>
+            </div>
+            <div style="display:flex; flex-direction:column; align-items:flex-end; gap: 5px;">
+                <button class="btn-slot-action btn-qr" onclick="abrirQRCode(${index})">Gerar PIX QR</button>
+                <button onclick="desmarcarTreinoPersonal('${slot.id}', '${slot.nome || slot.aluno}')" style="background: rgba(255, 51, 51, 0.2); color: #ff3333; border: 1px solid #ff3333; padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: bold; cursor: pointer;">
+                    ✕ Desmarcar (Taxa R$15)
+                </button>
+            </div>
+        `;
+        lista.appendChild(div);
+    });
+}
+
+window.desmarcarTreinoPersonal = async function(agendamentoId, nomeAluno) {
+    const confirma = confirm(`⚠️ TAXA DE CANCELAMENTO:\n\nTem certeza que deseja desmarcar a aula com ${nomeAluno}?\n\nO cancelamento gera uma taxa administrativa de R$ 15,00 para ressarcimento da agenda.`);
+    if (!confirma) return;
+
+    try {
+        await deleteDoc(doc(db, "agenda", agendamentoId));
+        alert("✅ Aula desmarcada. A notificação e a taxa de cancelamento foram processadas.");
+        carregarAgendaDoBanco();
+    } catch (e) {
+        console.error("Erro ao desmarcar treino:", e);
+    }
+}
+
+async function atualizarProjecaoFinanceiraReal() {
+    try {
+        const querySnapshot = await getDocs(collection(db, "agenda"));
+        let totalFixo = 0;
+        querySnapshot.forEach((docItem) => {
+            const data = docItem.data();
+            if (data.preco) totalFixo += Number(data.preco);
+        });
+        document.getElementById('valor-fixo').innerText = `R$ ${totalFixo.toLocaleString('pt-BR')}`;
+        let totalGeral = totalFixo + ganhosAvulsos;
+        document.getElementById('valor-total').innerText = `R$ ${totalGeral.toLocaleString('pt-BR')}`;
+    } catch (e) {
+        console.error("Erro finanças:", e);
+    }
+}
+
+async function confirmarCadastroAluno() {
+    const nome = document.getElementById('cad-aluno-nome').value.trim();
+    const objetivo = document.getElementById('cad-aluno-objetivo').value.trim();
+    const cpf = document.getElementById('cad-aluno-cpf').value.trim();
+    const preco = parseFloat(document.getElementById('cad-aluno-preco').value) || 350;
+    const diaSemana = document.getElementById('cad-aluno-dias').value.trim() || "Seg, Qua, Sex";
+    const horario = document.getElementById('cad-aluno-horario').value.trim() || "08:00";
+    const frequencia = document.getElementById('cad-aluno-frequencia').value.trim() || "3x na semana";
+
+    if (!nome) return alert("Digite o nome do aluno.");
+
+    try {
+        await addDoc(collection(db, "agenda"), {
+            nome, cpf: cpf || "Não informado", objetivo: objetivo || "Geral",
+            preco, diaSemana, horario, frequencia, status: "ativo", criadoEm: new Date().toISOString()
+        });
+        fecharModalCadastrarAluno();
+        alert(`🎉 Aluno ${nome} matriculado!`);
+        carregarAgendaDoBanco();
+    } catch (e) {
+        console.error("Erro cadastro aluno:", e);
+    }
+}
+
+async function carregarListaConversasPersonal() {
+    const listaView = document.getElementById('chat-list-view');
+    if (!listaView) return;
+    try {
+        const snap = await getDocs(collection(db, "usuarios"));
+        listaView.innerHTML = "";
+        snap.forEach(docUsr => {
+            const u = docUsr.data();
+            const item = document.createElement('div');
+            item.className = "chat-item glass";
+            item.onclick = () => abrirConversa(docUsr.id, u.nome);
+            item.innerHTML = `
+                <div class="chat-avatar">${u.nome.charAt(0)}</div>
+                <div class="chat-info">
+                    <h4>${u.nome} <span class="chat-time">Online</span></h4>
+                    <p>Clique para conversar</p>
+                </div>
+            `;
+            listaView.appendChild(item);
+        });
+    } catch (e) {
+        console.error("Erro conversas personal:", e);
+    }
+}
+
+async function abrirConversa(alunoUid, nomeAluno) {
+    conversaAtiva = alunoUid;
+    document.getElementById('chat-list-view').style.display = 'none';
+    document.getElementById('chat-conversation-view').style.display = 'block';
+    document.getElementById('chat-active-name').innerText = nomeAluno;
+
+    const chatBox = document.getElementById('chat-box');
+    chatBox.innerHTML = '';
+
+    const chatId = `${alunoUid}_${dadosPerfil.nome}`;
+    const q = query(collection(db, "chats", chatId, "mensagens"), orderBy("data", "asc"));
+
+    if (unsubscribePersonalChat) unsubscribePersonalChat();
+
+    unsubscribePersonalChat = onSnapshot(q, (snapshot) => {
+        chatBox.innerHTML = '';
+        snapshot.forEach((docItem) => {
+            const msg = docItem.data();
+            const msgDiv = document.createElement('div');
+            const ehMinha = msg.remetente === dadosPerfil.nome;
+            msgDiv.className = `msg ${ehMinha ? 'msg-sent' : 'msg-received'}`;
+            msgDiv.innerHTML = `<p>${msg.texto}</p><span class="msg-time">${new Date(msg.data).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>`;
+            chatBox.appendChild(msgDiv);
+        });
+        chatBox.scrollTop = chatBox.scrollHeight;
+    });
+}
+
+function fecharConversa() {
+    if (unsubscribePersonalChat) unsubscribePersonalChat();
+    document.getElementById('chat-list-view').style.display = 'block';
+    document.getElementById('chat-conversation-view').style.display = 'none';
+    conversaAtiva = null;
+    carregarListaConversasPersonal();
+}
+
+async function enviarMensagemChat() {
+    const input = document.getElementById('input-chat-msg');
+    const texto = input.value.trim();
+    if (texto === "" || !conversaAtiva) return;
+
+    const chatId = `${conversaAtiva}_${dadosPerfil.nome}`;
+    input.value = "";
+
+    try {
+        await addDoc(collection(db, "chats", chatId, "mensagens"), {
+            remetente: dadosPerfil.nome,
+            texto: texto,
+            data: new Date().toISOString()
+        });
+    } catch (e) {
+        console.error("Erro envio personal:", e);
+    }
+}
+
+async function enviarPropostaPersonal() {
+    if (!conversaAtiva) return alert("Abra uma conversa primeiro.");
+    const horario = prompt("Digite o horário da aula (Ex: 15:00):", "15:00");
+    const preco = prompt("Digite o valor da aula (R$):", "60");
+    if (!horario || !preco) return;
+
+    const chatId = `${conversaAtiva}_${dadosPerfil.nome}`;
+    try {
+        await addDoc(collection(db, "chats", chatId, "mensagens"), {
+            remetente: dadosPerfil.nome,
+            tipo: "proposta",
+            horario: horario,
+            preco: preco,
+            texto: `📋 Proposta de Treino: Horário às ${horario} - Valor: R$ ${preco},00`,
+            data: new Date().toISOString()
+        });
+    } catch (e) {
+        console.error("Erro proposta:", e);
+    }
+}
+
+function abrirQRCode(index) {
+    const randomPayId = "TAPAGO-PIX-" + Math.floor(Math.random() * 900000 + 100000);
+    const imgEl = document.getElementById('qr-code-img');
+    if (imgEl) imgEl.src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${randomPayId}`;
+    document.getElementById('modal-qrcode').classList.add('active');
+}
+
+function fecharModalQRCode() {
+    document.getElementById('modal-qrcode').classList.remove('active');
+}
+
+function simularLeituraQRCode() {
+    fecharModalQRCode();
+    alert("✅ Pagamento PIX verificado e creditado!");
+}
+
+function atualizarExibicaoPerfil() {
+    const primeiraLetra = dadosPerfil.nome.charAt(0).toUpperCase();
+    document.getElementById('nome-exibicao').innerText = dadosPerfil.nome;
+    document.getElementById('perfil-nome-display').innerText = dadosPerfil.nome;
+    document.getElementById('perfil-cref-display').innerText = `CREF: ${dadosPerfil.cref}`;
+    document.getElementById('initials-header').innerText = primeiraLetra;
+    document.getElementById('initials-perfil').innerText = primeiraLetra;
+}
+
+function atualizarFotoPerfil(event) {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            dadosPerfil.fotoUrl = e.target.result;
+            atualizarExibicaoPerfil();
         };
         reader.readAsDataURL(file);
     }
 }
 
-async function logoutAluno() {
+function alternarTema() {
+    document.body.classList.toggle('light-theme');
+    const claro = document.body.classList.contains('light-theme');
+    document.getElementById('label-tema').innerText = claro ? "Modo Claro Ativo" : "Modo Escuro Ativo";
+    document.getElementById('icon-tema').innerText = claro ? "☀️" : "🌙";
+}
+
+function sairModoPessoal() {
     if (confirm("Deseja realmente sair?")) {
-        await signOut(auth);
-        alunoLogado = null;
-        const btnWp = document.getElementById('btn-whatsapp-suporte');
-        if (btnWp) btnWp.style.display = 'flex';
-        navTo('screen-login');
+        localStorage.removeItem('tapago_personal_user');
+        document.getElementById('screen-dashboard').classList.remove('active');
+        document.getElementById('screen-login-personal').classList.add('active');
     }
 }
 
-function navTo(screenId) {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById(screenId).classList.add('active');
-}
+function abrirModalCadastrarAluno() { document.getElementById('modal-cadastrar-aluno').classList.add('active'); }
+function fecharModalCadastrarAluno() { document.getElementById('modal-cadastrar-aluno').classList.remove('active'); }
 
-function switchTab(tabId, navElement) {
+function switchTabPersonal(tabId, navElement) {
     document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-    document.getElementById(tabId).classList.add('active');
-    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+    const tabAlvo = document.getElementById(tabId);
+    if (tabAlvo) tabAlvo.classList.add('active');
+    document.querySelectorAll('#nav-personal .nav-item').forEach(item => item.classList.remove('active'));
     if (navElement) navElement.classList.add('active');
 
-    if (tabId === 'tab-home') {
-        setTimeout(() => { if (mapRadar) google.maps.event.trigger(mapRadar, 'resize'); }, 200);
-    }
-    if (tabId === 'tab-mensagens') carregarListaConversasAluno();
-    if (tabId === 'tab-perfil') carregarProximoAgendamentoAluno();
-}
-
-function toggleTheme() {
-    if (document.getElementById('theme-toggle').checked) {
-        document.body.classList.add('light-theme');
-    } else {
-        document.body.classList.remove('light-theme');
+    if (tabId === 'tab-chat') carregarListaConversasPersonal();
+    if (tabId === 'tab-heatmap') {
+        setTimeout(() => {
+            if (mapAlunos) google.maps.event.trigger(mapAlunos, 'resize');
+        }, 200);
+        carregarAlunosNoMapa();
     }
 }
 
-window.initMap = function() {
-    const mapaElemento = document.getElementById("mapa-quadrado");
-    if (!mapaElemento) return;
-    const pontoInicial = { lat: -22.4389, lng: -46.8258 };
-    mapRadar = new google.maps.Map(mapaElemento, {
-        zoom: 14,
-        center: pontoInicial,
-        disableDefaultUI: true
-    });
-}
-
-function estaNoHorarioTrabalho(data) {
-    const agora = new Date();
-    const horaAtual = agora.getHours();
-    const diaSemana = agora.getDay();
-    const inicio = data.horaInicio ? parseInt(data.horaInicio) : 8;
-    const fim = data.horaFim ? parseInt(data.horaFim) : 21;
-    const diaFolga = data.diaFolga !== undefined ? parseInt(data.diaFolga) : 0;
-
-    if (diaSemana === diaFolga) return false;
-    if (horaAtual < inicio || horaAtual >= fim) return false;
-    return true;
-}
-
-function escutarPersonaisEmTempoReal() {
-    const container = document.getElementById('lista-personais-reais');
-    if (!container) return;
-
-    onSnapshot(collection(db, "profissionais"), (snapshot) => {
-        container.innerHTML = "";
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition((pos) => {
-                const localAluno = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                if (mapRadar) mapRadar.setCenter(localAluno);
-                processarSnapshotPersonais(snapshot, localAluno, container);
-            }, () => {
-                processarSnapshotPersonais(snapshot, { lat: -22.4389, lng: -46.8258 }, container);
-            });
-        } else {
-            processarSnapshotPersonais(snapshot, { lat: -22.4389, lng: -46.8258 }, container);
-        }
-    });
-}
-
-function processarSnapshotPersonais(snapshot, localAluno, container) {
-    let count = 0;
-    snapshot.forEach((docItem) => {
-        const data = docItem.data();
-        if (data.status === "ativo") {
-            count++;
-            const onlinePorHorario = estaNoHorarioTrabalho(data);
-            const pLat = data.lat || (-22.4389 + (count * 0.003));
-            const pLng = data.lng || (-46.8258 + (count * 0.003));
-            const nomeProf = data.nome || "Personal";
-
-            if (mapRadar && onlinePorHorario) {
-                const posLatLng = new google.maps.LatLng(pLat, pLng);
-                if (marcadoresPersonal[docItem.id]) {
-                    marcadoresPersonal[docItem.id].setPosition(posLatLng);
-                } else {
-                    marcadoresPersonal[docItem.id] = new google.maps.Marker({
-                        position: posLatLng,
-                        map: mapRadar,
-                        title: nomeProf
-                    });
-                }
-            } else if (marcadoresPersonal[docItem.id]) {
-                marcadoresPersonal[docItem.id].setMap(null);
-            }
-
-            let distanciaTexto = "Próximo";
-            if (window.google && google.maps && google.maps.geometry) {
-                const pAluno = new google.maps.LatLng(localAluno.lat, localAluno.lng);
-                const pProf = new google.maps.LatLng(pLat, pLng);
-                const metros = google.maps.geometry.spherical.computeDistanceBetween(pAluno, pProf);
-                distanciaTexto = metros < 1000 ? `${Math.round(metros)}m de você` : `${(metros / 1000).toFixed(1)}km de você`;
-            }
-
-            const card = document.createElement('div');
-            card.className = 'trainer-card glass card-gold';
-            card.innerHTML = `
-                <div class="trainer-header">
-                    <div class="avatar-container story-ring">
-                        <div class="avatar">${nomeProf.charAt(0)}</div>
-                    </div>
-                    <div class="trainer-info">
-                        <h4>${nomeProf} <span class="badge badge-gold">Verificado</span></h4>
-                        <p>CREF: ${data.cref || 'Ativo'}</p>
-                        <div class="trainer-status" style="color: ${onlinePorHorario ? '#39ff14' : '#ff3333'};">
-                            <span class="dot" style="background:${onlinePorHorario ? '#39ff14' : '#ff3333'};"></span> 
-                            ${onlinePorHorario ? 'ONLINE' : 'OFFLINE'} • <span>${distanciaTexto}</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="trainer-actions">
-                    <button class="btn-action btn-outline" onclick="openTrainerProfile('${nomeProf}')">Ver Perfil</button>
-                    <button class="btn-action btn-fill" onclick="openActiveChat('${nomeProf}')">Conversar</button>
-                </div>
-            `;
-            container.appendChild(card);
-        }
-    });
-}
-
-let viewingTrainerName = "";
-window.openTrainerProfile = async function(nomeProfessor) {
-    viewingTrainerName = nomeProfessor;
-    document.getElementById('tp-name').innerText = nomeProfessor;
-    document.getElementById('tp-avatar').innerText = nomeProfessor.charAt(0);
-    document.getElementById('tp-spec').innerText = "Profissional Credenciado TAPAGO";
-    await carregarAvaliacoesFirestore(nomeProfessor);
-    document.getElementById('trainer-profile-overlay').classList.add('active');
-}
-
-window.closeTrainerProfile = function() {
-    document.getElementById('trainer-profile-overlay').classList.remove('active');
-}
-
-window.setRating = function(estrelas) {
-    avaliacaoEstrelasSelecionadas = estrelas;
-    const spans = document.querySelectorAll('#star-selector span');
-    spans.forEach((s, idx) => {
-        s.style.color = idx < estrelas ? 'var(--gold)' : 'rgba(255,255,255,0.2)';
-    });
-}
-
-async function carregarAvaliacoesFirestore(nomeProf) {
-    const listaArea = document.getElementById('reviews-list');
-    listaArea.innerHTML = "<p style='color: var(--text-muted); font-size: 13px;'>Carregando avaliações...</p>";
-    try {
-        const q = query(collection(db, "avaliacoes"), where("professor", "==", nomeProf));
-        const querySnapshot = await getDocs(q);
-        listaArea.innerHTML = "";
-        let soma = 0, total = 0;
-
-        if (querySnapshot.empty) {
-            listaArea.innerHTML = "<p style='color: var(--text-muted); font-size: 13px;'>Nenhuma avaliação ainda.</p>";
-            document.getElementById('tp-media-estrelas').innerText = "⭐⭐⭐⭐⭐ (Novo)";
-            return;
-        }
-
-        querySnapshot.forEach((docItem) => {
-            const av = docItem.data();
-            total++;
-            soma += (av.estrelas || 5);
-            const div = document.createElement('div');
-            div.className = 'review-card';
-            div.innerHTML = `
-                <div class="review-header">
-                    <span class="review-author">${av.autor}</span>
-                    <span class="review-date">${new Date(av.data).toLocaleDateString()}</span>
-                </div>
-                <div style="color: var(--gold); font-size: 11px; margin-bottom: 5px;">${"★".repeat(av.estrelas || 5)}</div>
-                <div class="review-text">${av.texto}</div>
-            `;
-            listaArea.appendChild(div);
-        });
-        document.getElementById('tp-media-estrelas').innerText = `⭐⭐⭐⭐⭐ (${(soma/total).toFixed(1)})`;
-    } catch (e) {
-        console.error("Erro avaliacoes:", e);
-    }
-}
-
-window.submitReview = async function() {
-    const textArea = document.getElementById('new-review-text');
-    const texto = textArea.value.trim();
-    if (texto === "") return alert("Escreva sua avaliação.");
-
-    try {
-        await addDoc(collection(db, "avaliacoes"), {
-            professor: viewingTrainerName,
-            autor: alunoLogado ? alunoLogado.nome : "Aluno",
-            estrelas: avaliacaoEstrelasSelecionadas,
-            texto: texto,
-            data: new Date().toISOString()
-        });
-        textArea.value = "";
-        alert("✅ Avaliação publicada!");
-        carregarAvaliacoesFirestore(viewingTrainerName);
-    } catch (e) {
-        console.error("Erro review:", e);
-    }
-}
-
-async function carregarListaConversasAluno() {
-    const listaConv = document.getElementById('lista-conversas');
-    if (!listaConv || !alunoLogado) return;
-    try {
-        const snap = await getDocs(collection(db, "profissionais"));
-        listaConv.innerHTML = "";
-        snap.forEach(docProf => {
-            const prof = docProf.data();
-            if (prof.status === "ativo") {
-                const item = document.createElement('div');
-                item.className = "chat-item glass";
-                item.onclick = () => openActiveChat(prof.nome);
-                item.innerHTML = `
-                    <div class="avatar" style="border-color: var(--gold); width: 45px; height: 45px;">${prof.nome.charAt(0)}</div>
-                    <div class="chat-info">
-                        <div class="chat-header">
-                            <h4>${prof.nome}</h4>
-                            <span class="chat-time">Online</span>
-                        </div>
-                        <p>Abrir chat em tempo real</p>
-                    </div>
-                `;
-                listaConv.appendChild(item);
-            }
-        });
-    } catch (e) {
-        console.error("Erro conversas aluno:", e);
-    }
-}
-
-window.openActiveChat = function(nomeProfessor) {
-    if (!alunoLogado) return;
-    conversaAtivaPersonal = nomeProfessor;
-    document.getElementById('active-chat-name').innerText = nomeProfessor;
-    document.getElementById('active-chat-avatar').innerText = nomeProfessor.charAt(0);
-    document.getElementById('active-chat-screen').classList.add('active');
-    ouvirMensagensFirestore();
-}
-
-window.closeActiveChat = function() {
-    if (unsubscribeChat) unsubscribeChat();
-    document.getElementById('active-chat-screen').classList.remove('active');
-    carregarListaConversasAluno();
-}
-
-function ouvirMensagensFirestore() {
-    const msgsArea = document.getElementById('chat-messages');
-    msgsArea.innerHTML = '';
-    const chatId = `${alunoLogado.uid}_${conversaAtivaPersonal}`;
-    const q = query(collection(db, "chats", chatId, "mensagens"), orderBy("data", "asc"));
-
-    unsubscribeChat = onSnapshot(q, (snapshot) => {
-        msgsArea.innerHTML = "";
-        if (snapshot.empty) {
-            msgsArea.innerHTML = `<p style="text-align:center; color: var(--text-muted); font-size:12px; margin-top:20px;">Inicie o chat com ${conversaAtivaPersonal}</p>`;
-            return;
-        }
-        snapshot.forEach((docItem) => {
-            const msg = docItem.data();
-            const bubble = document.createElement('div');
-            
-            if (msg.tipo === "proposta") {
-                bubble.className = `chat-bubble bubble-trainer`;
-                bubble.innerHTML = `
-                    <strong>${msg.texto}</strong><br>
-                    <button onclick="aceitarProposta('${msg.horario}', '${msg.preco}', '${conversaAtivaPersonal}')" style="margin-top:8px; background:var(--neon-green); color:#000; border:none; padding:8px 12px; border-radius:6px; font-weight:bold; cursor:pointer; width:100%;">Aceitar e Agendar no Google Agenda</button>
-                `;
-            } else {
-                bubble.className = `chat-bubble ${msg.remetente === alunoLogado.uid ? 'bubble-user' : 'bubble-trainer'}`;
-                bubble.innerText = msg.texto;
-            }
-            msgsArea.appendChild(bubble);
-        });
-        msgsArea.scrollTop = msgsArea.scrollHeight;
-    });
-}
-
-window.aceitarProposta = async function(horario, preco, nomeProf) {
-    try {
-        await addDoc(collection(db, "agenda"), {
-            nome: alunoLogado.nome,
-            aluno: alunoLogado.nome,
-            professor: nomeProf,
-            objetivo: "Treino Personalizado",
-            preco: parseFloat(preco),
-            horario: horario,
-            diaSemana: "Hoje",
-            frequencia: "Aula Confirmada",
-            status: "ativo",
-            criadoEm: new Date().toISOString()
-        });
-
-        const hojeStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
-        const horaClean = horario.replace(':', '') + '00';
-        const gCalendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=Treino+com+${encodeURIComponent(nomeProf)}&dates=${hojeStr}T${horaClean}/${hojeStr}T${parseInt(horario)+1}0000&details=Treino+contratado+via+TAPAGO+por+R$${preco}&location=Itapira+SP`;
-
-        alert(`🎉 Proposta aceita com sucesso!\n\nSalvando horário na sua agenda...`);
-        carregarProximoAgendamentoAluno();
-        window.open(gCalendarUrl, '_blank');
-    } catch (e) {
-        console.error("Erro ao aceitar proposta:", e);
-    }
-}
-
-async function carregarProximoAgendamentoAluno() {
-    const container = document.getElementById('card-proximo-treino-conteudo');
-    if (!container || !alunoLogado) return;
-
-    try {
-        const q = query(collection(db, "agenda"), where("nome", "==", alunoLogado.nome));
-        const querySnapshot = await getDocs(q);
-
-        if (querySnapshot.empty) {
-            container.innerHTML = `
-                <p style="font-size: 13px; color: var(--text-muted); margin: 5px 0;">Nenhum treino agendado no momento.</p>
-                <small style="font-size: 11px; color: var(--gold);">Combine um horário pelo chat com um personal!</small>
-            `;
-            return;
-        }
-
-        let proximoAgendamento = null;
-        querySnapshot.forEach((docItem) => {
-            proximoAgendamento = docItem.data();
-        });
-
-        if (proximoAgendamento) {
-            const hojeStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
-            const horaClean = (proximoAgendamento.horario || "15:00").replace(':', '') + '00';
-            const gCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=Treino+TAPAGO&dates=${hojeStr}T${horaClean}/${hojeStr}T${parseInt(proximoAgendamento.horario||15)+1}0000&details=Treino+confirmado+via+TAPAGO`;
-
-            container.innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
-                    <div>
-                        <h3 style="font-size: 15px; font-weight: bold; margin: 0; color: var(--text-color);">${proximoAgendamento.frequencia || 'Aula Confirmada'}</h3>
-                        <p style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0 0;">Horário: <strong>${proximoAgendamento.horario || '08:00'}</strong> • R$ ${proximoAgendamento.preco || 60},00</p>
-                    </div>
-                    <a href="${gCalUrl}" target="_blank" style="background: var(--neon-green); color: #000; text-decoration: none; padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: bold;">Google Agenda 📅</a>
-                </div>
-            `;
-        }
-    } catch (e) {
-        console.error("Erro ao carregar agendamento:", e);
-    }
-}
-
-window.salvarPerfilAluno = async function() {
-    if (!alunoLogado) return;
-    const objetivo = document.getElementById('aluno-select-objetivo').value;
-    const telefone = document.getElementById('aluno-input-telefone').value.trim();
-
-    try {
-        await setDoc(doc(db, "usuarios", alunoLogado.uid), {
-            objetivo: objetivo,
-            telefone: telefone,
-            atualizadoEm: new Date().toISOString()
-        }, { merge: true });
-        alert("✅ Preferências de perfil salvas com sucesso!");
-    } catch (e) {
-        console.error("Erro ao salvar perfil do aluno:", e);
-    }
-}
-
-window.handleEnter = function(event) { if (event.key === 'Enter') sendMessage(); }
-
-window.sendMessage = async function() {
-    const input = document.getElementById('chat-message-input');
-    const texto = input.value.trim();
-    if (texto === "" || !alunoLogado) return;
-    const chatId = `${alunoLogado.uid}_${conversaAtivaPersonal}`;
-    input.value = "";
-
-    try {
-        await addDoc(collection(db, "chats", chatId, "mensagens"), {
-            remetente: alunoLogado.uid,
-            nomeRemetente: alunoLogado.nome,
-            destinatario: conversaAtivaPersonal,
-            texto: texto,
-            data: new Date().toISOString()
-        });
-    } catch (e) {
-        console.error("Erro envio aluno:", e);
-    }
-}
-
-window.loginGoogleAluno = loginGoogleAluno;
-window.logoutAluno = logoutAluno;
-window.navTo = navTo;
-window.switchTab = switchTab;
-window.toggleTheme = toggleTheme;
+window.validarProfissional = validarProfissional;
+window.loginComGoogle = loginComGoogle;
+window.abrirModalCadastrarAluno = abrirModalCadastrarAluno;
+window.fecharModalCadastrarAluno = fecharModalCadastrarAluno;
+window.confirmarCadastroAluno = confirmarCadastroAluno;
+window.abrirConversa = abrirConversa;
+window.fecharConversa = fecharConversa;
+window.enviarMensagemChat = enviarMensagemChat;
+window.enviarPropostaPersonal = enviarPropostaPersonal;
+window.salvarHorarioAtendimento = salvarHorarioAtendimento;
+window.atualizarFotoPerfil = atualizarFotoPerfil;
+window.alternarTema = alternarTema;
+window.sairModoPessoal = sairModoPessoal;
+window.abrirQRCode = abrirQRCode;
+window.fecharModalQRCode = fecharModalQRCode;
+window.simularLeituraQRCode = simularLeituraQRCode;
+window.switchTabPersonal = switchTabPersonal;
+window.carregarAlunosNoMapa = carregarAlunosNoMapa;
+window.aceitarChamadaUber = aceitarChamadaUber;
+window.solicitarPermissaoNotificacao = solicitarPermissaoNotificacao;
