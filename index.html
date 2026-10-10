@@ -45,7 +45,7 @@
     <div id="screen-main" class="screen main-app-screen">
         
         <!-- ABA: HOME -->
-        <div id="tab-home" class="tab-content active">
+        <div id="tab-home" class="tab-content active" style="padding-bottom: 110px;">
             <div class="header-glass" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <div>
                     <h2>Olá, <span id="display-name-home" class="highlight">Aluno</span>!</h2>
@@ -54,9 +54,39 @@
                 <div class="avatar" id="main-user-avatar" style="width: 45px; height: 45px; border-color: var(--neon-green);">A</div>
             </div>
 
+            <!-- MODO UBER: CHAMAR PERSONAL AGORA -->
+            <div class="glass" style="padding: 15px; margin-bottom: 20px; border: 1px solid var(--neon-green); border-left: 4px solid var(--neon-green);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h3 style="margin: 0; font-size: 15px; color: var(--neon-green); display: flex; align-items: center; gap: 6px;">⚡ Solicitado / Treino Rápido</h3>
+                    <span style="font-size: 10px; background: rgba(57,255,20,0.2); color: var(--neon-green); padding: 2px 8px; border-radius: 10px; font-weight: bold;">Estilo Uber</span>
+                </div>
+                
+                <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+                    <select id="solicitacao-horario" style="flex: 1; padding: 8px; background: rgba(0,0,0,0.4); border: 1px solid var(--glass-border); border-radius: 8px; color: var(--text-color); font-size: 12px;">
+                        <option value="Agora (Imediato)">⏱️ Treinar Agora</option>
+                        <option value="Daqui 20 min">⏱️ Daqui 20 min</option>
+                        <option value="Daqui 45 min">⏱️ Daqui 45 min</option>
+                        <option value="Hoje às 18:00">⏱️ Hoje às 18:00</option>
+                    </select>
+
+                    <select id="solicitacao-foco" style="flex: 1; padding: 8px; background: rgba(0,0,0,0.4); border: 1px solid var(--glass-border); border-radius: 8px; color: var(--text-color); font-size: 12px;">
+                        <option value="Hipertrofia / Perna">🏋️ Hipertrofia</option>
+                        <option value="Emagrecimento / Cardio">🏃 Emagrecimento</option>
+                        <option value="Crossfit / Funcional">⚡ Funcional</option>
+                        <option value="Reabilitação / Saúde">🧘 Reabilitação</option>
+                    </select>
+                </div>
+
+                <input type="text" id="solicitacao-local" placeholder="Localização (Ex: Academia Central ou GPS)" style="width: 100%; padding: 8px 12px; background: rgba(0,0,0,0.4); border: 1px solid var(--glass-border); border-radius: 8px; color: var(--text-color); font-size: 12px; margin-bottom: 10px;">
+
+                <button class="btn btn-primary" style="padding: 10px; font-size: 13px; font-weight: bold;" onclick="solicitarTreinoModoUber()">
+                    🚀 Solicitar Personal na Região (R$ 60,00)
+                </button>
+            </div>
+
             <!-- Container do Google Maps -->
             <div class="section-title">Radar de Profissionais em Tempo Real</div>
-            <div id="mapa-quadrado" class="glass" style="height: 230px; width: 100%; border-radius: 16px; border: 1px solid var(--neon-green); overflow: hidden; margin-bottom: 25px; z-index: 1;"></div>
+            <div id="mapa-quadrado" class="glass" style="height: 220px; width: 100%; border-radius: 16px; border: 1px solid var(--neon-green); overflow: hidden; margin-bottom: 25px; z-index: 1;"></div>
 
             <!-- Lista de Personais -->
             <div id="home-content">
