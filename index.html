@@ -83,16 +83,14 @@
                 </span>
             </div>
 
-            <!-- CARD DE MÉTRICAS DO ALUNO -->
-            <div class="glass" style="display: flex; justify-content: space-around; padding: 15px; margin-bottom: 20px; text-align: center;">
-                <div>
-                    <h3 id="stat-treinos-concluidos" style="color: var(--neon-green); font-size: 18px; margin: 0;">12</h3>
-                    <p style="font-size: 10px; color: var(--text-muted); margin: 0;">Treinos Realizados</p>
+            <!-- CARD DE PRÓXIMO AGENDAMENTO / TREINO -->
+            <div class="glass" style="padding: 15px; margin-bottom: 15px; border-left: 4px solid var(--neon-green);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <h4 style="font-size: 13px; color: var(--neon-green); text-transform: uppercase; letter-spacing: 0.5px; margin: 0;">⚡ Próximo Treino Confirmado</h4>
+                    <span style="font-size: 10px; color: var(--text-muted);">Em breve</span>
                 </div>
-                <div style="width: 1px; background: var(--glass-border);"></div>
-                <div>
-                    <h3 style="color: var(--gold); font-size: 18px; margin: 0;">Ativo</h3>
-                    <p style="font-size: 10px; color: var(--text-muted); margin: 0;">Status do Plano</p>
+                <div id="card-proximo-treino-conteudo">
+                    <p style="font-size: 13px; color: var(--text-muted); margin: 5px 0;">Buscando agendamentos...</p>
                 </div>
             </div>
 
@@ -112,16 +110,11 @@
                 <button class="btn btn-primary" style="padding: 10px; font-size: 12px;" onclick="salvarPerfilAluno()">Salvar Preferências</button>
             </div>
 
-            <!-- SEÇÃO 2: ATALHOS RÁPIDOS -->
+            <!-- SEÇÃO 2: ATALHOS RÁPIDOS & CONTA -->
             <div class="glass" style="padding: 15px; margin-bottom: 15px; display: flex; flex-direction: column; gap: 10px;">
-                <h4 style="font-size: 14px; color: var(--text-color); margin-bottom: 5px;">⚙️ Opções & Conta</h4>
+                <h4 style="font-size: 14px; color: var(--text-color); margin-bottom: 5px;">⚙️ Opções & Ajustes</h4>
                 
-                <a href="https://calendar.google.com" target="_blank" class="btn btn-outline" style="text-align: left; font-size: 13px; text-decoration: none; display: flex; justify-content: space-between; align-items: center;">
-                    <span>📅 Ver Meus Agendamentos no Google Agenda</span>
-                    <span>→</span>
-                </a>
-
-                <div class="settings-item" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0;">
+                <div class="settings-item" style="display: flex; justify-content: space-between; align-items: center; padding: 5px 0;">
                     <span style="font-size: 13px;">Modo Claro / Escuro</span>
                     <label class="theme-switch">
                         <input type="checkbox" id="theme-toggle" onchange="toggleTheme()">
