@@ -98,6 +98,29 @@ function iniciarAppAluno() {
     carregarProximoAgendamentoAluno();
 }
 
+window.solicitarTreinoModoUber = async function() {
+    if (!alunoLogado) return alert("Faça login para solicitar um treino.");
+    const horario = document.getElementById('solicitacao-horario').value;
+    const foco = document.getElementById('solicitacao-foco').value;
+    const local = document.getElementById('solicitacao-local').value.trim() || "Localização Atual (GPS)";
+
+    try {
+        await addDoc(collection(db, "chamadas_uber"), {
+            alunoId: alunoLogado.uid,
+            alunoNome: alunoLogado.nome,
+            horario: horario,
+            foco: foco,
+            local: local,
+            valor: 60,
+            status: "pendente",
+            criadoEm: new Date().toISOString()
+        });
+        alert("🚀 Chamada enviada em TEMPO REAL para os personais da área!\n\nAguarde o aceite de um profissional...");
+    } catch (e) {
+        console.error("Erro ao solicitar treino:", e);
+    }
+}
+
 window.atualizarFotoPerfilAluno = function(event) {
     const file = event.target.files[0];
     if (file && alunoLogado) {
