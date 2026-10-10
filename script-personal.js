@@ -696,9 +696,6 @@ window.initMapAlunos = function() {
         disableDefaultUI: true
     });
 
-    carregarAlunosNoMapa();
-}
-
 window.carregarAlunosNoMapa = async function() {
     if (!mapAlunos) return;
     const filtroObjetivo = document.getElementById('select-filtro-objetivo')?.value || "Todos";
@@ -744,13 +741,30 @@ window.carregarAlunosNoMapa = async function() {
                         <h4 style="margin: 0; font-size: 14px;">${aluno.nome || 'Aluno TAPAGO'}</h4>
                         <p style="font-size: 11px; color: var(--gold); margin: 2px 0;">Foco: ${aluno.objetivo || 'Geral'}</p>
                     </div>
-                    <button onclick="alert('Funcionalidade de chat direto')" style="background: var(--gold); color: #000; border: none; padding: 6px 10px; border-radius: 6px; font-weight: bold; font-size: 11px; cursor: pointer;">💬 Conversar</button>
+                    <button onclick="abrirConversaModal('${uid}', '${aluno.nome || 'Aluno'}')" style="background: var(--gold); color: #000; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size: 11px; cursor: pointer;">💬 Conversar</button>
                 `;
                 containerDemandas.appendChild(card);
             }
         });
     } catch (e) {
         console.error("Erro ao carregar alunos no mapa:", e);
+    }
+}
+
+// FUNÇÃO PARA ABRIR O CHAT EM OVERLAY/MODAL
+window.abrirConversaModal = function(alunoUid, nomeAluno) {
+    const modalChat = document.getElementById('modal-chat-flutuante');
+    if (modalChat) {
+        modalChat.classList.add('active');
+        abrirConversa(alunoUid, nomeAluno);
+    }
+}
+
+window.fecharConversaModal = function() {
+    const modalChat = document.getElementById('modal-chat-flutuante');
+    if (modalChat) {
+        modalChat.classList.remove('active');
+        fecharConversa();
     }
 }
 
