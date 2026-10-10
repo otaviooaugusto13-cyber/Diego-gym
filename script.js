@@ -24,7 +24,6 @@ let conversaAtivaPersonal = null;
 let avaliacaoEstrelasSelecionadas = 5;
 let unsubscribeChat = null;
 
-// Sessão Instantânea ao carregar
 window.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, async (user) => {
         if (user) {
@@ -75,7 +74,7 @@ function iniciarAppAluno() {
     if (btnWp) btnWp.style.display = 'none';
 
     navTo('screen-main');
-    setTimeout(() => { if (mapRadar) google.maps.event.trigger(mapRadar, 'resize'); }, 300);
+    setTimeout(() => { if (mapRadar) google.maps.event.trigger(mapRadar, 'resize'); }, 400);
     escutarPersonaisEmTempoReal();
     carregarListaConversasAluno();
 }
@@ -100,7 +99,7 @@ function switchTab(tabId, navElement) {
     document.getElementById(tabId).classList.add('active');
     document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
     if (navElement) navElement.classList.add('active');
-    
+
     if (tabId === 'tab-home') {
         setTimeout(() => { if (mapRadar) google.maps.event.trigger(mapRadar, 'resize'); }, 200);
     }
@@ -122,15 +121,22 @@ window.initMap = function() {
     mapRadar = new google.maps.Map(mapaElemento, {
         zoom: 14,
         center: pontoInicial,
-        disableDefaultUI: true,
-        styles: [
-            { elementType: "geometry", stylers: [{ color: "#1a1a24" }] },
-            { elementType: "labels.text.stroke", stylers: [{ color: "#1a1a24" }] },
-            { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
-            { featureType: "road", elementType: "geometry", stylers: [{ color: "#2c2c38" }] },
-            { featureType: "water", elementType: "geometry", stylers: [{ color: "#0e1626" }] }
-        ]
+        disableDefaultUI: true
     });
+}
+
+function estaNoHorarioTrabalho(data) {
+    const agora = new Date();
+    const horaAtual = agora.getHours();
+    const diaSemana = agora.getDay(); // 0 = Domingo, 6 = Sábado
+
+    const inicio = data.horaInicio ? parseInt(data.horaInicio) : 8;
+    const fim = data.horaFim ? parseInt(data.horaFim) : 21;
+    const diaFolga = data.diaFolga !== undefined ? parseInt(data.diaFolga) : 0;
+
+    if (diaSemana === diaFolga) return false;
+    if (horaAtual < inicio || horaAtual >= fim) return false;
+    return true;
 }
 
 function escutarPersonaisEmTempoReal() {
@@ -139,7 +145,6 @@ function escutarPersonaisEmTempoReal() {
 
     onSnapshot(collection(db, "profissionais"), (snapshot) => {
         container.innerHTML = "";
-        let temAtivo = false;
 
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition((pos) => {
@@ -156,14 +161,19 @@ function escutarPersonaisEmTempoReal() {
 }
 
 function processarSnapshotPersonais(snapshot, localAluno, container) {
+    let count = 0;
     snapshot.forEach((docItem) => {
         const data = docItem.data();
         if (data.status === "ativo") {
-            const pLat = data.lat || -22.4389;
-            const pLng = data.lng || -46.8258;
+            count++;
+            const onlinePorHorario = estaNoHorarioTrabalho(data);
+            
+            // Posição ajustada caso não haja coordenadas válidas
+            const pLat = data.lat || (-22.4389 + (count * 0.003));
+            const pLng = data.lng || (-46.8258 + (count * 0.003));
             const nomeProf = data.nome || "Personal";
 
-            if (mapRadar) {
+            if (mapRadar && onlinePorHorario) {
                 const posLatLng = new google.maps.LatLng(pLat, pLng);
                 if (marcadoresPersonal[docItem.id]) {
                     marcadoresPersonal[docItem.id].setPosition(posLatLng);
@@ -171,20 +181,14 @@ function processarSnapshotPersonais(snapshot, localAluno, container) {
                     marcadoresPersonal[docItem.id] = new google.maps.Marker({
                         position: posLatLng,
                         map: mapRadar,
-                        title: nomeProf,
-                        icon: {
-                            path: google.maps.SymbolPath.CIRCLE,
-                            scale: 8,
-                            fillColor: "#ffd700",
-                            fillOpacity: 1,
-                            strokeWeight: 2,
-                            strokeColor: "#ffffff"
-                        }
+                        title: nomeProf
                     });
                 }
+            } else if (marcadoresPersonal[docItem.id]) {
+                marcadoresPersonal[docItem.id].setMap(null);
             }
 
-            let distanciaTexto = "Próximo de você";
+            let distanciaTexto = "Distância não mapeada";
             if (window.google && google.maps && google.maps.geometry) {
                 const pAluno = new google.maps.LatLng(localAluno.lat, localAluno.lng);
                 const pProf = new google.maps.LatLng(pLat, pLng);
@@ -200,10 +204,11 @@ function processarSnapshotPersonais(snapshot, localAluno, container) {
                         <div class="avatar">${nomeProf.charAt(0)}</div>
                     </div>
                     <div class="trainer-info">
-                        <h4>${nomeProf} <span class="badge badge-gold">GPS Ao Vivo</span></h4>
+                        <h4>${nomeProf} <span class="badge badge-gold">Verificado</span></h4>
                         <p>CREF: ${data.cref || 'Ativo'}</p>
-                        <div class="trainer-status status-online">
-                            <span class="dot"></span> Online • <span>${distanciaTexto}</span>
+                        <div class="trainer-status ${onlinePorHorario ? 'status-online' : ''}" style="color: ${onlinePorHorario ? '#39ff14' : '#ff3333'};">
+                            <span class="dot" style="background:${onlinePorHorario ? '#39ff14' : '#ff3333'};"></span> 
+                            ${onlinePorHorario ? 'ONLINE' : 'OFFLINE (Fora do Horário)'} • <span>${distanciaTexto}</span>
                         </div>
                     </div>
                 </div>
