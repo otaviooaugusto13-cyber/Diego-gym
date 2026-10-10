@@ -58,6 +58,14 @@
     <!-- TELA 2: Dashboard Principal -->
     <div id="screen-dashboard" class="screen main-app-screen">
         
+        <!-- BANNER DE PERMISSÃO DE NOTIFICAÇÃO E SOM -->
+        <div id="banner-notificacao" class="glass" style="padding: 10px 15px; background: rgba(255, 204, 0, 0.15); border: 1px solid var(--gold); border-radius: 12px; margin: 10px 15px 0 15px; display: flex; justify-content: space-between; align-items: center;">
+            <div style="font-size: 11px; color: var(--gold);">
+                <strong>🔔 Notificações Desativadas:</strong> Clique ao lado para receber alertas com som/vibração.
+            </div>
+            <button onclick="solicitarPermissaoNotificacao()" style="background: var(--gold); color: #000; border: none; padding: 6px 10px; border-radius: 6px; font-weight: bold; font-size: 11px; cursor: pointer; white-space: nowrap;">Ativar Agora</button>
+        </div>
+
         <!-- ABA 1: AGENDA -->
         <div id="tab-agenda" class="tab-content active" style="padding-bottom: 100px;">
             <div class="header-personal glass">
@@ -98,7 +106,7 @@
             <div id="lista-agenda" style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;"></div>
         </div>
 
-        <!-- ABA 2: RADAR DE DEMANDA (COM CHAMADAS EM TEMPO REAL) -->
+        <!-- ABA 2: RADAR DE DEMANDA -->
         <div id="tab-heatmap" class="tab-content" style="padding-bottom: 100px;">
             <div class="header-personal glass">
                 <h2 style="margin: 0; font-size: 20px;">Radar & Chamadas Instantâneas</h2>
@@ -211,7 +219,7 @@
                 <button class="btn btn-primary" style="font-size: 12px; padding: 8px;" onclick="salvarHorarioAtendimento()">Salvar Expediente</button>
             </div>
 
-            <!-- ATALHOS E SEGURAÇA -->
+            <!-- ATALHOS E SEGURANÇA -->
             <div class="glass" style="padding: 15px; margin-bottom: 15px; display: flex; flex-direction: column; gap: 10px;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
