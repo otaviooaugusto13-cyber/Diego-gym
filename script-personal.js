@@ -547,6 +547,8 @@ function cancelarVagaAvulsa(index) {
 
 function abrirQRCode(index) {
     indiceVagaSelecionada = index;
+    const randomPayId = "TAPAGO-PAY-" + Math.floor(Math.random() * 900000 + 100000);
+    document.getElementById('qr-code-img').src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${randomPayId}`;
     document.getElementById('modal-qrcode').classList.add('active');
 }
 
