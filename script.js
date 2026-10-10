@@ -427,3 +427,20 @@ window.logoutAluno = logoutAluno;
 window.navTo = navTo;
 window.switchTab = switchTab;
 window.toggleTheme = toggleTheme;
+// Salva as Preferências e Telefone do Aluno no Firestore
+window.salvarPerfilAluno = async function() {
+    if (!alunoLogado) return;
+    const objetivo = document.getElementById('aluno-select-objetivo').value;
+    const telefone = document.getElementById('aluno-input-telefone').value.trim();
+
+    try {
+        await setDoc(doc(db, "usuarios", alunoLogado.uid), {
+            objetivo: objetivo,
+            telefone: telefone,
+            atualizadoEm: new Date().toISOString()
+        }, { merge: true });
+        alert("✅ Preferências de perfil salvas com sucesso!");
+    } catch (e) {
+        console.error("Erro ao salvar perfil do aluno:", e);
+    }
+}
