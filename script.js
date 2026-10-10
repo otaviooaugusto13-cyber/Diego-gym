@@ -544,7 +544,7 @@ window.aceitarProposta = async function(horario, preco, nomeProf) {
 
         const hojeStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
         const horaClean = horario.replace(':', '') + '00';
-        const gCalendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=Treino+com+${encodeURIComponent(nomeProf)}&dates=${hojeStr}T${horaClean}/${hojeStr}T${parseInt(horario)+1}0000&details=Treino+contratado+via+TAPAGO+por+R$${preco}&location=Itapira+SP`;
+        const gCalendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=Treino+com+${encodeURIComponent(nomeProf)}&dates=${hojeStr}T${horaClean}/${hojeStr}T${parseInt(horario)+1}0000&details=Treino+contratado+via+TAPAGO+por+R$${preco}+recolhendo+15%+da+plataforma&location=Itapira+SP`;
 
         alert(`🎉 Proposta aceita com sucesso!\n\nSalvando horário na sua agenda...`);
         carregarProximoAgendamentoAluno();
