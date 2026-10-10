@@ -81,12 +81,12 @@
                     </div>
                     <div class="finance-item">
                         <span>Ganhos Avulsos</span>
-                        <h3 id="valor-avulso" style="color: var(--neon-green);">R$ </h3>
+                        <h3 id="valor-avulso" style="color: var(--neon-green);">R$ 450</h3>
                     </div>
                 </div>
                 <div class="finance-total">
                     <span>Total Projetado:</span>
-                    <span id="valor-total" style="color: var(--gold); font-size: 18px; font-weight: bold;">R$ </span>
+                    <span id="valor-total" style="color: var(--gold); font-size: 18px; font-weight: bold;">R$ 450</span>
                 </div>
             </div>
 
@@ -98,17 +98,28 @@
             <div id="lista-agenda" style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;"></div>
         </div>
 
-        <!-- ABA 2: RADAR DE DEMANDA -->
+        <!-- ABA 2: RADAR DE DEMANDA (MAPA E PROSPECÇÃO DE ALUNOS) -->
         <div id="tab-heatmap" class="tab-content" style="padding-bottom: 100px;">
             <div class="header-personal glass">
-                <h2 style="margin: 0; font-size: 20px;">Radar de Alunos na Região</h2>
+                <h2 style="margin: 0; font-size: 20px;">Radar de Alunos Ativos</h2>
             </div>
-            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 15px;">Alunos buscando atendimento em tempo real próximo a você:</p>
+
+            <!-- FILTRO DE OBJETIVOS DOS ALUNOS -->
+            <div class="glass" style="padding: 10px; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 12px; color: var(--gold); font-weight: bold; white-space: nowrap;">🎯 Filtrar por Objetivo:</span>
+                <select id="select-filtro-objetivo" onchange="carregarAlunosNoMapa()" style="width: 100%; padding: 8px; background: rgba(0,0,0,0.4); color: var(--text-color); border: 1px solid var(--glass-border); border-radius: 8px; font-size: 12px; margin-bottom: 0;">
+                    <option value="Todos">Todos os Alunos</option>
+                    <option value="Hipertrofia">Hipertrofia & Massa</option>
+                    <option value="Emagrecimento">Emagrecimento & Definição</option>
+                    <option value="Condicionamento">Condicionamento Físico</option>
+                    <option value="Reabilitação">Reabilitação / Saúde</option>
+                </select>
+            </div>
             
-            <div id="mapa-alunos" class="glass" style="height: 280px; width: 100%; border-radius: 16px; border: 1px solid var(--gold); overflow: hidden; margin-bottom: 20px;"></div>
+            <div id="mapa-alunos" class="glass" style="height: 250px; width: 100%; border-radius: 16px; border: 1px solid var(--gold); overflow: hidden; margin-bottom: 20px;"></div>
             
-            <div class="section-title">Avisos de Demanda na Área</div>
-            <div id="lista-demandas-cards"></div>
+            <div class="section-title">Alunos Buscando Personal na Região</div>
+            <div id="lista-demandas-cards" style="display: flex; flex-direction: column; gap: 10px;"></div>
         </div>
 
         <!-- ABA 3: CHAT -->
@@ -136,7 +147,7 @@
             </div>
         </div>
 
-        <!-- ABA 4: PERFIL COMPLETO DO PERSONAL -->
+        <!-- ABA 4: PERFIL -->
         <div id="tab-perfil" class="tab-content" style="padding-bottom: 110px;">
             <div class="header-personal glass">
                 <h2 style="margin: 0; font-size: 20px;">Perfil Profissional</h2>
