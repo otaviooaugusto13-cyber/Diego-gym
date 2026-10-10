@@ -286,18 +286,51 @@
             </div>
         </div>
 
-        <!-- SUBTELA DE PERFIL -->
-        <div id="subscreen-perfil-detalhes" class="glass" style="display: none; padding: 20px; margin: 15px; border-radius: 12px;">
-            <button onclick="fecharSubtelaPerfil()" style="background: transparent; border: none; color: var(--gold); font-size: 13px; cursor: pointer; margin-bottom: 12px;">← Voltar ao Menu</button>
-            <h3 style="margin-bottom: 12px; color: var(--gold);">Editar Perfil Profissional</h3>
+        <!-- SUBTELA DE PERFIL E VERIFICAÇÃO COMPLETA -->
+        <div id="subscreen-perfil-detalhes" class="glass" style="display: none; padding: 25px; margin: 15px; border-radius: 20px; background: #121214; border: 1px solid rgba(255, 255, 255, 0.1); color: #ffffff;">
+            <button onclick="fecharSubtelaPerfil()" style="background: transparent; border: none; color: var(--gold, #ffcc00); font-size: 14px; font-weight: bold; cursor: pointer; margin-bottom: 15px; display: flex; align-items: center; gap: 5px;">← Voltar ao Menu</button>
             
-            <label style="font-size: 11px; color: var(--text-muted);">Apresentação / Bio:</label>
-            <textarea id="personal-input-bio" rows="3" placeholder="Resumo de experiência..." style="width: 100%; padding: 10px; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); border-radius: 8px; color: var(--text-color); font-size: 12px; margin-bottom: 10px;"></textarea>
+            <h2 style="margin-bottom: 5px; color: #ffffff; font-size: 20px;">Perfil e Verificação Profissional</h2>
+            <p style="font-size: 12px; color: #a1a1aa; margin-bottom: 20px;">Mantenha seus dados e documentos atualizados para liberação rápida das ofertas de treino.</p>
+            
+            <!-- DADOS PESSOAIS -->
+            <label style="font-size: 12px; font-weight: bold; color: #e4e4e7; display: block; margin-bottom: 6px;">Nome Completo</label>
+            <input type="text" id="perfil-input-nome" placeholder="Seu nome completo" style="width: 100%; padding: 12px; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; font-size: 13px; color: #ffffff; background: #1f1f23; margin-bottom: 15px; outline: none;">
 
-            <label style="font-size: 11px; color: var(--text-muted);">Chave PIX / ID Mercado Pago:</label>
-            <input type="text" id="personal-input-pix" placeholder="E-mail ou Chave PIX" style="width: 100%; padding: 10px; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); border-radius: 8px; color: var(--text-color); font-size: 12px; margin-bottom: 15px;">
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <div style="flex: 1;">
+                    <label style="font-size: 12px; font-weight: bold; color: #e4e4e7; display: block; margin-bottom: 6px;">CPF</label>
+                    <input type="text" id="perfil-input-cpf" placeholder="000.000.000-00" style="width: 100%; padding: 12px; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; font-size: 13px; color: #ffffff; background: #1f1f23; outline: none;">
+                </div>
+                <div style="flex: 1;">
+                    <label style="font-size: 12px; font-weight: bold; color: #e4e4e7; display: block; margin-bottom: 6px;">Data de Nascimento</label>
+                    <input type="date" id="perfil-input-nascimento" style="width: 100%; padding: 11px; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; font-size: 13px; color: #ffffff; background: #1f1f23; outline: none;">
+                </div>
+            </div>
 
-            <button class="btn btn-primary" onclick="salvarBioPersonal()">Salvar Alterações</button>
+            <label style="font-size: 12px; font-weight: bold; color: #e4e4e7; display: block; margin-bottom: 6px;">Onde Nasceu (Cidade - UF)</label>
+            <input type="text" id="perfil-input-naturalidade" placeholder="Ex: Itapira - SP" style="width: 100%; padding: 12px; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; font-size: 13px; color: #ffffff; background: #1f1f23; margin-bottom: 15px; outline: none;">
+
+            <!-- DADOS PROFISSIONAIS -->
+            <label style="font-size: 12px; font-weight: bold; color: #e4e4e7; display: block; margin-bottom: 6px;">Registro CREF</label>
+            <input type="text" id="perfil-input-cref" placeholder="Ex: 123456-G/SP" style="width: 100%; padding: 12px; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; font-size: 13px; color: #ffffff; background: #1f1f23; margin-bottom: 15px; outline: none;">
+
+            <label style="font-size: 12px; font-weight: bold; color: #e4e4e7; display: block; margin-bottom: 6px;">Apresentação / Bio</label>
+            <textarea id="personal-input-bio" rows="3" placeholder="Conte um pouco sobre sua experiência e metodologia..." style="width: 100%; padding: 12px; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; color: #ffffff; background: #1f1f23; font-size: 13px; margin-bottom: 20px; outline: none;"></textarea>
+
+            <!-- VERIFICAÇÃO DE DOCUMENTOS -->
+            <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px; margin-bottom: 20px;">
+                <h3 style="font-size: 15px; color: var(--neon-green, #39ff14); margin-bottom: 8px;">🔐 Verificação de Identidade</h3>
+                <p style="font-size: 12px; color: #a1a1aa; margin-bottom: 12px;">Para segurança dos alunos, envie fotos nítidas dos documentos solicitados.</p>
+                
+                <label style="font-size: 12px; font-weight: bold; color: #e4e4e7; display: block; margin-bottom: 6px;">Foto do Documento (RG ou CNH)</label>
+                <input type="file" id="perfil-doc-file" accept="image/*" style="width: 100%; padding: 10px; border: 1px dashed rgba(255,255,255,0.3); border-radius: 10px; font-size: 12px; color: #a1a1aa; background: #1f1f23; margin-bottom: 12px;">
+
+                <label style="font-size: 12px; font-weight: bold; color: #e4e4e7; display: block; margin-bottom: 6px;">Selfie Segurando o Documento</label>
+                <input type="file" id="perfil-selfie-file" accept="image/*" style="width: 100%; padding: 10px; border: 1px dashed rgba(255,255,255,0.3); border-radius: 10px; font-size: 12px; color: #a1a1aa; background: #1f1f23; margin-bottom: 15px;">
+            </div>
+
+            <button class="btn" onclick="salvarPerfilProfissionalCompleto()" style="width: 100%; background: var(--neon-green, #39ff14); color: #000000; font-weight: bold; padding: 14px; border: none; border-radius: 12px; font-size: 14px; cursor: pointer;">Salvar Alterações e Enviar para Análise</button>
         </div>
 
         <!-- NAV INFERIOR FIXA COM 5 ABAS -->
