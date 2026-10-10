@@ -257,7 +257,7 @@ input, textarea { font-size: 16px; } /* evita zoom automático no iOS */
     font-weight: bold;
     cursor: pointer;
 }
-/* ESTILOS INSPIRADOS NO LAYOUT HELPPI / TAPAGO MENU */
+/* ESTILOS INSPIRADOS NO LAYOUT  / TAPAGO MENU */
 body.helppi-style {
     background-color: #f4f5f7 !important;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -316,4 +316,56 @@ body.helppi-style {
 
 .nav-tab-item.active svg {
     stroke: #e60000;
+}
+/* ESTILOS PARA OS ATALHOS E LISTAS DO MENU */
+.menu-shortcut-card {
+    min-width: 95px;
+    padding: 12px 8px;
+    border-radius: 12px;
+    text-align: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+}
+
+.shortcut-icon {
+    font-size: 18px;
+    margin-bottom: 4px;
+}
+
+.menu-shortcut-card span {
+    font-size: 11px;
+    color: var(--text-color);
+    display: block;
+}
+
+.glass-list {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.menu-option-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    cursor: pointer;
+}
+
+.option-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+    color: var(--text-color);
+}
+
+.option-arrow {
+    font-size: 16px;
+    color: var(--text-muted);
+    font-weight: bold;
 }
