@@ -223,40 +223,69 @@ window.initMapAlunos = function() {
 }
 
 function carregarAlunosNoMapa() {
+    const filtroSelect = document.getElementById('select-filtro-objetivo');
+    const filtroObjetivo = filtroSelect ? filtroSelect.value : "Todos";
+
     onSnapshot(collection(db, "usuarios"), (snapshot) => {
         let count = 0;
         const listaCards = document.getElementById('lista-demandas-cards');
         if (listaCards) listaCards.innerHTML = "";
 
+        // Limpar marcadores anteriores
+        Object.keys(marcadoresAlunosMap).forEach(key => {
+            marcadoresAlunosMap[key].setMap(null);
+        });
+        marcadoresAlunosMap = {};
+
         snapshot.forEach((docItem) => {
-            count++;
             const aluno = docItem.data();
-            const aLat = -22.4389 + (count * 0.004);
+            const objetivoAluno = aluno.objetivo || "Hipertrofia";
+
+            // Aplica filtro por objetivo
+            if (filtroObjetivo !== "Todos" && objetivoAluno !== filtroObjetivo) {
+                return;
+            }
+
+            count++;
+            const aLat = -22.4389 + (count * 0.003);
             const aLng = -46.8258 + (count * 0.003);
 
             if (mapAlunos) {
                 const pos = new google.maps.LatLng(aLat, aLng);
-                if (!marcadoresAlunosMap[docItem.id]) {
-                    marcadoresAlunosMap[docItem.id] = new google.maps.Marker({
-                        position: pos,
-                        map: mapAlunos,
-                        title: aluno.nome || "Aluno"
-                    });
-                }
+                marcadoresAlunosMap[docItem.id] = new google.maps.Marker({
+                    position: pos,
+                    map: mapAlunos,
+                    title: aluno.nome || "Aluno"
+                });
             }
 
             if (listaCards) {
                 const card = document.createElement('div');
                 card.className = "glass";
-                card.style.cssText = "padding: 12px; margin-bottom: 8px; border-left: 3px solid var(--gold);";
+                card.style.cssText = "padding: 12px; margin-bottom: 8px; border-left: 3px solid var(--gold); display: flex; justify-content: space-between; align-items: center;";
                 card.innerHTML = `
-                    <h5 style="margin: 0; font-size: 14px; color: var(--gold);">${aluno.nome || 'Aluno Cadastrado'}</h5>
-                    <p style="margin: 2px 0 0 0; font-size: 11px; color: var(--text-muted);">Buscando treino na área Central • Ativo recentemente</p>
+                    <div>
+                        <h5 style="margin: 0; font-size: 14px; color: var(--gold);">${aluno.nome || 'Aluno Cadastrado'}</h5>
+                        <p style="margin: 2px 0 0 0; font-size: 11px; color: var(--text-muted);">Objetivo: <strong>${objetivoAluno}</strong></p>
+                        <span style="font-size: 10px; color: #39ff14;">🟢 Online na região</span>
+                    </div>
+                    <button onclick="chamarAlunoNoChat('${docItem.id}', '${aluno.nome || 'Aluno'}')" style="background: var(--gold); color: #000; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size: 11px; cursor: pointer;">
+                        Chamar no Chat 💬
+                    </button>
                 `;
                 listaCards.appendChild(card);
             }
         });
+
+        if (listaCards && count === 0) {
+            listaCards.innerHTML = `<p style="font-size:12px; color:var(--text-muted); text-align:center; padding:10px;">Nenhum aluno encontrado para o objetivo <strong>${filtroObjetivo}</strong>.</p>`;
+        }
     });
+}
+
+window.chamarAlunoNoChat = function(alunoUid, nomeAluno) {
+    switchTabPersonal('tab-chat', document.querySelectorAll('#nav-personal .nav-item')[2]);
+    abrirConversa(alunoUid, nomeAluno);
 }
 
 async function carregarAgendaDoBanco() {
@@ -508,6 +537,7 @@ function switchTabPersonal(tabId, navElement) {
         setTimeout(() => {
             if (mapAlunos) google.maps.event.trigger(mapAlunos, 'resize');
         }, 200);
+        carregarAlunosNoMapa();
     }
 }
 
@@ -528,3 +558,4 @@ window.abrirQRCode = abrirQRCode;
 window.fecharModalQRCode = fecharModalQRCode;
 window.simularLeituraQRCode = simularLeituraQRCode;
 window.switchTabPersonal = switchTabPersonal;
+window.carregarAlunosNoMapa = carregarAlunosNoMapa;
