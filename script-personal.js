@@ -511,3 +511,20 @@ window.abrirQRCode = abrirQRCode;
 window.fecharModalQRCode = fecharModalQRCode;
 window.simularLeituraQRCode = simularLeituraQRCode;
 window.switchTabPersonal = switchTabPersonal;
+// Salva Bio e Chave PIX do Personal
+window.salvarBioPersonal = async function() {
+    if (!dadosPerfil.cpf) return alert("Erro ao identificar o perfil.");
+    const bio = document.getElementById('personal-input-bio').value.trim();
+    const pix = document.getElementById('personal-input-pix').value.trim();
+
+    try {
+        await setDoc(doc(db, "profissionais", dadosPerfil.cpf), {
+            bio: bio,
+            chavePix: pix,
+            atualizadoEm: new Date().toISOString()
+        }, { merge: true });
+        alert("✅ Bio e Chave PIX salvas com sucesso!");
+    } catch (e) {
+        console.error("Erro ao salvar perfil personal:", e);
+    }
+}
