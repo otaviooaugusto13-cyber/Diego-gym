@@ -325,7 +325,6 @@ function escutarChamadasUberPersonal() {
 // TRAVA DE SEGURANÇA PARA ACEITAR CHAMADA
 // ==========================================
 window.aceitarChamadaUber = async function(chamadaId, nomeAluno, horario, valor, foco) {
-    // Verificar se está ativo no Firebase antes de aceitar
     try {
         if (dadosPerfil.cpf) {
             const docRef = doc(db, "profissionais", dadosPerfil.cpf);
@@ -502,7 +501,7 @@ async function carregarListaConversasPersonal() {
 async function abrirConversa(alunoUid, nomeAluno) {
     conversaAtiva = alunoUid;
     document.getElementById('chat-list-view').style.display = 'none';
-    document.getElementById('chat-conversation-view').style.display = 'block';
+    document.getElementById('chat-conversation-view').style.display = 'flex';
     document.getElementById('chat-active-name').innerText = nomeAluno;
 
     const chatBox = document.getElementById('chat-box');
@@ -601,33 +600,74 @@ window.sairModoPessoal = function() {
 function abrirModalCadastrarAluno() { document.getElementById('modal-cadastrar-aluno').classList.add('active'); }
 function fecharModalCadastrarAluno() { document.getElementById('modal-cadastrar-aluno').classList.remove('active'); }
 
-// MODAL DADOS BANCÁRIOS
-window.abrirModalDadosBancarios = function() {
+// MODAL DADOS BANCÁRIOS (ATUALIZADO E COMPLETO)
+window.abrirModalDadosBancarios = async function() {
     document.getElementById('modal-dados-bancarios').classList.add('active');
-}
-window.fecharModalDadosBancarios = function() {
-    document.getElementById('modal-dados-bancarios').classList.remove('active');
-}
-window.salvarDadosBancarios = async function() {
-    const banco = document.getElementById('bank-nome').value.trim();
-    const ag = document.getElementById('bank-agencia').value.trim();
-    const conta = document.getElementById('bank-conta').value.trim();
-    const pix = document.getElementById('bank-pix').value.trim();
-
-    if (!banco || !conta || !pix) return alert("Preencha ao menos o Banco, Conta e Chave PIX.");
 
     if (dadosPerfil.cpf) {
         try {
-            const dadosBancariosObj = { banco, agencia: ag, conta, pix, atualizadoEm: new Date().toISOString() };
-            dadosPerfil.dadosBancarios = dadosBancariosObj;
-            await setDoc(doc(db, "profissionais", dadosPerfil.cpf), {
-                dadosBancarios: dadosBancariosObj
-            }, { merge: true });
-            alert("✅ Dados bancários cadastrados com sucesso!");
-            fecharModalDadosBancarios();
+            const docRef = doc(db, "profissionais", dadosPerfil.cpf);
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists() && docSnap.data().dadosBancarios) {
+                const b = docSnap.data().dadosBancarios;
+                if (b.banco) document.getElementById('bank-select-banco').value = b.banco;
+                if (b.tipoConta) document.getElementById('bank-select-tipo-conta').value = b.tipoConta;
+                if (b.agencia) document.getElementById('bank-input-agencia').value = b.agencia;
+                if (b.conta) document.getElementById('bank-input-conta').value = b.conta;
+                if (b.digito) document.getElementById('bank-input-digito').value = b.digito;
+                if (b.tipoPix) document.getElementById('bank-select-tipo-pix').value = b.tipoPix;
+                if (b.chavePix) document.getElementById('bank-input-chave-pix').value = b.chavePix;
+            }
         } catch (e) {
-            console.error("Erro ao salvar dados bancários:", e);
+            console.error("Erro ao carregar dados bancários:", e);
         }
+    }
+}
+
+window.fecharModalDadosBancarios = function() {
+    document.getElementById('modal-dados-bancarios').classList.remove('active');
+}
+
+window.salvarDadosBancarios = async function() {
+    const banco = document.getElementById('bank-select-banco').value;
+    const tipoConta = document.getElementById('bank-select-tipo-conta').value;
+    const agencia = document.getElementById('bank-input-agencia').value.trim();
+    const conta = document.getElementById('bank-input-conta').value.trim();
+    const digito = document.getElementById('bank-input-digito').value.trim();
+    const tipoPix = document.getElementById('bank-select-tipo-pix').value;
+    const chavePix = document.getElementById('bank-input-chave-pix').value.trim();
+
+    if (!agencia || !conta || !chavePix) {
+        return alert("Por favor, preencha Agência, Número da Conta e Chave PIX.");
+    }
+
+    if (!dadosPerfil.cpf) {
+        return alert("Erro: Identificação do perfil não encontrada. Faça login novamente.");
+    }
+
+    try {
+        const dadosBancariosObj = {
+            banco,
+            tipoConta,
+            agencia,
+            conta,
+            digito,
+            tipoPix,
+            chavePix,
+            atualizadoEm: new Date().toISOString()
+        };
+
+        dadosPerfil.dadosBancarios = dadosBancariosObj;
+
+        await setDoc(doc(db, "profissionais", dadosPerfil.cpf), {
+            dadosBancarios: dadosBancariosObj
+        }, { merge: true });
+
+        alert("✅ Dados bancários salvos com sucesso!");
+        fecharModalDadosBancarios();
+    } catch (e) {
+        console.error("Erro ao salvar dados bancários:", e);
+        alert("Erro ao salvar dados. Tente novamente.");
     }
 }
 
@@ -706,6 +746,9 @@ window.abrirConversaModal = function(alunoUid, nomeAluno) {
     const modalChat = document.getElementById('modal-chat-flutuante');
     if (modalChat) {
         modalChat.classList.add('active');
+        abrirConversa(alunoUid, nomeAluno);
+    } else {
+        switchTabPersonal('tab-menu');
         abrirConversa(alunoUid, nomeAluno);
     }
 }
@@ -829,3 +872,4 @@ window.mudarMesCalendario = mudarMesCalendario;
 window.selecionarDiaCalendario = selecionarDiaCalendario;
 window.abrirConversaModal = abrirConversaModal;
 window.fecharConversaModal = fecharConversaModal;
+window.initMapAlunos = initMapAlunos;
