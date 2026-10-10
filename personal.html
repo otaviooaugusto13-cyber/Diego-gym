@@ -282,16 +282,16 @@
         </div>
     </div>
 
-    <!-- MODAL: CHECK-IN QR CODE -->
+<!-- MODAL: CHECK-IN QR CODE -->
     <div id="modal-qrcode" class="app-overlay">
         <div class="glass modal-box" style="text-align: center;">
-            <h3 style="margin-bottom: 5px;">Check-in da Aula</h3>
-            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 20px;">Peça para o aluno escanear para liberar o pagamento.</p>
-            <div class="qr-code-placeholder">
-                <svg viewBox="0 0 24 24" width="100" height="100" fill="var(--text-color)"><path d="M3 3h8v8H3V3zm2 2v4h4V5H5zm8-2h8v8h-8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm13-2h3v2h-3v-2zm-3 0h2v2h-2v-2zm3 3h3v2h-3v-2zm-3 0h2v2h-2v-2zm3 3h3v2h-3v-2zm-3 0h2v2h-2v-2z"/></svg>
+            <h3 style="margin-bottom: 5px;">Check-in / Pagamento</h3>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 20px;">QR Code dinâmico gerado para a transação atual.</p>
+            <div class="qr-code-placeholder" style="background: #fff; padding: 10px; display: inline-block;">
+                <img id="qr-code-img" src="" alt="QR Code PIX" width="160" height="160">
             </div>
             <button class="btn btn-primary" style="margin-top: 20px;" onclick="simularLeituraQRCode()">Simular Leitura (Teste)</button>
-            <button class="btn btn-outline" style="margin-top: 10px;" onclick="fecharModalQRCode()">Cancelar</button>
+            <button class="btn btn-outline" style="margin-top: 10px;" onclick="fecharModalQRCode()">Fechar</button>
         </div>
     </div>
 
