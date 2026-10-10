@@ -783,13 +783,33 @@ window.switchTabPersonal = function(tabId, navElement) {
     }
 }
 
-window.abrirOpcaoMenu = function(nomeOpcao) {
+wwindow.abrirOpcaoMenu = function(nomeOpcao) {
     if (nomeOpcao === 'Perfil') {
         const sub = document.getElementById('subscreen-perfil-detalhes');
         if (sub) {
             sub.style.display = 'block';
             window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
         }
+    } else if (nomeOpcao === 'Dados bancários') {
+        const sub = document.getElementById('subscreen-dados-bancarios');
+        if (sub) sub.style.display = 'block';
+    } else if (nomeOpcao === 'Preferências de Atendimento' || nomeOpcao === 'Atendimento') {
+        const sub = document.getElementById('subscreen-preferencias-atendimento');
+        if (sub) sub.style.display = 'block';
+    } else if (nomeOpcao === 'Convidar Amigos') {
+        const sub = document.getElementById('subscreen-indicar-amigo');
+        if (sub) {
+            sub.style.display = 'block';
+            const cpfPersonal = typeof dadosPerfil !== 'undefined' && dadosPerfil && dadosPerfil.cpf ? dadosPerfil.cpf : "OTAVIO";
+            const linkInput = document.getElementById('input-link-indicacao');
+            if (linkInput) linkInput.value = `https://tapago.com.br/personal/cadastro?ref=${cpfPersonal}`;
+        }
+    } else if (nomeOpcao === 'Notificações') {
+        const sub = document.getElementById('subscreen-notificacoes');
+        if (sub) sub.style.display = 'block';
+    } else if (nomeOpcao === 'Ajuda') {
+        const sub = document.getElementById('subscreen-ajuda');
+        if (sub) sub.style.display = 'block';
     } else {
         alert(`📌 Em breve: Redirecionando para ${nomeOpcao}.`);
     }
