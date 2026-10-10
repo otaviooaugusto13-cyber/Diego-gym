@@ -98,15 +98,17 @@
             <div id="lista-agenda" style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;"></div>
         </div>
 
-        <!-- ABA 2: RADAR DE DEMANDA -->
+        <!-- ABA 2: RADAR DE DEMANDA (MAPA REVERSO DE ALUNOS) -->
         <div id="tab-heatmap" class="tab-content" style="padding-bottom: 100px;">
             <div class="header-personal glass">
-                <h2 style="margin: 0; font-size: 20px;">Radar de Demanda</h2>
+                <h2 style="margin: 0; font-size: 20px;">Radar de Alunos na Região</h2>
             </div>
-            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 15px;">Compartilhamento de localização GPS ativo para os alunos.</p>
-            <div class="glass heatmap-container" style="display: flex; align-items: center; justify-content: center; text-align: center; padding: 20px;">
-                <p style="color: var(--neon-green); font-size: 13px;">📍 Sua localização exata está sendo transmitida em tempo real para o radar dos alunos.</p>
-            </div>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 15px;">Alunos buscando atendimento em tempo real próximo a você:</p>
+            
+            <div id="mapa-alunos" class="glass" style="height: 280px; width: 100%; border-radius: 16px; border: 1px solid var(--gold); overflow: hidden; margin-bottom: 20px;"></div>
+            
+            <div class="section-title">Avisos de Demanda na Área</div>
+            <div id="lista-demandas-cards"></div>
         </div>
 
         <!-- ABA 3: CHAT -->
@@ -127,11 +129,10 @@
                 </div>
             </div>
         </div>
-
-        <!-- ABA 4: PERFIL -->
+        <!-- ABA 4: PERFIL COM CONFIGURAÇÃO DE HORÁRIO -->
         <div id="tab-perfil" class="tab-content" style="padding-bottom: 100px;">
             <div class="header-personal glass">
-                <h2 style="margin: 0; font-size: 20px;">Meu Perfil</h2>
+                <h2 style="margin: 0; font-size: 20px;">Meu Perfil & Horários</h2>
             </div>
             <div class="glass" style="padding: 20px; text-align: center; margin-bottom: 15px;">
                 <div class="profile-photo-container">
@@ -142,6 +143,37 @@
                 </div>
                 <h3 id="perfil-nome-display" style="margin-top: 12px; font-size: 18px;">Professor</h3>
                 <p id="perfil-cref-display" style="font-size: 12px; color: var(--gold); margin-top: 2px;">CREF: --</p>
+            </div>
+
+            <div class="glass" style="padding: 15px; margin-bottom: 15px;">
+                <h4 style="font-size: 14px; margin-bottom: 10px; color: var(--gold);">Horário de Atendimento</h4>
+                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                    <div style="flex: 1;">
+                        <label style="font-size: 11px; color: var(--text-muted);">Início:</label>
+                        <select id="select-hora-inicio" style="width: 100%; padding: 8px; background: var(--glass-bg); color: var(--text-color); border: 1px solid var(--glass-border); border-radius: 6px;">
+                            <option value="6">06:00</option>
+                            <option value="7">07:00</option>
+                            <option value="8" selected>08:00</option>
+                            <option value="9">09:00</option>
+                        </select>
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="font-size: 11px; color: var(--text-muted);">Término:</label>
+                        <select id="select-hora-fim" style="width: 100%; padding: 8px; background: var(--glass-bg); color: var(--text-color); border: 1px solid var(--glass-border); border-radius: 6px;">
+                            <option value="18">18:00</option>
+                            <option value="20">20:00</option>
+                            <option value="21" selected>21:00</option>
+                            <option value="22">22:00</option>
+                        </select>
+                    </div>
+                </div>
+                <label style="font-size: 11px; color: var(--text-muted);">Dia de Folga Semanal:</label>
+                <select id="select-dia-folga" style="width: 100%; padding: 8px; background: var(--glass-bg); color: var(--text-color); border: 1px solid var(--glass-border); border-radius: 6px; margin-bottom: 10px;">
+                    <option value="0">Domingo</option>
+                    <option value="6">Sábado</option>
+                    <option value="1">Segunda-feira</option>
+                </select>
+                <button class="btn btn-primary" style="font-size: 12px; padding: 8px;" onclick="salvarHorarioAtendimento()">Salvar Configuração de Expediente</button>
             </div>
 
             <div class="glass" style="padding: 15px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
