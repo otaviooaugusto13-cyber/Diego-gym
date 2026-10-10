@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="style-personal.css">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#39ff14">
+    <!-- SDK do Mercado Pago -->
+    <script src="https://sdk.mercadopago.com/js/v2"></script>
 </head>
 <body>
 
@@ -22,16 +24,25 @@
             <input type="text" id="input-cpf" placeholder="CPF (Apenas números)" maxlength="11">
             <input type="text" id="input-cref" placeholder="CREF (Ex: 123456-G/SP)">
             
-            <div class="remember-box">
+            <div class="remember-box" style="margin-bottom: 8px;">
                 <input type="checkbox" id="check-remember">
                 <label for="check-remember">Lembre-se de mim neste dispositivo</label>
+            </div>
+
+            <!-- CHECKBOX OBRIGATÓRIO DOS TERMOS -->
+            <div class="remember-box" style="margin-bottom: 15px; background: rgba(255, 204, 0, 0.08); padding: 10px; border-radius: 8px; border: 1px solid rgba(255, 204, 0, 0.2);">
+                <input type="checkbox" id="check-termos" onchange="validarCheckTermos()">
+                <label for="check-termos" style="font-size: 11px; color: var(--text-color);">
+                    Li e concordo com os <a href="#" onclick="abrirModalTermos(); return false;" style="color: var(--gold); text-decoration: underline; font-weight: bold;">Termos de Uso e Taxas da Plataforma</a>.
+                </label>
             </div>
 
             <div id="login-loader" style="display: none; text-align: center; margin-top: 10px; color: var(--gold);">
                 <small>Consultando banco de dados...</small>
             </div>
 
-            <button id="btn-login" class="btn btn-primary ripple-btn" onclick="validarProfissional()" style="margin-top: 15px;">Validar e Entrar</button>
+            <!-- BOTÃO DESABILITADO POR PADRÃO ATÉ MARCAR O CHECKBOX -->
+            <button id="btn-login" class="btn btn-primary ripple-btn" onclick="validarProfissional()" disabled style="opacity: 0.5; cursor: not-allowed; margin-top: 5px;">Validar e Entrar</button>
             
             <div style="display: flex; align-items: center; margin: 15px 0;">
                 <div style="flex: 1; height: 1px; background: rgba(255,255,255,0.1);"></div>
@@ -57,15 +68,15 @@
 
     <!-- TELA 2: Dashboard Principal -->
     <div id="screen-dashboard" class="screen main-app-screen">
-        
+
         <!-- ABA 1: AGENDA -->
-        <div id="tab-agenda" class="tab-content active" style="padding-bottom: 100px;">
+        <div id="tab-agenda" class="tab-content active" style="padding-bottom: 120px;">
             <div class="header-personal glass">
                 <div>
                     <h2 style="margin: 0; font-size: 20px;">Olá, <span id="nome-exibicao" class="highlight">Professor</span></h2>
-                    <p style="margin: 0; font-size: 12px; color: var(--gold);">Profissional Verificado ✓ (Split 85/15)</p>
+                    <p style="margin: 0; font-size: 12px; color: var(--gold);">Profissional Verificado ✓ (Split Mercado Pago 85/15)</p>
                 </div>
-                <div class="avatar-header" id="avatar-header" onclick="switchTabPersonal('tab-perfil', document.querySelectorAll('.nav-item')[3])">
+                <div class="avatar-header" id="avatar-header" onclick="switchTabPersonal('tab-perfil', document.querySelectorAll('#nav-personal .nav-item')[3])" style="cursor: pointer;">
                     <img id="img-avatar-header" src="" alt="Foto" style="display:none; width:100%; height:100%; border-radius:50%; object-fit:cover;">
                     <span id="initials-header">P</span>
                 </div>
@@ -99,15 +110,13 @@
         </div>
 
         <!-- ABA 2: RADAR DE DEMANDA -->
-        <div id="tab-heatmap" class="tab-content" style="padding-bottom: 100px;">
+        <div id="tab-heatmap" class="tab-content" style="padding-bottom: 120px;">
             <div class="header-personal glass">
                 <h2 style="margin: 0; font-size: 20px;">Radar & Chamadas Instantâneas</h2>
             </div>
 
-            <!-- PAINEL DE CHAMADAS UBER / SOLICITADAS -->
             <div id="painel-chamadas-uber" style="margin-bottom: 15px;"></div>
 
-            <!-- FILTRO DE OBJETIVOS DOS ALUNOS -->
             <div class="glass" style="padding: 10px; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
                 <span style="font-size: 12px; color: var(--gold); font-weight: bold; white-space: nowrap;">🎯 Filtrar por Objetivo:</span>
                 <select id="select-filtro-objetivo" onchange="carregarAlunosNoMapa()" style="width: 100%; padding: 8px; background: rgba(0,0,0,0.4); color: var(--text-color); border: 1px solid var(--glass-border); border-radius: 8px; font-size: 12px; margin-bottom: 0;">
@@ -126,7 +135,7 @@
         </div>
 
         <!-- ABA 3: CHAT -->
-        <div id="tab-chat" class="tab-content" style="padding-bottom: 100px;">
+        <div id="tab-chat" class="tab-content" style="padding-bottom: 120px;">
             <div class="header-personal glass">
                 <h2 style="margin: 0; font-size: 20px;">Mensagens</h2>
             </div>
@@ -151,12 +160,11 @@
         </div>
 
         <!-- ABA 4: PERFIL -->
-        <div id="tab-perfil" class="tab-content" style="padding-bottom: 110px;">
+        <div id="tab-perfil" class="tab-content" style="padding-bottom: 120px;">
             <div class="header-personal glass">
                 <h2 style="margin: 0; font-size: 20px;">Perfil Profissional</h2>
             </div>
 
-            <!-- FOTO E IDENTIFICAÇÃO -->
             <div class="glass" style="padding: 20px; text-align: center; margin-bottom: 15px;">
                 <div class="profile-photo-container">
                     <img id="img-perfil-preview" src="" alt="Foto" style="display:none;">
@@ -168,18 +176,16 @@
                 <p id="perfil-cref-display" style="font-size: 12px; color: var(--gold); margin-top: 2px;">CREF: --</p>
             </div>
 
-            <!-- APRESENTAÇÃO E BIO -->
             <div class="glass" style="padding: 15px; margin-bottom: 15px;">
                 <h4 style="font-size: 14px; margin-bottom: 8px; color: var(--gold);">📝 Apresentação / Bio</h4>
                 <textarea id="personal-input-bio" rows="3" placeholder="Escreva um breve resumo da sua experiência e método de treino..." style="width: 100%; padding: 10px; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); border-radius: 8px; color: var(--text-color); font-size: 12px; resize: none; margin-bottom: 10px;"></textarea>
 
-                <label style="font-size: 11px; color: var(--text-muted);">Chave PIX Principal (para Split / QR Code):</label>
-                <input type="text" id="personal-input-pix" placeholder="CPF, E-mail ou Celular" style="width: 100%; padding: 10px; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); border-radius: 8px; color: var(--text-color); font-size: 13px; margin-top: 4px; margin-bottom: 10px;">
+                <label style="font-size: 11px; color: var(--text-muted);">Chave PIX / ID Mercado Pago (para Split):</label>
+                <input type="text" id="personal-input-pix" placeholder="E-mail ou ID do Mercado Pago" style="width: 100%; padding: 10px; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); border-radius: 8px; color: var(--text-color); font-size: 13px; margin-top: 4px; margin-bottom: 10px;">
 
                 <button class="btn btn-primary" style="padding: 10px; font-size: 12px;" onclick="salvarBioPersonal()">Salvar Dados Profissionais</button>
             </div>
 
-            <!-- CONFIGURAÇÃO DE EXPEDIENTE -->
             <div class="glass" style="padding: 15px; margin-bottom: 15px;">
                 <h4 style="font-size: 14px; margin-bottom: 10px; color: var(--gold);">🕒 Horário de Atendimento</h4>
                 <div style="display: flex; gap: 10px; margin-bottom: 10px;">
@@ -211,7 +217,6 @@
                 <button class="btn btn-primary" style="font-size: 12px; padding: 8px;" onclick="salvarHorarioAtendimento()">Salvar Expediente</button>
             </div>
 
-            <!-- ATALHOS E SEGURANÇA -->
             <div class="glass" style="padding: 15px; margin-bottom: 15px; display: flex; flex-direction: column; gap: 10px;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
@@ -226,23 +231,54 @@
         </div>
 
         <!-- NAV INFERIOR -->
-        <div class="bottom-nav glass-nav" id="nav-personal">
-            <div class="nav-item active" onclick="switchTabPersonal('tab-agenda', this)">
-                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                <span>Agenda</span>
+        <div class="bottom-nav glass-nav" id="nav-personal" style="position: fixed; bottom: 0; left: 0; width: 100%; z-index: 99999; pointer-events: auto; display: flex; justify-content: space-around; background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); border-top: 1px solid rgba(255,255,255,0.1); padding: 10px 0;">
+            <div class="nav-item active" onclick="switchTabPersonal('tab-agenda', this)" style="cursor: pointer; pointer-events: auto; text-align: center; flex: 1;">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                <span style="display: block; font-size: 10px;">Agenda</span>
             </div>
-            <div class="nav-item" onclick="switchTabPersonal('tab-heatmap', this)">
-                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="10" r="3"></circle><path d="M12 21.7C17.3 17 20 13 20 10a8 8 0 1 0-16 0c0 3 2.7 7 8 11.7z"></path></svg>
-                <span>Radar</span>
+            <div class="nav-item" onclick="switchTabPersonal('tab-heatmap', this)" style="cursor: pointer; pointer-events: auto; text-align: center; flex: 1;">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><circle cx="12" cy="10" r="3"></circle><path d="M12 21.7C17.3 17 20 13 20 10a8 8 0 1 0-16 0c0 3 2.7 7 8 11.7z"></path></svg>
+                <span style="display: block; font-size: 10px;">Radar</span>
             </div>
-            <div class="nav-item" onclick="switchTabPersonal('tab-chat', this)">
-                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-                <span>Chat</span>
+            <div class="nav-item" onclick="switchTabPersonal('tab-chat', this)" style="cursor: pointer; pointer-events: auto; text-align: center; flex: 1;">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                <span style="display: block; font-size: 10px;">Chat</span>
             </div>
-            <div class="nav-item" onclick="switchTabPersonal('tab-perfil', this)">
-                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                <span>Perfil</span>
+            <div class="nav-item" onclick="switchTabPersonal('tab-perfil', this)" style="cursor: pointer; pointer-events: auto; text-align: center; flex: 1;">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                <span style="display: block; font-size: 10px;">Perfil</span>
             </div>
+        </div>
+    </div>
+
+    <!-- MODAL: TERMOS DE USO E POLÍTICA DE TAXAS DA PLATAFORMA -->
+    <div id="modal-termos" class="app-overlay">
+        <div class="glass modal-box" style="max-height: 80vh; overflow-y: auto; text-align: left; padding: 25px;">
+            <h3 style="color: var(--gold); margin-bottom: 10px;">📜 Termos de Uso e Condições - TAPAGO</h3>
+            
+            <p style="font-size: 12px; color: var(--text-color); line-height: 1.5; margin-bottom: 10px;">
+                Bem-vindo à plataforma <strong>TAPAGO</strong>. Ao se cadastrar como Personal Trainer parceiro, você concorda expressamente com as seguintes condições de operação:
+            </p>
+
+            <h4 style="font-size: 13px; color: var(--neon-green); margin-top: 10px;">1. Retenção de Taxa de Intermediação (15%)</h4>
+            <p style="font-size: 11px; color: var(--text-muted); line-height: 1.4;">
+                A plataforma TAPAGO disponibiliza a tecnologia de conexão instantânea entre alunos e personais. Todas as transações financeiras intermediadas pelo app utilizam a tecnologia de <strong>Split de Pagamento (Mercado Pago)</strong>, na qual:
+                <br>• <strong>85% do valor do treino</strong> é repassado diretamente para a conta do Personal Trainer.
+                <br>• <strong>15% do valor do treino</strong> é retido automaticamente a título de taxa de uso da plataforma e intermediação.
+            </p>
+
+            <h4 style="font-size: 13px; color: var(--neon-green); margin-top: 10px;">2. Taxa Administrativa de Cancelamento (R$ 15,00)</h4>
+            <p style="font-size: 11px; color: var(--text-muted); line-height: 1.4;">
+                Para assegurar a pontualidade e o compromisso das reservas de horários:
+                <br>• O desmarcamento ou cancelamento de treinos agendados ou aceitos via chamada instantânea acarreta a aplicação de uma <strong>Taxa Administrativa de Cancelamento no valor fixo de R$ 15,00</strong>.
+            </p>
+
+            <h4 style="font-size: 13px; color: var(--neon-green); margin-top: 10px;">3. Responsabilidade do Profissional</h4>
+            <p style="font-size: 11px; color: var(--text-muted); line-height: 1.4;">
+                O profissional declara possuir registro ativo no Conselho Regional de Educação Física (CREF) e responsabiliza-se integralmente pela condução técnica e segurança dos treinos ministrados.
+            </p>
+
+            <button class="btn btn-primary" style="margin-top: 20px; width: 100%;" onclick="aceitarTermosModal()">Entendi e Concordo</button>
         </div>
     </div>
 
@@ -262,15 +298,14 @@
         </div>
     </div>
 
-    <!-- MODAL: QR CODE PIX SPLIT -->
+    <!-- MODAL: CHECKOUT MERCADO PAGO SPLIT -->
     <div id="modal-qrcode" class="app-overlay">
         <div class="glass modal-box" style="text-align: center;">
-            <h3 style="margin-bottom: 5px;">PIX Split / Check-in</h3>
-            <p style="font-size: 11px; color: var(--gold); margin-bottom: 10px;">⚡ Taxa da Plataforma (15%) dividida automaticamente</p>
-            <div class="qr-code-placeholder" style="background: #fff; padding: 10px; display: inline-block;">
-                <img id="qr-code-img" src="" alt="QR Code PIX Split" width="160" height="160">
+            <h3 style="margin-bottom: 5px;">Checkout Mercado Pago (Split 85/15)</h3>
+            <p style="font-size: 11px; color: var(--gold); margin-bottom: 10px;">⚡ 15% retido automaticamente pela plataforma TAPAGO</p>
+            <div id="mercado-pago-button-container" style="margin: 20px 0;">
+                <button class="btn btn-primary" onclick="iniciarCheckoutMercadoPago(80)">Pagar R$ 80,00 (PIX / Cartão)</button>
             </div>
-            <button class="btn btn-primary" style="margin-top: 20px;" onclick="simularLeituraQRCode()">Simular Pagamento</button>
             <button class="btn btn-outline" style="margin-top: 10px;" onclick="fecharModalQRCode()">Fechar</button>
         </div>
     </div>
