@@ -468,7 +468,7 @@
 
             <label style="font-size: 12px; font-weight: bold; color: #e4e4e7; display: block; margin-bottom: 6px;">Seu Link de Indicação Exclusivo</label>
             <div style="display: flex; gap: 8px; margin-bottom: 20px;">
-                <input type="text" id="input-link-indicacao" readonly style="flex: 1; padding: 12px; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; font-size: 12px; color: var(--gold, #ffcc00); background: #1f1f23; outline: none; box-sizing: border-box;" value="https://tapago.com.br/personal/cadastro?ref=PENDENTE">
+                <input type="text" id="input-link-indicacao" readonly style="flex: 1; padding: 12px; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; font-size: 12px; color: var(--gold, #ffcc00); background: #1f1f23; outline: none; box-sizing: border-box;" value="https://tapago.com.br/personal/cadastro?ref=OTAVIO">
                 <button onclick="copiarLinkIndicacao()" style="background: #27272a; border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 0 15px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 12px;">Copiar</button>
             </div>
 
@@ -576,8 +576,9 @@
     </div>
 
     <script>
-        // Sistema unificado de navegação tátil por páginas corrigido
+        // Sistema de navegação unificado e corrigido para todos os itens do menu
         window.abrirOpcaoMenu = function(nomeOpcao) {
+            console.log("Abrindo opção:", nomeOpcao);
             if (nomeOpcao === 'Perfil') {
                 document.getElementById('subscreen-perfil-detalhes').style.display = 'block';
             } else if (nomeOpcao === 'Dados bancários') {
@@ -594,6 +595,8 @@
                 document.getElementById('subscreen-notificacoes').style.display = 'block';
             } else if (nomeOpcao === 'Ajuda') {
                 document.getElementById('subscreen-ajuda').style.display = 'block';
+            } else {
+                alert(`📌 Em breve: Redirecionando para ${nomeOpcao}.`);
             }
         }
 
