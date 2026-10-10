@@ -77,6 +77,7 @@ function iniciarAppAluno() {
     setTimeout(() => { if (mapRadar) google.maps.event.trigger(mapRadar, 'resize'); }, 400);
     escutarPersonaisEmTempoReal();
     carregarListaConversasAluno();
+    carregarProximoAgendamentoAluno();
 }
 
 async function logoutAluno() {
@@ -104,6 +105,7 @@ function switchTab(tabId, navElement) {
         setTimeout(() => { if (mapRadar) google.maps.event.trigger(mapRadar, 'resize'); }, 200);
     }
     if (tabId === 'tab-mensagens') carregarListaConversasAluno();
+    if (tabId === 'tab-perfil') carregarProximoAgendamentoAluno();
 }
 
 function toggleTheme() {
@@ -375,28 +377,88 @@ function ouvirMensagensFirestore() {
     });
 }
 
-// Aluno Aceita a Proposta -> Salva na Agenda e abre o Google Agenda
 window.aceitarProposta = async function(horario, preco, nomeProf) {
     try {
         await addDoc(collection(db, "agenda"), {
             nome: alunoLogado.nome,
+            aluno: alunoLogado.nome,
+            professor: nomeProf,
             objetivo: "Treino Personalizado",
             preco: parseFloat(preco),
             horario: horario,
             diaSemana: "Hoje",
-            frequencia: "Avulso",
+            frequencia: "Aula Confirmada",
             status: "ativo",
             criadoEm: new Date().toISOString()
         });
 
         const hojeStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
-        const horaFormatada = horario.replace(':', '') + '00';
-        const gCalendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=Treino+com+${encodeURIComponent(nomeProf)}&dates=${hojeStr}T${horaFormatada}/${hojeStr}T${parseInt(horario)+1}0000&details=Treino+contratado+via+TAPAGO+por+R$${preco}&location=Itapira+SP`;
+        const horaClean = horario.replace(':', '') + '00';
+        const gCalendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=Treino+com+${encodeURIComponent(nomeProf)}&dates=${hojeStr}T${horaClean}/${hojeStr}T${parseInt(horario)+1}0000&details=Treino+contratado+via+TAPAGO+por+R$${preco}&location=Itapira+SP`;
 
-        alert(`🎉 Proposta aceita com sucesso!\n\nSalvando horário na sua agenda do Google...`);
+        alert(`🎉 Proposta aceita com sucesso!\n\nSalvando horário na sua agenda...`);
+        carregarProximoAgendamentoAluno();
         window.open(gCalendarUrl, '_blank');
     } catch (e) {
         console.error("Erro ao aceitar proposta:", e);
+    }
+}
+
+async function carregarProximoAgendamentoAluno() {
+    const container = document.getElementById('card-proximo-treino-conteudo');
+    if (!container || !alunoLogado) return;
+
+    try {
+        const q = query(collection(db, "agenda"), where("nome", "==", alunoLogado.nome));
+        const querySnapshot = await getDocs(q);
+
+        if (querySnapshot.empty) {
+            container.innerHTML = `
+                <p style="font-size: 13px; color: var(--text-muted); margin: 5px 0;">Nenhum treino agendado no momento.</p>
+                <small style="font-size: 11px; color: var(--gold);">Combine um horário pelo chat com um personal!</small>
+            `;
+            return;
+        }
+
+        let proximoAgendamento = null;
+        querySnapshot.forEach((docItem) => {
+            proximoAgendamento = docItem.data();
+        });
+
+        if (proximoAgendamento) {
+            const hojeStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
+            const horaClean = (proximoAgendamento.horario || "15:00").replace(':', '') + '00';
+            const gCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=Treino+TAPAGO&dates=${hojeStr}T${horaClean}/${hojeStr}T${parseInt(proximoAgendamento.horario||15)+1}0000&details=Treino+confirmado+via+TAPAGO`;
+
+            container.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
+                    <div>
+                        <h3 style="font-size: 15px; font-weight: bold; margin: 0; color: var(--text-color);">${proximoAgendamento.frequencia || 'Aula Confirmada'}</h3>
+                        <p style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0 0;">Horário: <strong>${proximoAgendamento.horario || '08:00'}</strong> • R$ ${proximoAgendamento.preco || 60},00</p>
+                    </div>
+                    <a href="${gCalUrl}" target="_blank" style="background: var(--neon-green); color: #000; text-decoration: none; padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: bold;">Google Agenda 📅</a>
+                </div>
+            `;
+        }
+    } catch (e) {
+        console.error("Erro ao carregar agendamento:", e);
+    }
+}
+
+window.salvarPerfilAluno = async function() {
+    if (!alunoLogado) return;
+    const objetivo = document.getElementById('aluno-select-objetivo').value;
+    const telefone = document.getElementById('aluno-input-telefone').value.trim();
+
+    try {
+        await setDoc(doc(db, "usuarios", alunoLogado.uid), {
+            objetivo: objetivo,
+            telefone: telefone,
+            atualizadoEm: new Date().toISOString()
+        }, { merge: true });
+        alert("✅ Preferências de perfil salvas com sucesso!");
+    } catch (e) {
+        console.error("Erro ao salvar perfil do aluno:", e);
     }
 }
 
@@ -427,20 +489,3 @@ window.logoutAluno = logoutAluno;
 window.navTo = navTo;
 window.switchTab = switchTab;
 window.toggleTheme = toggleTheme;
-// Salva as Preferências e Telefone do Aluno no Firestore
-window.salvarPerfilAluno = async function() {
-    if (!alunoLogado) return;
-    const objetivo = document.getElementById('aluno-select-objetivo').value;
-    const telefone = document.getElementById('aluno-input-telefone').value.trim();
-
-    try {
-        await setDoc(doc(db, "usuarios", alunoLogado.uid), {
-            objetivo: objetivo,
-            telefone: telefone,
-            atualizadoEm: new Date().toISOString()
-        }, { merge: true });
-        alert("✅ Preferências de perfil salvas com sucesso!");
-    } catch (e) {
-        console.error("Erro ao salvar perfil do aluno:", e);
-    }
-}
