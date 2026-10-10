@@ -24,6 +24,7 @@ let conversaAtivaPersonal = null;
 let avaliacaoEstrelasSelecionadas = 5;
 let unsubscribeChat = null;
 
+// Sessão Instantânea ao carregar
 window.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, async (user) => {
         if (user) {
@@ -33,11 +34,6 @@ window.addEventListener('DOMContentLoaded', () => {
                 email: user.email,
                 foto: user.photoURL
             };
-            await setDoc(doc(db, "usuarios", user.uid), {
-                nome: alunoLogado.nome,
-                email: alunoLogado.email,
-                ultimoAcesso: new Date().toISOString()
-            }, { merge: true });
             iniciarAppAluno();
         }
     });
@@ -61,7 +57,6 @@ async function loginGoogleAluno() {
         iniciarAppAluno();
     } catch (error) {
         console.error("Erro login aluno:", error);
-        alert("Falha ao entrar com Google.");
     }
 }
 
@@ -80,6 +75,7 @@ function iniciarAppAluno() {
     if (btnWp) btnWp.style.display = 'none';
 
     navTo('screen-main');
+    setTimeout(() => { if (mapRadar) google.maps.event.trigger(mapRadar, 'resize'); }, 300);
     escutarPersonaisEmTempoReal();
     carregarListaConversasAluno();
 }
@@ -104,6 +100,10 @@ function switchTab(tabId, navElement) {
     document.getElementById(tabId).classList.add('active');
     document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
     if (navElement) navElement.classList.add('active');
+    
+    if (tabId === 'tab-home') {
+        setTimeout(() => { if (mapRadar) google.maps.event.trigger(mapRadar, 'resize'); }, 200);
+    }
     if (tabId === 'tab-mensagens') carregarListaConversasAluno();
 }
 
@@ -118,7 +118,7 @@ function toggleTheme() {
 window.initMap = function() {
     const mapaElemento = document.getElementById("mapa-quadrado");
     if (!mapaElemento) return;
-    const pontoInicial = { lat: -22.4389, lng: -46.8258 }; // Itapira-SP
+    const pontoInicial = { lat: -22.4389, lng: -46.8258 };
     mapRadar = new google.maps.Map(mapaElemento, {
         zoom: 14,
         center: pontoInicial,
@@ -133,7 +133,6 @@ window.initMap = function() {
     });
 }
 
-// Escuta em Tempo Real a Localização GPS dos Personais no Firestore
 function escutarPersonaisEmTempoReal() {
     const container = document.getElementById('lista-personais-reais');
     if (!container) return;
@@ -160,12 +159,10 @@ function processarSnapshotPersonais(snapshot, localAluno, container) {
     snapshot.forEach((docItem) => {
         const data = docItem.data();
         if (data.status === "ativo") {
-            temAtivo = true;
             const pLat = data.lat || -22.4389;
             const pLng = data.lng || -46.8258;
             const nomeProf = data.nome || "Personal";
 
-            // Atualiza ou cria marcador no mapa em tempo real
             if (mapRadar) {
                 const posLatLng = new google.maps.LatLng(pLat, pLng);
                 if (marcadoresPersonal[docItem.id]) {
@@ -218,10 +215,6 @@ function processarSnapshotPersonais(snapshot, localAluno, container) {
             container.appendChild(card);
         }
     });
-
-    if (!temAtivo && container.innerHTML === "") {
-        container.innerHTML = "<p style='color: var(--text-muted); font-size: 13px;'>Nenhum personal online no momento.</p>";
-    }
 }
 
 let viewingTrainerName = "";
