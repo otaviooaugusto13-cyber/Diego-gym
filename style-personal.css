@@ -257,3 +257,63 @@ input, textarea { font-size: 16px; } /* evita zoom automático no iOS */
     font-weight: bold;
     cursor: pointer;
 }
+/* ESTILOS INSPIRADOS NO LAYOUT HELPPI / TAPAGO MENU */
+body.helppi-style {
+    background-color: #f4f5f7 !important;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.menu-list-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 10px;
+    background: #ffffff;
+    border-bottom: 1px solid #f0f0f0;
+    cursor: pointer;
+}
+
+.menu-item-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.menu-item-left span {
+    font-size: 14px;
+    font-weight: 500;
+    color: #222222;
+}
+
+.icon-circle {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: #f4f5f7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nav-tab-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    color: #888888;
+    cursor: pointer;
+}
+
+.nav-tab-item span {
+    font-size: 10px;
+    margin-top: 3px;
+}
+
+.nav-tab-item.active {
+    color: #e60000;
+}
+
+.nav-tab-item.active svg {
+    stroke: #e60000;
+}
