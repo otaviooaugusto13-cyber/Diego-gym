@@ -81,12 +81,12 @@
                     </div>
                     <div class="finance-item">
                         <span>Ganhos Avulsos</span>
-                        <h3 id="valor-avulso" style="color: var(--neon-green);">R$ </h3>
+                        <h3 id="valor-avulso" style="color: var(--neon-green);">R$ 450</h3>
                     </div>
                 </div>
                 <div class="finance-total">
                     <span>Total Projetado:</span>
-                    <span id="valor-total" style="color: var(--gold); font-size: 18px; font-weight: bold;">R$ </span>
+                    <span id="valor-total" style="color: var(--gold); font-size: 18px; font-weight: bold;">R$ 450</span>
                 </div>
             </div>
 
@@ -98,7 +98,7 @@
             <div id="lista-agenda" style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;"></div>
         </div>
 
-        <!-- ABA 2: RADAR DE DEMANDA (MAPA REVERSO DE ALUNOS) -->
+        <!-- ABA 2: RADAR DE DEMANDA -->
         <div id="tab-heatmap" class="tab-content" style="padding-bottom: 100px;">
             <div class="header-personal glass">
                 <h2 style="margin: 0; font-size: 20px;">Radar de Alunos na Região</h2>
@@ -136,11 +136,13 @@
             </div>
         </div>
 
-        <!-- ABA 4: PERFIL -->
-        <div id="tab-perfil" class="tab-content" style="padding-bottom: 100px;">
+        <!-- ABA 4: PERFIL COMPLETO DO PERSONAL -->
+        <div id="tab-perfil" class="tab-content" style="padding-bottom: 110px;">
             <div class="header-personal glass">
-                <h2 style="margin: 0; font-size: 20px;">Meu Perfil & Horários</h2>
+                <h2 style="margin: 0; font-size: 20px;">Perfil Profissional</h2>
             </div>
+
+            <!-- FOTO E IDENTIFICAÇÃO -->
             <div class="glass" style="padding: 20px; text-align: center; margin-bottom: 15px;">
                 <div class="profile-photo-container">
                     <img id="img-perfil-preview" src="" alt="Foto" style="display:none;">
@@ -152,8 +154,20 @@
                 <p id="perfil-cref-display" style="font-size: 12px; color: var(--gold); margin-top: 2px;">CREF: --</p>
             </div>
 
+            <!-- APRESENTAÇÃO E BIO -->
             <div class="glass" style="padding: 15px; margin-bottom: 15px;">
-                <h4 style="font-size: 14px; margin-bottom: 10px; color: var(--gold);">Horário de Atendimento</h4>
+                <h4 style="font-size: 14px; margin-bottom: 8px; color: var(--gold);">📝 Apresentação / Bio</h4>
+                <textarea id="personal-input-bio" rows="3" placeholder="Escreva um breve resumo da sua experiência e método de treino..." style="width: 100%; padding: 10px; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); border-radius: 8px; color: var(--text-color); font-size: 12px; resize: none; margin-bottom: 10px;"></textarea>
+
+                <label style="font-size: 11px; color: var(--text-muted);">Chave PIX Principal (para QR Code):</label>
+                <input type="text" id="personal-input-pix" placeholder="CPF, E-mail ou Celular" style="width: 100%; padding: 10px; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); border-radius: 8px; color: var(--text-color); font-size: 13px; margin-top: 4px; margin-bottom: 10px;">
+
+                <button class="btn btn-primary" style="padding: 10px; font-size: 12px;" onclick="salvarBioPersonal()">Salvar Dados Profissionais</button>
+            </div>
+
+            <!-- CONFIGURAÇÃO DE EXPEDIENTE -->
+            <div class="glass" style="padding: 15px; margin-bottom: 15px;">
+                <h4 style="font-size: 14px; margin-bottom: 10px; color: var(--gold);">🕒 Horário de Atendimento</h4>
                 <div style="display: flex; gap: 10px; margin-bottom: 10px;">
                     <div style="flex: 1;">
                         <label style="font-size: 11px; color: var(--text-muted);">Início:</label>
@@ -183,17 +197,21 @@
                 <button class="btn btn-primary" style="font-size: 12px; padding: 8px;" onclick="salvarHorarioAtendimento()">Salvar Expediente</button>
             </div>
 
-            <div class="glass" style="padding: 15px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h4 style="font-size: 14px; margin: 0;">Aparência</h4>
-                    <p style="font-size: 11px; color: var(--text-muted); margin: 0;" id="label-tema">Modo Escuro Ativo</p>
+            <!-- ATALHOS E SEGURAÇA -->
+            <div class="glass" style="padding: 15px; margin-bottom: 15px; display: flex; flex-direction: column; gap: 10px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h4 style="font-size: 14px; margin: 0;">Aparência</h4>
+                        <p style="font-size: 11px; color: var(--text-muted); margin: 0;" id="label-tema">Modo Escuro Ativo</p>
+                    </div>
+                    <button class="btn-theme-toggle" onclick="alternarTema()"><span id="icon-tema">🌙</span> Alternar</button>
                 </div>
-                <button class="btn-theme-toggle" onclick="alternarTema()"><span id="icon-tema">🌙</span> Alternar</button>
             </div>
+
             <button class="btn btn-logout" onclick="sairModoPessoal()">Sair do Modo Pessoal</button>
         </div>
 
-        <!-- NAV INFERIOR RESTAURADA -->
+        <!-- NAV INFERIOR -->
         <div class="bottom-nav glass-nav" id="nav-personal">
             <div class="nav-item active" onclick="switchTabPersonal('tab-agenda', this)">
                 <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
