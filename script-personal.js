@@ -1,6 +1,3 @@
-// ==========================================
-// IMPORTAÇÕES DO FIREBASE (SDK Modular v10)
-// ==========================================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, doc, setDoc, query, where, onSnapshot, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
@@ -37,6 +34,25 @@ let ganhosAvulsos = 450;
 let agendaDeHoje = [];
 let indiceVagaSelecionada = null;
 
+// Rastreamento GPS Contínuo do Personal
+function iniciarRastreamentoGPS() {
+    if (navigator.geolocation && dadosPerfil.cpf) {
+        navigator.geolocation.watchPosition(async (position) => {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            try {
+                await setDoc(doc(db, "profissionais", dadosPerfil.cpf), {
+                    lat: lat,
+                    lng: lng,
+                    ultimaAtualizacao: new Date().toISOString()
+                }, { merge: true });
+            } catch (e) {
+                console.error("Erro GPS personal:", e);
+            }
+        }, (err) => console.error(err), { enableHighAccuracy: true });
+    }
+}
+
 async function loginComGoogle() {
     try {
         const result = await signInWithPopup(auth, googleProvider);
@@ -52,38 +68,29 @@ async function loginComGoogle() {
                 dadosPerfil.cref = profData.cref;
                 dadosPerfil.fotoUrl = user.photoURL;
                 finalizarLogin(true, profData.nome, profData.cpf, profData.cref);
-            } else if (profData.status === "pendente") {
-                alert("⏳ Seu cadastro realizado via Google está EM ANÁLISE pela equipe TAPAGO.");
             } else {
-                alert("❌ Acesso não liberado para este e-mail.");
+                alert("⏳ Cadastro em análise ou acesso negado.");
             }
         } else {
-            const cpfInput = prompt("Login Google realizado com sucesso!\n\nDigite seu CPF (apenas números):");
+            const cpfInput = prompt("Digite seu CPF (apenas números):");
             if (!cpfInput) return;
             const crefInput = prompt("Digite seu CREF (Ex: 123456-G/SP):");
             if (!crefInput) return;
-
             const cpf = cpfInput.replace(/\D/g, '');
             const cref = crefInput.trim();
-            if (cpf.length < 11) {
-                alert("CPF inválido.");
-                return;
-            }
 
             await setDoc(doc(db, "profissionais", cpf), {
                 nome: user.displayName,
                 email: user.email,
                 cpf: cpf,
                 cref: cref,
-                fotoGoogle: user.photoURL,
                 status: "pendente",
                 criadoEm: new Date().toISOString()
             });
-            alert("🚀 Solicitação enviada com sucesso! Seus dados estão em análise.");
+            alert("🚀 Solicitação enviada com sucesso!");
         }
     } catch (error) {
-        console.error("Erro na autenticação com Google:", error);
-        alert("Falha ao autenticar com o Google.");
+        console.error("Erro Google personal:", error);
     }
 }
 
@@ -104,23 +111,12 @@ async function validarProfissional() {
     const cref = document.getElementById('input-cref').value.trim();
     const lembreme = document.getElementById('check-remember').checked;
 
-    if (nome === "" || cpf === "" || cref === "") {
-        alert("Preencha todos os campos obrigatórios.");
-        return;
-    }
+    if (!nome || !cpf || !cref) return alert("Preencha todos os campos.");
 
     document.getElementById('login-loader').style.display = 'block';
     document.getElementById('btn-login').style.display = 'none';
 
     try {
-        const regexCref = /\d+-G\/[A-Z]{2}/i;
-        if (cpf.length < 11 || !regexCref.test(cref)) {
-            alert("CPF ou CREF inválido.");
-            document.getElementById('login-loader').style.display = 'none';
-            document.getElementById('btn-login').style.display = 'block';
-            return;
-        }
-
         if (cpf === ADMIN_CPF) {
             dadosPerfil.nome = nome;
             dadosPerfil.cpf = cpf;
@@ -140,23 +136,19 @@ async function validarProfissional() {
                 dadosPerfil.cpf = profData.cpf;
                 dadosPerfil.cref = profData.cref;
                 finalizarLogin(lembreme, profData.nome, cpf, cref);
-            } else if (profData.status === "pendente") {
-                document.getElementById('login-loader').style.display = 'none';
-                document.getElementById('btn-login').style.display = 'block';
-                alert("⏳ Seu cadastro está EM ANÁLISE pela equipe TAPAGO.");
             } else {
+                alert("⏳ Cadastro em análise.");
                 document.getElementById('login-loader').style.display = 'none';
                 document.getElementById('btn-login').style.display = 'block';
-                alert("❌ Acesso não liberado.");
             }
         } else {
             await setDoc(doc(db, "profissionais", cpf), { nome, cpf, cref, status: "pendente", criadoEm: new Date().toISOString() });
+            alert("🚀 Solicitação enviada!");
             document.getElementById('login-loader').style.display = 'none';
             document.getElementById('btn-login').style.display = 'block';
-            alert("🚀 Solicitação enviada com sucesso! Em análise.");
         }
-    } catch (error) {
-        console.error("Erro na validação:", error);
+    } catch (e) {
+        console.error(e);
         document.getElementById('login-loader').style.display = 'none';
         document.getElementById('btn-login').style.display = 'block';
     }
@@ -165,14 +157,11 @@ async function validarProfissional() {
 function finalizarLogin(lembreme, nome, cpf, cref) {
     document.getElementById('login-loader').style.display = 'none';
     document.getElementById('btn-login').style.display = 'block';
-    if (lembreme) {
-        localStorage.setItem('tapago_personal_user', JSON.stringify({ nome, cpf, cref }));
-    } else {
-        localStorage.removeItem('tapago_personal_user');
-    }
+    if (lembreme) localStorage.setItem('tapago_personal_user', JSON.stringify({ nome, cpf, cref }));
     atualizarExibicaoPerfil();
     document.getElementById('screen-login-personal').classList.remove('active');
     document.getElementById('screen-dashboard').classList.add('active');
+    iniciarRastreamentoGPS();
     carregarAgendaDoBanco();
     carregarListaConversasPersonal();
 }
@@ -187,8 +176,7 @@ async function carregarAgendaDoBanco() {
         renderizarAgenda();
         atualizarProjecaoFinanceiraReal();
     } catch (error) {
-        console.error("Erro ao carregar agenda:", error);
-        renderizarAgenda();
+        console.error("Erro agenda:", error);
     }
 }
 
@@ -198,7 +186,7 @@ function renderizarAgenda() {
     lista.innerHTML = "";
 
     if (agendaDeHoje.length === 0) {
-        lista.innerHTML = "<p style='color: var(--text-muted); font-size: 13px;'>Nenhum aluno cadastrado ainda.</p>";
+        lista.innerHTML = "<p style='color: var(--text-muted); font-size: 13px;'>Nenhum aluno cadastrado.</p>";
         return;
     }
 
@@ -239,36 +227,23 @@ async function confirmarCadastroAluno() {
     const nome = document.getElementById('cad-aluno-nome').value.trim();
     const objetivo = document.getElementById('cad-aluno-objetivo').value.trim();
     const cpf = document.getElementById('cad-aluno-cpf').value.trim();
+    const preco = parseFloat(document.getElementById('cad-aluno-preco').value) || 350;
+    const diaSemana = document.getElementById('cad-aluno-dias').value.trim() || "Seg, Qua, Sex";
+    const horario = document.getElementById('cad-aluno-horario').value.trim() || "08:00";
+    const frequencia = document.getElementById('cad-aluno-frequencia').value.trim() || "3x na semana";
 
-    const preco = parseFloat(prompt("Digite o valor mensal da mensalidade/aula (R$):", "350")) || 350;
-    const diaSemana = prompt("Dias de treino (Ex: Seg, Qua, Sex):", "Seg, Qua, Sex");
-    const horario = prompt("Horário (Ex: 08:00):", "08:00");
-    const frequencia = prompt("Frequência (Ex: 3x na semana):", "3x na semana");
-
-    if (!nome) {
-        alert("Digite o nome do aluno.");
-        return;
-    }
-
-    const novoAlunoData = {
-        nome: nome,
-        cpf: cpf || "Não informado",
-        objetivo: objetivo || "Geral",
-        preco: preco,
-        diaSemana: diaSemana,
-        horario: horario,
-        frequencia: frequencia,
-        status: "ativo",
-        criadoEm: new Date().toISOString()
-    };
+    if (!nome) return alert("Digite o nome do aluno.");
 
     try {
-        await addDoc(collection(db, "agenda"), novoAlunoData);
+        await addDoc(collection(db, "agenda"), {
+            nome, cpf: cpf || "Não informado", objetivo: objetivo || "Geral",
+            preco, diaSemana, horario, frequencia, status: "ativo", criadoEm: new Date().toISOString()
+        });
         fecharModalCadastrarAluno();
-        alert(`🎉 Aluno ${nome} matriculado com sucesso!`);
+        alert(`🎉 Aluno ${nome} matriculado!`);
         carregarAgendaDoBanco();
     } catch (e) {
-        console.error("Erro ao salvar:", e);
+        console.error("Erro cadastro aluno:", e);
     }
 }
 
@@ -278,10 +253,6 @@ async function carregarListaConversasPersonal() {
     try {
         const snap = await getDocs(collection(db, "usuarios"));
         listaView.innerHTML = "";
-        if (snap.empty) {
-            listaView.innerHTML = "<p style='color:var(--text-muted); font-size:13px;'>Nenhuma conversa de aluno ainda.</p>";
-            return;
-        }
         snap.forEach(docUsr => {
             const u = docUsr.data();
             const item = document.createElement('div');
@@ -291,13 +262,13 @@ async function carregarListaConversasPersonal() {
                 <div class="chat-avatar">${u.nome.charAt(0)}</div>
                 <div class="chat-info">
                     <h4>${u.nome} <span class="chat-time">Online</span></h4>
-                    <p>Clique para conversar em tempo real</p>
+                    <p>Clique para conversar</p>
                 </div>
             `;
             listaView.appendChild(item);
         });
     } catch (e) {
-        console.error("Erro lista conversas:", e);
+        console.error("Erro conversas personal:", e);
     }
 }
 
@@ -317,10 +288,6 @@ async function abrirConversa(alunoUid, nomeAluno) {
 
     unsubscribePersonalChat = onSnapshot(q, (snapshot) => {
         chatBox.innerHTML = '';
-        if (snapshot.empty) {
-            chatBox.innerHTML = `<p style="text-align:center; color: var(--text-muted); font-size:12px; margin-top:20px;">Inicie o chat com ${nomeAluno}</p>`;
-            return;
-        }
         snapshot.forEach((docItem) => {
             const msg = docItem.data();
             const msgDiv = document.createElement('div');
@@ -375,7 +342,7 @@ function fecharModalQRCode() {
 
 function simularLeituraQRCode() {
     fecharModalQRCode();
-    alert("✅ Pagamento PIX verificado e creditado com sucesso!");
+    alert("✅ Pagamento PIX verificado e creditado!");
 }
 
 function atualizarExibicaoPerfil() {
@@ -407,18 +374,6 @@ function atualizarFotoPerfil(event) {
     }
 }
 
-function salvarTarifas() {
-    dadosPerfil.tarifas.normal = parseFloat(document.getElementById('rate-normal').value) || 60;
-    dadosPerfil.tarifas.surge = parseFloat(document.getElementById('rate-surge').value) || 85;
-    dadosPerfil.tarifas.discount = parseFloat(document.getElementById('rate-discount').value) || 45;
-    alert("✅ Tabela de preços atualizada!");
-}
-
-function salvarBio() {
-    dadosPerfil.bio = document.getElementById('input-bio').value;
-    alert("✅ Biografia atualizada!");
-}
-
 function alternarTema() {
     document.body.classList.toggle('light-theme');
     const claro = document.body.classList.contains('light-theme');
@@ -447,7 +402,6 @@ function switchTabPersonal(tabId, navElement) {
 
 window.validarProfissional = validarProfissional;
 window.loginComGoogle = loginComGoogle;
-window.salvarTarifas = salvarTarifas;
 window.abrirModalCadastrarAluno = abrirModalCadastrarAluno;
 window.fecharModalCadastrarAluno = fecharModalCadastrarAluno;
 window.confirmarCadastroAluno = confirmarCadastroAluno;
@@ -455,7 +409,6 @@ window.abrirConversa = abrirConversa;
 window.fecharConversa = fecharConversa;
 window.enviarMensagemChat = enviarMensagemChat;
 window.atualizarFotoPerfil = atualizarFotoPerfil;
-window.salvarBio = salvarBio;
 window.alternarTema = alternarTema;
 window.sairModoPessoal = sairModoPessoal;
 window.abrirQRCode = abrirQRCode;
