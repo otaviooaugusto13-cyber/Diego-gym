@@ -245,9 +245,9 @@
                     <div class="shortcut-icon">💳</div>
                     <span>Dados bancários</span>
                 </div>
-                <div class="glass menu-shortcut-card" onclick="abrirOpcaoMenu('Preferências de Atendimento')">
-                    <div class="shortcut-icon">🕒</div>
-                    <span>Atendimento</span>
+                <div class="glass menu-shortcut-card" onclick="abrirOpcaoMenu('Convidar Amigos')">
+                    <div class="shortcut-icon">🎁</div>
+                    <span>Indicar Amigo</span>
                 </div>
             </div>
 
@@ -290,7 +290,7 @@
                 <span style="display: block; font-size: 10px;">Início</span>
             </div>
             <div class="nav-item" onclick="switchTabPersonal('tab-ofertas', this)" style="cursor: pointer; text-align: center; flex: 1;">
-                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><circle cx="12" cy="10" r="3"></circle><path d="M12 21.7C17.3 17 20 13 20 10a8 8 0 1 0-16 0c0 3 2.7 7 8 11.7z"></path></svg>
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><circle cx="12" cy="10" r="3"></circle><path d="M12 21.7C17.3 17 20 13 20 10a88 0 1 0-16 0c0 3 2.7 7 8 11.7z"></path></svg>
                 <span style="display: block; font-size: 10px;">Ofertas</span>
             </div>
             <div class="nav-item" onclick="switchTabPersonal('tab-agenda', this)" style="cursor: pointer; text-align: center; flex: 1;">
@@ -308,21 +308,16 @@
         </div>
     </div>
 
-    <!-- TELA INDEPENDENTE DE PERFIL E VERIFICAÇÃO (PÁGINA TÁTIL COMPLETA) -->
+    <!-- TELA TÁTIL DE PERFIL E VERIFICAÇÃO -->
     <div id="subscreen-perfil-detalhes" class="app-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0b0b0d; z-index: 999999; overflow-y: auto;">
         <div style="max-width: 480px; width: 100%; margin: 0 auto; padding: 20px; box-sizing: border-box;">
-            
-            <!-- CABEÇALHO DA PÁGINA DE PERFIL -->
             <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 25px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px;">
                 <button onclick="fecharSubtelaPerfil()" style="background: transparent; border: none; color: var(--neon-green, #39ff14); font-size: 22px; font-weight: bold; cursor: pointer; padding: 0;">❮</button>
                 <h2 style="margin: 0; color: #ffffff; font-size: 18px; font-weight: bold;">Perfil e Verificação</h2>
             </div>
             
-            <p style="font-size: 12px; color: #a1a1aa; margin-bottom: 20px; line-height: 1.4;">
-                Preencha seus dados oficiais e envie fotos dos documentos para validação completa e liberação imediata no sistema.
-            </p>
+            <p style="font-size: 12px; color: #a1a1aa; margin-bottom: 20px; line-height: 1.4;">Preencha seus dados oficiais e envie fotos dos documentos para validação completa.</p>
             
-            <!-- DADOS PESSOAIS -->
             <label style="font-size: 12px; font-weight: bold; color: #e4e4e7; display: block; margin-bottom: 6px;">Nome Completo</label>
             <input type="text" id="perfil-input-nome" placeholder="Seu nome completo" style="width: 100%; padding: 12px; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; font-size: 13px; color: #ffffff; background: #1f1f23; margin-bottom: 15px; outline: none; box-sizing: border-box;">
 
@@ -340,18 +335,14 @@
             <label style="font-size: 12px; font-weight: bold; color: #e4e4e7; display: block; margin-bottom: 6px;">Onde Nasceu (Cidade - UF)</label>
             <input type="text" id="perfil-input-naturalidade" placeholder="Ex: Itapira - SP" style="width: 100%; padding: 12px; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; font-size: 13px; color: #ffffff; background: #1f1f23; margin-bottom: 15px; outline: none; box-sizing: border-box;">
 
-            <!-- DADOS PROFISSIONAIS -->
             <label style="font-size: 12px; font-weight: bold; color: #e4e4e7; display: block; margin-bottom: 6px;">Registro CREF</label>
             <input type="text" id="perfil-input-cref" placeholder="Ex: 123456-G/SP" style="width: 100%; padding: 12px; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; font-size: 13px; color: #ffffff; background: #1f1f23; margin-bottom: 15px; outline: none; box-sizing: border-box;">
 
             <label style="font-size: 12px; font-weight: bold; color: #e4e4e7; display: block; margin-bottom: 6px;">Apresentação / Bio</label>
-            <textarea id="personal-input-bio" rows="3" placeholder="Conte um pouco sobre sua experiência e metodologia..." style="width: 100%; padding: 12px; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; color: #ffffff; background: #1f1f23; font-size: 13px; margin-bottom: 20px; outline: none; box-sizing: border-box;"></textarea>
+            <textarea id="personal-input-bio" rows="3" placeholder="Conte um pouco sobre sua experiência..." style="width: 100%; padding: 12px; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; color: #ffffff; background: #1f1f23; font-size: 13px; margin-bottom: 20px; outline: none; box-sizing: border-box;"></textarea>
 
-            <!-- VERIFICAÇÃO DE DOCUMENTOS -->
             <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px; margin-bottom: 25px;">
                 <h3 style="font-size: 15px; color: var(--neon-green, #39ff14); margin-bottom: 8px;">🔐 Verificação de Identidade</h3>
-                <p style="font-size: 12px; color: #a1a1aa; margin-bottom: 12px;">Para segurança dos alunos, envie fotos nítidas dos documentos solicitados.</p>
-                
                 <label style="font-size: 12px; font-weight: bold; color: #e4e4e7; display: block; margin-bottom: 6px;">Foto do Documento (RG ou CNH)</label>
                 <input type="file" id="perfil-doc-file" accept="image/*" style="width: 100%; padding: 10px; border: 1px dashed rgba(255,255,255,0.3); border-radius: 10px; font-size: 12px; color: #a1a1aa; background: #1f1f23; margin-bottom: 12px; box-sizing: border-box;">
 
@@ -363,27 +354,57 @@
         </div>
     </div>
 
-    <!-- MODAL / SUBTELA DADOS BANCÁRIOS (DARK MODE & GLASSMORPHISM) -->
+    <!-- TELA TÁTIL DE INDICAÇÃO DE AMIGOS (CONVIDAR AMIGOS) -->
+    <div id="subscreen-indicar-amigo" class="app-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0b0b0d; z-index: 999999; overflow-y: auto;">
+        <div style="max-width: 480px; width: 100%; margin: 0 auto; padding: 20px; box-sizing: border-box;">
+            
+            <!-- CABEÇALHO -->
+            <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 25px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px;">
+                <button onclick="fecharSubtelaIndicacao()" style="background: transparent; border: none; color: var(--neon-green, #39ff14); font-size: 22px; font-weight: bold; cursor: pointer; padding: 0;">❮</button>
+                <h2 style="margin: 0; color: #ffffff; font-size: 18px; font-weight: bold;">Indique Amigos e Ganhe</h2>
+            </div>
+
+            <!-- CARD DE REGRA -->
+            <div class="glass" style="padding: 20px; border-radius: 16px; margin-bottom: 20px; background: rgba(57, 255, 20, 0.05); border: 1px solid rgba(57, 255, 20, 0.3);">
+                <h3 style="color: var(--neon-green, #39ff14); font-size: 16px; margin: 0 0 10px 0;">🎁 Como funciona a bonificação?</h3>
+                <p style="font-size: 13px; color: #e4e4e7; line-height: 1.5; margin: 0;">
+                    Você recebe <strong>85%</strong> das suas aulas e a empresa retém <strong>15%</strong>. Ao indicar um amigo personal, na <strong>primeira venda realizada por ele</strong>, você ganha 100% da comissão da empresa (os 15%) referente a essa primeira transação!
+                </p>
+            </div>
+
+            <!-- LINK EXCLUSIVO -->
+            <label style="font-size: 12px; font-weight: bold; color: #e4e4e7; display: block; margin-bottom: 6px;">Seu Link de Indicação Exclusivo</label>
+            <div style="display: flex; gap: 8px; margin-bottom: 20px;">
+                <input type="text" id="input-link-indicacao" readonly style="flex: 1; padding: 12px; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; font-size: 12px; color: var(--gold, #ffcc00); background: #1f1f23; outline: none; box-sizing: border-box;" value="https://tapago.com.br/personal/cadastro?ref=PENDENTE">
+                <button onclick="copiarLinkIndicacao()" style="background: #27272a; border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 0 15px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 12px;">Copiar</button>
+            </div>
+
+            <!-- BOTÃO COMPARTILHAR WHATSAPP -->
+            <button class="btn" onclick="compartilharWhatsApp()" style="width: 100%; background: #25d366; color: #ffffff; font-weight: bold; padding: 14px; border: none; border-radius: 12px; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 30px;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
+                Compartilhar via WhatsApp
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL / SUBTELA DADOS BANCÁRIOS -->
     <div id="modal-dados-bancarios" class="app-overlay">
         <div class="glass modal-box" style="max-width: 480px; width: 92%; height: 85vh; overflow-y: auto; padding: 0; border-radius: 20px; background: #121214; color: #ffffff; text-align: left; border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
             
-            <!-- CABEÇALHO DARK COM DETALHE VERDE NEON -->
             <div style="background: #18181b; padding: 18px 20px; display: flex; align-items: center; gap: 15px; border-top-left-radius: 20px; border-top-right-radius: 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
                 <button onclick="fecharModalDadosBancarios()" style="background: transparent; border: none; color: var(--neon-green, #39ff14); font-size: 20px; font-weight: bold; cursor: pointer; padding: 0;">❮</button>
                 <h2 style="margin: 0; color: #ffffff; font-size: 18px; font-weight: bold; flex: 1; text-align: center; margin-right: 20px;">Dados bancários</h2>
             </div>
 
             <div style="padding: 20px;">
-                <!-- TEXTO ORIENTATIVO -->
                 <h3 style="margin: 0 0 10px 0; font-size: 15px; color: var(--gold, #ffcc00); font-weight: bold; line-height: 1.3;">
                     Configure seus dados para recebimento e mantenha-os sempre atualizados.
                 </h3>
                 
                 <p style="font-size: 12px; color: #a1a1aa; line-height: 1.4; margin-bottom: 20px;">
-                    <strong style="color: #ffffff;">Atenção:</strong> Atualize seus dados bancários até <strong style="color: var(--neon-green, #39ff14);">terça-feira</strong> para garantir que lancemos os valores na data certa. Alterações após essa data só serão processadas na semana seguinte, podendo gerar atrasos de até 7 dias.
+                    <strong style="color: #ffffff;">Atenção:</strong> Atualize seus dados bancários até <strong style="color: var(--neon-green, #39ff14);">terça-feira</strong> para garantir que lancemos os valores na data certa.
                 </p>
 
-                <!-- CAMPO: BANCO -->
                 <label style="font-size: 12px; font-weight: bold; color: #e4e4e7; display: block; margin-bottom: 6px;">Banco</label>
                 <select id="bank-select-banco" style="width: 100%; padding: 12px; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; font-size: 13px; color: #ffffff; background: #1f1f23; margin-bottom: 15px; outline: none;">
                     <option value="237 BANCO BRADESCO S.A.">237 BANCO BRADESCO S.A.</option>
@@ -395,7 +416,6 @@
                     <option value="077 BANCO INTER S.A.">077 BANCO INTER S.A.</option>
                 </select>
 
-                <!-- CAMPO: TIPO DE CONTA -->
                 <label style="font-size: 12px; font-weight: bold; color: #e4e4e7; display: block; margin-bottom: 6px;">Tipo de conta</label>
                 <select id="bank-select-tipo-conta" style="width: 100%; padding: 12px; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; font-size: 13px; color: #ffffff; background: #1f1f23; margin-bottom: 15px; outline: none;">
                     <option value="Conta corrente">Conta corrente</option>
@@ -403,11 +423,9 @@
                     <option value="Conta pagamento">Conta pagamento</option>
                 </select>
 
-                <!-- CAMPO: AGÊNCIA -->
                 <label style="font-size: 12px; font-weight: bold; color: #e4e4e7; display: block; margin-bottom: 6px;">Agencia</label>
                 <input type="text" id="bank-input-agencia" placeholder="" style="width: 100%; padding: 12px; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; font-size: 13px; color: #ffffff; background: #1f1f23; margin-bottom: 15px; outline: none;">
 
-                <!-- CAMPO: NÚMERO DA CONTA E DÍGITO -->
                 <div style="display: flex; gap: 10px; align-items: flex-end; margin-bottom: 25px;">
                     <div style="flex: 3;">
                         <label style="font-size: 12px; font-weight: bold; color: #e4e4e7; display: block; margin-bottom: 6px;">Numero da conta</label>
@@ -420,15 +438,10 @@
                     </div>
                 </div>
 
-                <!-- SEÇÃO PIX -->
                 <div style="text-align: center; margin-bottom: 15px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;">
                     <h2 style="margin: 0 0 8px 0; font-size: 20px; font-weight: bold; color: var(--neon-green, #39ff14); letter-spacing: 1px;">PIX</h2>
-                    <p style="margin: 0; font-size: 12px; color: #a1a1aa; line-height: 1.3;">
-                        Informe os dados cadastrados do Pix para agilizar o processo de recebimento.
-                    </p>
                 </div>
 
-                <!-- CAMPO: TIPO DE CHAVE -->
                 <label style="font-size: 12px; font-weight: bold; color: #e4e4e7; display: block; margin-bottom: 6px;">Tipo de Chave</label>
                 <select id="bank-select-tipo-pix" style="width: 100%; padding: 12px; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; font-size: 13px; color: #ffffff; background: #1f1f23; margin-bottom: 15px; outline: none;">
                     <option value="Celular">Celular</option>
@@ -437,14 +450,10 @@
                     <option value="Chave Aleatória">Chave Aleatória</option>
                 </select>
 
-                <!-- CAMPO: CHAVE PIX -->
                 <label style="font-size: 12px; font-weight: bold; color: #e4e4e7; display: block; margin-bottom: 6px;">Chave pix</label>
                 <input type="text" id="bank-input-chave-pix" placeholder="" style="width: 100%; padding: 12px; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; font-size: 13px; color: #ffffff; background: #1f1f23; margin-bottom: 25px; outline: none;">
 
-                <!-- BOTÃO SALVAR -->
-                <button class="btn" onclick="salvarDadosBancarios()" style="width: 100%; background: var(--neon-green, #39ff14); color: #000000; font-weight: bold; padding: 14px; border: none; border-radius: 12px; font-size: 14px; cursor: pointer; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
-                    Salvar Dados Bancários
-                </button>
+                <button class="btn" onclick="salvarDadosBancarios()" style="width: 100%; background: var(--neon-green, #39ff14); color: #000000; font-weight: bold; padding: 14px; border: none; border-radius: 12px; font-size: 14px; cursor: pointer;">Salvar Dados Bancários</button>
             </div>
         </div>
     </div>
@@ -457,7 +466,6 @@
                 <button onclick="fecharConversaModal()" style="background: transparent; border: none; color: #ff3333; font-size: 18px; font-weight: bold; cursor: pointer;">✕</button>
             </div>
 
-            <!-- LISTA E CONVERSAS -->
             <div id="chat-list-view" style="flex: 1; overflow-y: auto;"></div>
 
             <div id="chat-conversation-view" style="display: none; flex: 1; flex-direction: column;">
@@ -499,6 +507,53 @@
             <button class="btn btn-outline" style="margin-top: 8px;" onclick="fecharModalCadastrarAluno()">Cancelar</button>
         </div>
     </div>
+
+    <script>
+        // Funções de navegação tátil integradas para as novas telas
+        window.abrirOpcaoMenu = function(nomeOpcao) {
+            if (nomeOpcao === 'Perfil') {
+                const sub = document.getElementById('subscreen-perfil-detalhes');
+                if (sub) sub.style.display = 'block';
+            } else if (nomeOpcao === 'Convidar Amigos') {
+                const sub = document.getElementById('subscreen-indicar-amigo');
+                if (sub) {
+                    sub.style.display = 'block';
+                    // Gera o link exclusivo com base no CPF cadastrado ou gerado
+                    const cpfPersonal = dadosPerfil && dadosPerfil.cpf ? dadosPerfil.cpf : "geral";
+                    const linkInput = document.getElementById('input-link-indicacao');
+                    if (linkInput) linkInput.value = `https://tapago.com.br/personal/cadastro?ref=${cpfPersonal}`;
+                }
+            } else {
+                alert(`📌 Em breve: Redirecionando para ${nomeOpcao}.`);
+            }
+        }
+
+        window.fecharSubtelaPerfil = function() {
+            const sub = document.getElementById('subscreen-perfil-detalhes');
+            if (sub) sub.style.display = 'none';
+        }
+
+        window.fecharSubtelaIndicacao = function() {
+            const sub = document.getElementById('subscreen-indicar-amigo');
+            if (sub) sub.style.display = 'none';
+        }
+
+        window.copiarLinkIndicacao = function() {
+            const input = document.getElementById('input-link-indicacao');
+            if (!input) return;
+            input.select();
+            input.setSelectionRange(0, 99999);
+            navigator.clipboard.writeText(input.value);
+            alert("📋 Link de indicação copiado para a área de transferência!");
+        }
+
+        window.compartilharWhatsApp = function() {
+            const input = document.getElementById('input-link-indicacao');
+            const link = input ? input.value : "https://tapago.com.br/personal/cadastro";
+            const texto = encodeURIComponent(`Fala, meu caro! Vem pro TAPAGO, o app que mais paga bem para Personal Trainers. Cadastre-se por este link e comece a atender: ${link}`);
+            window.open(`https://api.whatsapp.com/send?text=${texto}`, '_blank');
+        }
+    </script>
 
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCYuhjdqUwLqt1wBkq4SkkUcC3FDaPXspU&libraries=geometry&callback=initMapAlunos" async defer></script>
     <script type="module" src="script-personal.js"></script>
