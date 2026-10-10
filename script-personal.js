@@ -191,12 +191,12 @@ async function salvarHorarioAtendimento() {
     }
 }
 
-// Inicializa o Mapa Reverso de Alunos
-function inicializarMapaAlunos() {
+// Inicialização Global do Mapa do Personal exigida pelo Google Maps API
+window.initMapAlunos = function() {
     const mapaElemento = document.getElementById("mapa-alunos");
     if (!mapaElemento) return;
 
-    const pontoInicial = { lat: -22.4389, lng: -46.8258 };
+    const pontoInicial = { lat: -22.4389, lng: -46.8258 }; // Itapira-SP
     mapAlunos = new google.maps.Map(mapaElemento, {
         zoom: 14,
         center: pontoInicial,
@@ -469,7 +469,6 @@ function switchTabPersonal(tabId, navElement) {
     if (tabId === 'tab-chat') carregarListaConversasPersonal();
     if (tabId === 'tab-heatmap') {
         setTimeout(() => {
-            inicializarMapaAlunos();
             if (mapAlunos) google.maps.event.trigger(mapAlunos, 'resize');
         }, 200);
     }
