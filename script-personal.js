@@ -17,7 +17,7 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
 
-
+const ADMIN_CPF = "11122233344";
 
 let dadosPerfil = {
     nome: "Professor",
@@ -111,6 +111,12 @@ window.addEventListener('DOMContentLoaded', () => {
     if ("Notification" in window && Notification.permission === "granted") {
         const banner = document.getElementById('banner-notificacao');
         if (banner) banner.style.display = 'none';
+    }
+
+    // Vínculo seguro para o botão do Google no módulo
+    const btnGoogle = document.getElementById('btn-google');
+    if (btnGoogle) {
+        btnGoogle.addEventListener('click', loginComGoogle);
     }
 
     const savedProfile = localStorage.getItem('tapago_personal_user');
@@ -321,9 +327,6 @@ function escutarChamadasUberPersonal() {
     });
 }
 
-// ==========================================
-// TRAVA DE SEGURANÇA PARA ACEITAR CHAMADA
-// ==========================================
 window.aceitarChamadaUber = async function(chamadaId, nomeAluno, horario, valor, foco) {
     try {
         if (dadosPerfil.cpf) {
@@ -600,7 +603,6 @@ window.sairModoPessoal = function() {
 function abrirModalCadastrarAluno() { document.getElementById('modal-cadastrar-aluno').classList.add('active'); }
 function fecharModalCadastrarAluno() { document.getElementById('modal-cadastrar-aluno').classList.remove('active'); }
 
-// MODAL DADOS BANCÁRIOS (ATUALIZADO E COMPLETO)
 window.abrirModalDadosBancarios = async function() {
     document.getElementById('modal-dados-bancarios').classList.add('active');
 
@@ -664,16 +666,13 @@ window.salvarDadosBancarios = async function() {
         }, { merge: true });
 
         alert("✅ Dados bancários salvos com sucesso!");
-        fecharModalDadosBancarios();
+        fecharSubtela('subscreen-dados-bancarios');
     } catch (e) {
         console.error("Erro ao salvar dados bancários:", e);
         alert("Erro ao salvar dados. Tente novamente.");
     }
 }
 
-// ==========================================
-// MAPA E LISTAGEM DE ALUNOS ONLINE NO RADAR
-// ==========================================
 window.initMapAlunos = function() {
     const mapElement = document.getElementById('mapa-alunos');
     if (!mapElement) return;
@@ -761,9 +760,6 @@ window.fecharConversaModal = function() {
     }
 }
 
-// ==========================================
-// CONTROLE DAS 5 ABAS E DO MENU
-// ==========================================
 window.switchTabPersonal = function(tabId, navElement) {
     document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
     const tabAlvo = document.getElementById(tabId);
@@ -783,7 +779,8 @@ window.switchTabPersonal = function(tabId, navElement) {
     }
 }
 
-wwindow.abrirOpcaoMenu = function(nomeOpcao) {
+// Navegação unificada para todas as subscreens do menu
+window.abrirOpcaoMenu = function(nomeOpcao) {
     if (nomeOpcao === 'Perfil') {
         const sub = document.getElementById('subscreen-perfil-detalhes');
         if (sub) {
@@ -813,11 +810,6 @@ wwindow.abrirOpcaoMenu = function(nomeOpcao) {
     } else {
         alert(`📌 Em breve: Redirecionando para ${nomeOpcao}.`);
     }
-}
-
-window.fecharSubtelaPerfil = function() {
-    const sub = document.getElementById('subscreen-perfil-detalhes');
-    if (sub) sub.style.display = 'none';
 }
 
 window.validarCheckTermos = function() {
@@ -861,17 +853,6 @@ window.abrirConversa = abrirConversa;
 window.fecharConversa = fecharConversa;
 window.enviarMensagemChat = enviarMensagemChat;
 window.enviarPropostaPersonal = enviarPropostaPersonal;
-window.salvarBioPersonal = (async function() {
-    const bioText = document.getElementById('personal-input-bio').value;
-    const pixText = document.getElementById('personal-input-pix').value;
-    if (dadosPerfil.cpf) {
-        try {
-            await setDoc(doc(db, "profissionais", dadosPerfil.cpf), { bio: bioText, pixChave: pixText }, { merge: true });
-            alert("📝 Dados profissionais salvos com sucesso!");
-            fecharSubtelaPerfil();
-        } catch (e) { console.error(e); }
-    }
-});
 window.sairModoPessoal = sairModoPessoal;
 window.switchTabPersonal = switchTabPersonal;
 window.carregarAlunosNoMapa = carregarAlunosNoMapa;
@@ -884,7 +865,6 @@ window.abrirModalTermos = abrirModalTermos;
 window.fecharModalTermos = fecharModalTermos;
 window.aceitarTermosModal = aceitarTermosModal;
 window.abrirOpcaoMenu = abrirOpcaoMenu;
-window.fecharSubtelaPerfil = fecharSubtelaPerfil;
 window.abrirModalDadosBancarios = abrirModalDadosBancarios;
 window.fecharModalDadosBancarios = fecharModalDadosBancarios;
 window.salvarDadosBancarios = salvarDadosBancarios;
