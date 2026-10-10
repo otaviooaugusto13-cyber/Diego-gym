@@ -340,31 +340,35 @@ async function carregarAgendaDoBanco() {
 
 function renderizarAgenda() {
     const lista = document.getElementById('lista-agenda');
+    const resumo = document.getElementById('lista-agenda-resumo');
     if (!lista) return;
     lista.innerHTML = "";
+    if (resumo) resumo.innerHTML = "";
 
     if (agendaDeHoje.length === 0) {
         lista.innerHTML = "<p style='color: var(--text-muted); font-size: 13px;'>Nenhum aluno cadastrado.</p>";
+        if (resumo) resumo.innerHTML = "<p style='color: var(--text-muted); font-size: 13px;'>Nenhum atendimento para hoje.</p>";
         return;
     }
 
     agendaDeHoje.forEach((slot, index) => {
-        const div = document.createElement('div');
-        div.className = `glass agenda-slot slot-ocupado`;
-        div.innerHTML = `
-            <div class="slot-time">${slot.horario || '08:00'}</div>
-            <div class="slot-info">
-                <div class="slot-info-name">${slot.nome || slot.aluno}</div>
-                <div class="slot-info-desc">Foco: ${slot.objetivo} | ${slot.frequencia || '3x'} (${slot.diaSemana || 'Seg, Qua, Sex'}) - R$ ${slot.preco || 0}</div>
-            </div>
-            <div style="display:flex; flex-direction:column; align-items:flex-end; gap: 5px;">
-                <button class="btn-slot-action btn-qr" onclick="abrirQRCode(${index})">Pagar Mercado Pago</button>
-                <button onclick="desmarcarTreinoPersonal('${slot.id}', '${slot.nome || slot.aluno}')" style="background: rgba(255, 51, 51, 0.2); color: #ff3333; border: 1px solid #ff3333; padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: bold; cursor: pointer;">
-                    ✕ Desmarcar (Taxa R$15)
-                </button>
+        const itemHtml = `
+            <div class="glass agenda-slot slot-ocupado">
+                <div class="slot-time">${slot.horario || '08:00'}</div>
+                <div class="slot-info">
+                    <div class="slot-info-name">${slot.nome || slot.aluno}</div>
+                    <div class="slot-info-desc">Foco: ${slot.objetivo} | ${slot.frequencia || '3x'} (${slot.diaSemana || 'Seg, Qua, Sex'}) - R$ ${slot.preco || 0}</div>
+                </div>
+                <div style="display:flex; flex-direction:column; align-items:flex-end; gap: 5px;">
+                    <button class="btn-slot-action btn-qr" onclick="abrirQRCode(${index})">Pagar Mercado Pago</button>
+                    <button onclick="desmarcarTreinoPersonal('${slot.id}', '${slot.nome || slot.aluno}')" style="background: rgba(255, 51, 51, 0.2); color: #ff3333; border: 1px solid #ff3333; padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: bold; cursor: pointer;">
+                        ✕ Desmarcar (Taxa R$15)
+                    </button>
+                </div>
             </div>
         `;
-        lista.appendChild(div);
+        lista.innerHTML += itemHtml;
+        if (resumo) resumo.innerHTML += itemHtml;
     });
 }
 
@@ -390,9 +394,11 @@ async function atualizarProjecaoFinanceiraReal() {
             if (data.preco) totalBruto += Number(data.preco);
         });
         let totalLiquido = totalBruto * 0.85;
-        document.getElementById('valor-fixo').innerText = `R$ ${totalLiquido.toLocaleString('pt-BR', {maximumFractionDigits:2})}`;
+        const elFixo = document.getElementById('valor-fixo');
+        const elTotal = document.getElementById('valor-total');
+        if (elFixo) elFixo.innerText = `R$ ${totalLiquido.toLocaleString('pt-BR', {maximumFractionDigits:2})}`;
         let totalGeral = totalLiquido + (ganhosAvulsos * 0.85);
-        document.getElementById('valor-total').innerText = `R$ ${totalGeral.toLocaleString('pt-BR', {maximumFractionDigits:2})}`;
+        if (elTotal) elTotal.innerText = `R$ ${totalGeral.toLocaleString('pt-BR', {maximumFractionDigits:2})}`;
     } catch (e) {
         console.error("Erro finanças:", e);
     }
@@ -533,11 +539,17 @@ function fecharModalQRCode() {
 
 function atualizarExibicaoPerfil() {
     const primeiraLetra = dadosPerfil.nome.charAt(0).toUpperCase();
-    document.getElementById('nome-exibicao').innerText = dadosPerfil.nome;
-    document.getElementById('perfil-nome-display').innerText = dadosPerfil.nome;
-    document.getElementById('perfil-cref-display').innerText = `CREF: ${dadosPerfil.cref}`;
-    document.getElementById('initials-header').innerText = primeiraLetra;
-    document.getElementById('initials-perfil').innerText = primeiraLetra;
+    const elNome = document.getElementById('nome-exibicao');
+    const elPerfilNome = document.getElementById('perfil-nome-display');
+    const elPerfilCref = document.getElementById('perfil-cref-display');
+    const elInitHeader = document.getElementById('initials-header');
+    const elInitPerfil = document.getElementById('initials-perfil');
+
+    if (elNome) elNome.innerText = dadosPerfil.nome;
+    if (elPerfilNome) elPerfilNome.innerText = dadosPerfil.nome;
+    if (elPerfilCref) elPerfilCref.innerText = `CREF: ${dadosPerfil.cref}`;
+    if (elInitHeader) elInitHeader.innerText = primeiraLetra;
+    if (elInitPerfil) elInitPerfil.innerText = primeiraLetra;
 }
 
 function atualizarFotoPerfil(event) {
@@ -555,8 +567,10 @@ function atualizarFotoPerfil(event) {
 function alternarTema() {
     document.body.classList.toggle('light-theme');
     const claro = document.body.classList.contains('light-theme');
-    document.getElementById('label-tema').innerText = claro ? "Modo Claro Ativo" : "Modo Escuro Ativo";
-    document.getElementById('icon-tema').innerText = claro ? "☀️" : "🌙";
+    const elLabel = document.getElementById('label-tema');
+    const elIcon = document.getElementById('icon-tema');
+    if (elLabel) elLabel.innerText = claro ? "Modo Claro Ativo" : "Modo Escuro Ativo";
+    if (elIcon) elIcon.innerText = claro ? "☀️" : "🌙";
 }
 
 window.sairModoPessoal = function() {
@@ -606,6 +620,7 @@ window.salvarBioPersonal = async function() {
                 pixChave: pixText
             }, { merge: true });
             alert("📝 Dados profissionais salvos com sucesso!");
+            fecharSubtelaPerfil();
         } catch (e) {
             console.error("Erro ao salvar bio:", e);
         }
@@ -618,7 +633,7 @@ window.initMapAlunos = function() {
     if (!mapElement) return;
 
     mapAlunos = new google.maps.Map(mapElement, {
-        center: { lat: -22.4243, lng: -46.8427 }, // Itapira / Região padrão
+        center: { lat: -22.4243, lng: -46.8427 },
         zoom: 14,
         disableDefaultUI: true,
         styles: [
@@ -678,7 +693,7 @@ window.carregarAlunosNoMapa = async function() {
                         <h4 style="margin: 0; font-size: 14px;">${aluno.nome || 'Aluno TAPAGO'}</h4>
                         <p style="font-size: 11px; color: var(--gold); margin: 2px 0;">Foco: ${aluno.objetivo || 'Geral'}</p>
                     </div>
-                    <button onclick="abrirConversa('${uid}', '${aluno.nome || 'Aluno'}')" style="background: var(--gold); color: #000; border: none; padding: 6px 10px; border-radius: 6px; font-weight: bold; font-size: 11px; cursor: pointer;">💬 Conversar</button>
+                    <button onclick="alert('Funcionalidade de chat direto')" style="background: var(--gold); color: #000; border: none; padding: 6px 10px; border-radius: 6px; font-weight: bold; font-size: 11px; cursor: pointer;">💬 Conversar</button>
                 `;
                 containerDemandas.appendChild(card);
             }
@@ -688,7 +703,9 @@ window.carregarAlunosNoMapa = async function() {
     }
 }
 
-// CORREÇÃO DOS CLIQUES NAS ABAS
+// ==========================================
+// CONTROLE DAS 5 ABAS E DO MENU (ATUALIZADO)
+// ==========================================
 window.switchTabPersonal = function(tabId, navElement) {
     document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
     const tabAlvo = document.getElementById(tabId);
@@ -697,8 +714,11 @@ window.switchTabPersonal = function(tabId, navElement) {
     document.querySelectorAll('#nav-personal .nav-item').forEach(item => item.classList.remove('active'));
     if (navElement) navElement.classList.add('active');
 
-    if (tabId === 'tab-chat') carregarListaConversasPersonal();
-    if (tabId === 'tab-heatmap') {
+    // Fechar subtelas do perfil se abertas
+    const sub = document.getElementById('subscreen-perfil-detalhes');
+    if (sub) sub.style.display = 'none';
+
+    if (tabId === 'tab-ofertas') {
         setTimeout(() => {
             if (mapAlunos) google.maps.event.trigger(mapAlunos, 'resize');
         }, 200);
@@ -706,10 +726,28 @@ window.switchTabPersonal = function(tabId, navElement) {
     }
 }
 
+window.abrirOpcaoMenu = function(nomeOpcao) {
+    if (nomeOpcao === 'Perfil') {
+        const sub = document.getElementById('subscreen-perfil-detalhes');
+        if (sub) {
+            sub.style.display = 'block';
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        }
+    } else {
+        alert(`📌 Em breve: Redirecionando para ${nomeOpcao}.`);
+    }
+}
+
+window.fecharSubtelaPerfil = function() {
+    const sub = document.getElementById('subscreen-perfil-detalhes');
+    if (sub) sub.style.display = 'none';
+}
+
 // VALIDAÇÃO E CONTROLE DOS TERMOS DE USO
 window.validarCheckTermos = function() {
     const checkbox = document.getElementById('check-termos');
     const btnLogin = document.getElementById('btn-login');
+    if (!checkbox || !btnLogin) return;
     
     if (checkbox.checked) {
         btnLogin.disabled = false;
@@ -731,7 +769,8 @@ window.fecharModalTermos = function() {
 }
 
 window.aceitarTermosModal = function() {
-    document.getElementById('check-termos').checked = true;
+    const chk = document.getElementById('check-termos');
+    if (chk) chk.checked = true;
     validarCheckTermos();
     fecharModalTermos();
 }
@@ -763,3 +802,5 @@ window.validarCheckTermos = validarCheckTermos;
 window.abrirModalTermos = abrirModalTermos;
 window.fecharModalTermos = fecharModalTermos;
 window.aceitarTermosModal = aceitarTermosModal;
+window.abrirOpcaoMenu = abrirOpcaoMenu;
+window.fecharSubtelaPerfil = fecharSubtelaPerfil;
