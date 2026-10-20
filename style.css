@@ -150,6 +150,58 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent) !importa
     border-radius: 999px !important;
 }
 
+/* Chips de Foco de Treino */
+.setor-chip {
+    background: rgba(255, 255, 255, 0.06) !important;
+    border: 1px solid var(--glass-border) !important;
+    color: #FFFFFF !important;
+    padding: 8px 12px !important;
+    border-radius: 20px !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.setor-chip.sel, .setor-chip:hover {
+    background: rgba(59, 130, 246, 0.2) !important;
+    border-color: var(--accent) !important;
+    color: var(--accent) !important;
+}
+
+/* Espaçamento e Alinhamento do Resumo de Valores */
+.resumo-valor {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 10px 14px !important;
+    margin: 15px 0 !important;
+    background: rgba(0, 0, 0, 0.3) !important;
+    border-radius: 12px !important;
+    border: 1px solid var(--glass-border) !important;
+    font-size: 12px !important;
+    color: var(--text-muted) !important;
+}
+
+/* Botões nos Cards de Personais Disponíveis */
+.trainer-card button, 
+.glass button:not(.btn-primary):not(.btn-google-login) {
+    background: linear-gradient(135deg, #3B82F6, #2563EB) !important;
+    color: #FFFFFF !important;
+    border: none !important;
+    padding: 10px 20px !important;
+    border-radius: 999px !important;
+    font-size: 13px !important;
+    font-weight: bold !important;
+    cursor: pointer !important;
+    transition: transform 0.1s ease, box-shadow 0.2s ease !important;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3) !important;
+}
+
+.trainer-card button:active {
+    transform: scale(0.96) !important;
+}
+
 /* Atalhos Rápidos Corrigidos */
 .menu-shortcut-card {
     flex: 1;
