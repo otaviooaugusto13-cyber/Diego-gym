@@ -7,7 +7,7 @@
     
     --accent: #3B82F6;
     --accent-hover: #2563EB;
-    --gold: #3B82F6; /* apelido antigo: o app usa var(--gold) em vários lugares */
+    --gold: #3B82F6; 
     
     --text-color: #FFFFFF;
     --text-muted: #9AA0A6;
@@ -90,7 +90,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent) !importa
     position: relative; 
     overflow: hidden; 
     width: 100%; 
-    transition: transform 0.1s, background-color 0.2s; 
+    transition: transform 0.15s ease, background-color 0.2s ease, box-shadow 0.2s ease; 
     text-align: center; 
 }
 .btn:active { transform: scale(0.97); }
@@ -101,6 +101,10 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent) !importa
     color: #FFFFFF !important; 
     box-shadow: 0 4px 15px rgba(59, 130, 246, 0.35) !important; 
     border-radius: 999px !important; 
+}
+.btn-primary:hover {
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5) !important;
+    transform: translateY(-1px);
 }
 
 /* Chips de Foco de Treino / Setor */
@@ -149,7 +153,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent) !importa
     cursor: pointer !important;
 }
 
-/* Cartão de Autenticação / Login */
+/* Cartão de Autenticação / Login (Abas Redondas Premium) */
 .auth-card {
     width: 100%;
     max-width: 400px;
@@ -159,13 +163,15 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent) !importa
     border-radius: 20px;
     text-align: center;
     backdrop-filter: blur(20px);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
 }
 
 .auth-switch {
     display: flex;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 12px;
-    padding: 4px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--glass-border);
+    border-radius: 999px;
+    padding: 5px;
     margin: 20px 0;
 }
 
@@ -175,14 +181,16 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent) !importa
     font-size: 13px;
     color: var(--text-muted);
     text-decoration: none;
-    border-radius: 8px;
+    border-radius: 999px;
+    transition: all 0.25s ease;
     text-align: center;
+    font-weight: 600;
 }
 
 .auth-switch a.on {
     background: var(--accent);
     color: #FFFFFF;
-    font-weight: bold;
+    box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4);
 }
 
 .auth-check, .auth-terms {
@@ -191,7 +199,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent) !importa
     gap: 10px !important;
     font-size: 12px !important;
     color: var(--text-muted) !important;
-    margin-bottom: 12px !important;
+    margin-bottom: 16px !important;
     text-align: left !important;
     cursor: pointer;
 }
@@ -206,14 +214,22 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent) !importa
 
 .btn-google-login {
     background: #FFFFFF !important;
-    color: #000000 !important;
+    color: #111111 !important;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
+    gap: 12px;
     border: none;
-    font-weight: bold;
+    font-weight: 700;
     border-radius: 999px !important;
+    box-shadow: 0 4px 20px rgba(255, 255, 255, 0.2);
+    transition: transform 0.15s ease, background-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.btn-google-login:hover {
+    background: #F1F3F4 !important;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 24px rgba(255, 255, 255, 0.3) !important;
 }
 
 /* Modais e Toast */
@@ -247,6 +263,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent) !importa
     font-size: 13px;
     transition: top 0.4s ease;
     z-index: 999999;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
 }
 #toast.show { top: 20px; }
 
