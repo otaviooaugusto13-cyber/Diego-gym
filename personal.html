@@ -23,14 +23,23 @@
     <div id="screen-login-personal" class="screen active login-screen">
         <div class="auth-card">
             <div class="auth-brand"><h1>PERSO<span class="highlight">NOW</span></h1><p>Reposição sob demanda para o varejo</p></div>
-            <div class="auth-switch"><a href="index.html" class="">Sou aluno</a><a href="personal.html" class="on">Sou personal</a></div>
+            <div class="auth-switch"><a href="index.html" class="">Sou contratante</a><a href="personal.html" class="on">Sou personal</a></div>
             <h2 class="auth-title">Comece a pegar turnos</h2>
             <p class="auth-sub" id="login-sub">Seu cadastro passa por análise antes de liberar as ofertas.</p>
             <input type="text" id="input-nome" placeholder="Seu nome profissional" autocomplete="name">
             <input type="text" id="input-cpf" placeholder="CPF (apenas números)" maxlength="11" inputmode="numeric">
             <input type="text" id="input-cref" placeholder="MEI ou experiência (opcional)">
-            <label class="auth-check"><input type="checkbox" id="check-remember"><span>Lembrar de mim neste aparelho</span></label>
-            <label class="auth-terms"><input type="checkbox" id="check-termos" onchange="validarCheckTermos()"><span>Li e concordo com os <a href="#" onclick="abrirModalTermos(); return false;">Termos de Uso e Taxas</a></span></label>
+            
+            <label class="auth-check">
+                <input type="checkbox" id="check-remember">
+                <span>Lembrar de mim neste aparelho</span>
+            </label>
+            
+            <label class="auth-terms">
+                <input type="checkbox" id="check-termos" onchange="validarCheckTermos()">
+                <span>Li e concordo com os <a href="#" onclick="abrirModalTermos(); return false;">Termos de Uso e Taxas</a></span>
+            </label>
+
             <div id="login-loader" class="auth-loader" style="display:none"><span class="spinner"></span> Consultando cadastro...</div>
             <button id="btn-login" class="btn btn-primary" onclick="validarProfissional()" disabled style="opacity:.5;cursor:not-allowed">Validar e entrar</button>
             <div class="auth-divider"><span>ou</span></div>
@@ -116,7 +125,6 @@
         <div id="tab-agenda" class="tab-content" style="padding-bottom: 120px;">
             <div class="header-personal glass" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                 <h2 style="margin: 0; font-size: 20px;">Escala de Trabalho</h2>
-                
             </div>
 
             <div class="glass" style="padding: 12px 15px; background: rgba(59, 130, 246, 0.08); border-left: 4px solid var(--accent); margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
@@ -333,15 +341,6 @@
 
             <label style="font-size: 12px; font-weight: bold; color: #e4e4e7; display: block; margin-bottom: 6px;">Apresentação / Experiência em Varejo</label>
             <textarea id="personal-input-bio" rows="3" placeholder="Conte suas experiências em supermercados, marcas atendidas..." style="width: 100%; padding: 12px; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; color: #ffffff; background: #1f1f23; font-size: 13px; margin-bottom: 20px; outline: none; box-sizing: border-box;"></textarea>
-
-            <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px; margin-bottom: 25px;">
-                <h3 style="font-size: 15px; color: var(--accent); margin-bottom: 8px;">🔐 Verificação de Identidade</h3>
-                <label style="font-size: 12px; font-weight: bold; color: #e4e4e7; display: block; margin-bottom: 6px;">Foto do Documento (RG ou CNH)</label>
-                <input type="file" id="perfil-doc-file" accept="image/*" style="width: 100%; padding: 10px; border: 1px dashed rgba(255,255,255,0.3); border-radius: 10px; font-size: 12px; color: #a1a1aa; background: #1f1f23; margin-bottom: 12px; box-sizing: border-box;">
-
-                <label style="font-size: 12px; font-weight: bold; color: #e4e4e7; display: block; margin-bottom: 6px;">Selfie com o Documento</label>
-                <input type="file" id="perfil-selfie-file" accept="image/*" style="width: 100%; padding: 10px; border: 1px dashed rgba(255,255,255,0.3); border-radius: 10px; font-size: 12px; color: #a1a1aa; background: #1f1f23; margin-bottom: 15px; box-sizing: border-box;">
-            </div>
 
             <button class="btn btn-primary" onclick="salvarPerfilProfissionalCompleto()" style="width: 100%; font-weight: bold; padding: 14px; border-radius: 12px; font-size: 14px; cursor: pointer; margin-bottom: 30px;">Salvar Alterações</button>
         </div>
