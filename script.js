@@ -28,8 +28,8 @@ let usuarioAtual = null;
 let mapRadar;
 let userMarker;
 
-// Banco de lojas/promotores (demonstração)
-const lojasDB = []; // sem dados fictícios: só promotores reais
+// Marcadores de personais no mapa (preenchido com dados reais quando houver)
+const lojasDB = []; // sem dados fictícios: só personais reais
 
 // ==========================================
 // UTILITÁRIOS
@@ -127,12 +127,12 @@ function mostrarApp(user) {
     const lk = $("input-link-indicacao"); if (lk) lk.value = location.origin + location.pathname.replace(/[^/]*$/, "") + "index.html";
     const inpData = $("solicitacao-data");
     if (inpData) { inpData.min = hojeLocal(); if (!inpData.value) inpData.value = hojeLocal(); }
-    renderPromotores();
+    renderPersonais();
     renderConversas();
     renderCalendario();
     carregarPedidos();
-    carregarPerfilLoja();
-    carregarProximoAbastecimento();
+    carregarPerfilAluno();
+    carregarProximoTreino();
     if (window.google && !mapRadar) initMap();
 }
 
@@ -167,16 +167,20 @@ function switchTab(tabId, navElement) {
     document.querySelectorAll(".nav-item").forEach((i) => i.classList.remove("active"));
     if (navElement) navElement.classList.add("active");
     window.scrollTo(0, 0);
+    if (usuarioAtual) {
+        if (tabId === "tab-pedidos" || tabId === "tab-agenda" || tabId === "tab-carteira") carregarPedidos();
+        if (tabId === "tab-home") renderPersonais();
+    }
 }
 
 function toggleTheme() {
     const claro = $("theme-toggle").checked;
     document.body.classList.toggle("light-theme", claro);
-    try { localStorage.setItem("abastece_tema", claro ? "claro" : "escuro"); } catch (e) {}
+    try { localStorage.setItem("personow_tema", claro ? "claro" : "escuro"); } catch (e) {}
 }
 
 try {
-    if (localStorage.getItem("abastece_tema") === "claro") {
+    if (localStorage.getItem("personow_tema") === "claro") {
         document.body.classList.add("light-theme");
         const tg = $("theme-toggle");
         if (tg) tg.checked = true;
@@ -184,25 +188,25 @@ try {
 } catch (e) {}
 
 // ==========================================
-// LISTAS (PROMOTORES / CONVERSAS)
+// LISTAS (PERSONAIS / CONVERSAS)
 // ==========================================
-async function renderPromotores() {
+async function renderPersonais() {
     const lista = $("lista-personais-reais");
     if (!lista) return;
     let ativos = [];
     try {
         const s = await getDocs(query(collection(db, "profissionais"), where("status", "==", "ativo")));
         ativos = s.docs.map((d) => d.data());
-    } catch (e) { console.warn("Promotores não carregados:", e.code); }
+    } catch (e) { console.warn("Personais não carregados:", e.code); }
     lista.innerHTML = ativos.length ? ativos.map((p) => `
         <div class="glass trainer-card card-gold">
             <div class="trainer-header">
                 <div class="avatar-container story-ring"><div class="avatar">${esc((p.nome || "P").charAt(0))}</div></div>
-                <div class="trainer-info"><h4>${esc(p.nome)}</h4><p>${esc(p.especialidade || "Reposição e abastecimento")}</p>
+                <div class="trainer-info"><h4>${esc(p.nome)}</h4><p>${esc(p.especialidade || "Personal trainer")}</p>
                 <div class="trainer-status status-online"><span class="dot"></span>Disponível</div></div>
             </div>
-            <div class="trainer-actions"><button class="btn-action btn-fill" data-nome="${esc(p.nome)}" onclick="solicitarPromotorEspecifico(this.dataset.nome)">Solicitar</button></div>
-        </div>`).join("") : vazio("🧑‍🔧", "Nenhum promotor ativo ainda", "Faça seu pedido acima: os promotores da região recebem a proposta.");
+            <div class="trainer-actions"><button class="btn-action btn-fill" data-nome="${esc(p.nome)}" onclick="solicitarPersonalEspecifico(this.dataset.nome)">Solicitar</button></div>
+        </div>`).join("") : vazio("🏋️", "Nenhum personal ativo ainda", "Faça seu pedido acima: os personais da região recebem a sua proposta.");
 }
 
 function renderConversas() {
@@ -211,7 +215,7 @@ function renderConversas() {
     el.innerHTML = `<div class="empty-state">
         <div class="empty-icon">💬</div>
         <h4>Nenhuma conversa ainda</h4>
-        <p>Quando um promotor aceitar sua solicitação, o chat aparecerá aqui.</p>
+        <p>Quando um personal aceitar sua solicitação, o chat aparecerá aqui.</p>
     </div>`;
 }
 
@@ -227,10 +231,10 @@ async function enviarSolicitacao(extra = {}) {
     const local = $("solicitacao-local").value.trim();
     const data = $("solicitacao-data").value, entrada = $("solicitacao-entrada").value, saida = $("solicitacao-saida").value;
     const valor = parseFloat($("solicitacao-valor").value);
-    if (!local) { toast("Informe o nome/endereço da loja."); $("solicitacao-local").focus(); return; }
-    if (!data) { toast("Escolha o dia do serviço."); return; }
+    if (!local) { toast("Informe a academia ou o endereço do treino."); $("solicitacao-local").focus(); return; }
+    if (!data) { toast("Escolha o dia do treino."); return; }
     if (data < hojeLocal()) { toast("O dia não pode ser anterior a hoje."); return; }
-    if (!entrada || !saida || saida <= entrada) { toast("A saída precisa ser depois da entrada."); return; }
+    if (!entrada || !saida || saida <= entrada) { toast("O término precisa ser depois do início."); return; }
     if (!(valor > 0)) { toast("Informe o valor que deseja pagar."); $("solicitacao-valor").focus(); return; }
     try {
         await addDoc(collection(db, "solicitacoes"), {
@@ -238,7 +242,7 @@ async function enviarSolicitacao(extra = {}) {
             data, entrada, saida, horario: `${entrada}–${saida}`, valor,
             foco: $("solicitacao-foco").value, status: "aberta", criadoEm: serverTimestamp(), ...extra
         });
-        toast("✅ Pedido enviado! Promotores com esse valor serão avisados.");
+        toast("✅ Pedido enviado! Os personais da região serão avisados.");
         $("solicitacao-local").value = ""; $("solicitacao-valor").value = "";
         $("rv-prom").textContent = fmtBRL(0); $("rv-taxa").textContent = fmtBRL(0);
         carregarPedidos();
@@ -249,28 +253,28 @@ async function enviarSolicitacao(extra = {}) {
 }
 
 function solicitarTreinoModoUber() { enviarSolicitacao(); }
-function solicitarPromotorEspecifico(nome) { enviarSolicitacao({ promotorPreferido: nome }); }
+function solicitarPersonalEspecifico(nome) { enviarSolicitacao({ promotorPreferido: nome }); }
 
-function carregarProximoAbastecimento(s) {
+function carregarProximoTreino(s) {
     const el = $("card-proximo-treino-conteudo");
     if (!el) return;
     if (!s) {
-        el.innerHTML = '<p class="muted-line">Nenhum abastecimento agendado.</p>';
+        el.innerHTML = '<p class="muted-line">Nenhum treino agendado.</p>';
         return;
     }
     el.innerHTML = `<p style="font-size:14px;font-weight:600">${s.loja}</p>
-                    <p class="muted-line">${s.horario} · aguardando promotor</p>`;
+                    <p class="muted-line">${s.horario} · aguardando personal</p>`;
 }
 
 // ==========================================
-// PERFIL DA LOJA
+// PERFIL DO ALUNO
 // ==========================================
-async function carregarPerfilLoja() {
+async function carregarPerfilAluno() {
     try {
         const snap = await getDoc(doc(db, "contratantes", usuarioAtual.uid));
         if (snap.exists()) {
             const d = snap.data();
-            if (d.ramo) $("aluno-select-objetivo").value = d.ramo;
+            const obj = d.objetivo || d.ramo; if (obj) $("aluno-select-objetivo").value = obj;
             if (d.telefone) $("aluno-input-telefone").value = d.telefone;
         }
     } catch (e) { console.warn("Perfil não carregado:", e.code); }
@@ -282,11 +286,11 @@ async function salvarPerfilAluno() {
         await setDoc(doc(db, "contratantes", usuarioAtual.uid), {
             nome: usuarioAtual.displayName || "",
             email: usuarioAtual.email,
-            ramo: $("aluno-select-objetivo").value,
+            objetivo: $("aluno-select-objetivo").value,
             telefone: $("aluno-input-telefone").value.trim(),
             atualizadoEm: serverTimestamp()
         }, { merge: true });
-        toast("✅ Dados da loja salvos!");
+        toast("✅ Perfil salvo!");
     } catch (e) {
         console.error(e);
         toast("Erro ao salvar. Verifique as regras do Firestore.");
@@ -377,7 +381,7 @@ function initMap() {
 // ==========================================
 let pedidos = [];
 let dataCalendario = new Date();
-const ROTULO = { aberta: "Aguardando promotor", aceita: "Aceito", concluida: "Concluído", cancelada: "Cancelado" };
+const ROTULO = { aberta: "Aguardando personal", aceita: "Aceito", concluida: "Concluído", cancelada: "Cancelado" };
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const fmtData = (d) => (d ? d.split("-").reverse().join("/") : "");
 const fmtBRL = (v) => (Number(v) || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -390,7 +394,7 @@ async function carregarPedidos() {
     } catch (e) { console.warn("Pedidos não carregados:", e.code); pedidos = []; }
     renderPedidos();
     renderCarteira();
-    carregarProximoAbastecimento(pedidos.find((p) => p.status === "aberta" || p.status === "aceita"));
+    carregarProximoTreino(pedidos.find((p) => p.status === "aberta" || p.status === "aceita"));
 }
 
 function cartaoPedido(p) {
@@ -406,7 +410,7 @@ function cartaoPedido(p) {
 }
 function renderPedidos() {
     const el = $("lista-pedidos");
-    el.innerHTML = pedidos.length ? pedidos.map(cartaoPedido).join("") : vazio("🛒", "Nenhum pedido ainda", "Solicite um promotor na aba Início e acompanhe o andamento aqui.");
+    el.innerHTML = pedidos.length ? pedidos.map(cartaoPedido).join("") : vazio("🏋️", "Nenhum pedido ainda", "Solicite um personal na aba Início e acompanhe o andamento aqui.");
     el.style.cssText = "display:flex;flex-direction:column;gap:10px";
 }
 function renderCarteira() {
@@ -430,10 +434,10 @@ function renderCalendario() {
 function mudarMesCalendario(n) { dataCalendario = new Date(dataCalendario.getFullYear(), dataCalendario.getMonth() + n, 1); renderCalendario(); }
 function selecionarDia(d) {
     const data = new Date(dataCalendario.getFullYear(), dataCalendario.getMonth(), d);
-    $("selected-date-label").innerText = "Turnos de " + data.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
+    $("selected-date-label").innerText = "Treinos de " + data.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
     const iso = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
     const dia = pedidos.filter((p) => p.data === iso);
-    $("lista-agenda").innerHTML = dia.length ? dia.map(cartaoPedido).join("") : vazio("📅", "Nenhum turno neste dia", "Pedidos para esta data aparecem aqui.");
+    $("lista-agenda").innerHTML = dia.length ? dia.map(cartaoPedido).join("") : vazio("📅", "Nenhum treino neste dia", "Pedidos para esta data aparecem aqui.");
 }
 
 const SUB = { pagamento: "pagamento", preferencias: "preferencias", indicar: "indicar", notificacoes: "notificacoes", ajuda: "ajuda" };
@@ -451,14 +455,14 @@ function salvarPagamento() { salvarCampos({ pagamento: { metodo: $("pg-metodo").
 function salvarPreferencias() { salvarCampos({ preferencias: { setor: $("pref-setor").value, turno: $("pref-turno").value } }, "✅ Preferências salvas!", "subscreen-preferencias"); }
 function copiarLinkIndicacao() { const i = $("input-link-indicacao"); i.select(); navigator.clipboard?.writeText(i.value); toast("📋 Link copiado!"); }
 function compartilharWhatsApp() {
-    const t = encodeURIComponent("Conheça o ABASTECE JÁ: promotores e repositores sob demanda para o varejo. " + $("input-link-indicacao").value);
+    const t = encodeURIComponent("Conheça o PERSONOW: personal trainers sob demanda para a sua academia. " + $("input-link-indicacao").value);
     window.open("https://api.whatsapp.com/send?text=" + t, "_blank");
 }
 
 Object.assign(window, {
     mudarMesCalendario, selecionarDia, abrirOpcaoMenu, fecharSubtela, salvarPagamento, salvarPreferencias, copiarLinkIndicacao, compartilharWhatsApp, toast,
     initMap, loginGoogleAluno, logoutAluno, navTo, switchTab, toggleTheme,
-    solicitarTreinoModoUber, solicitarPromotorEspecifico, salvarPerfilAluno,
+    solicitarTreinoModoUber, solicitarPersonalEspecifico, salvarPerfilAluno,
     atualizarFotoPerfilAluno, abrirChatSimples
 });
 
