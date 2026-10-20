@@ -33,7 +33,7 @@ body.light-theme {
 * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', 'Segoe UI', -apple-system, Roboto, sans-serif; }
 body { background-color: var(--bg-color); color: var(--text-color); overflow-x: hidden; transition: background-color 0.3s, color 0.3s; }
 
-/* Glassmorphism */
+/* Glassmorphism & Cards */
 .glass { background: var(--card-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid var(--glass-border); border-radius: 20px; box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3); transition: all 0.3s; }
 
 /* Textos e Tipografia */
@@ -106,24 +106,54 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent) !importa
 .auth-terms {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
     font-size: 12px;
     color: var(--text-muted);
     margin-bottom: 15px;
-    text-align: left;
 }
 
-.auth-terms a { color: var(--accent); }
+.auth-terms a { color: var(--accent); text-decoration: underline; }
+
+.auth-links { margin-top: 15px; }
+.auth-links a { color: var(--accent); text-decoration: none; font-size: 13px; font-weight: 600; }
+.auth-links a:hover { text-decoration: underline; }
 
 .btn-google-login {
-    background: #FFFFFF;
-    color: #000000;
+    background: #FFFFFF !important;
+    color: #000000 !important;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 10px;
     border: none;
+    font-weight: bold;
 }
+
+/* Lista de Opções do Perfil / Menu (Corrigido para não ficar transparente) */
+.glass-list {
+    background: var(--card-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.menu-option-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 18px;
+    border-bottom: 1px solid var(--glass-border);
+    cursor: pointer;
+    transition: background 0.2s;
+    color: #FFFFFF;
+    font-size: 14px;
+}
+
+.menu-option-item:last-child { border-bottom: none; }
+.menu-option-item:hover { background: rgba(59, 130, 246, 0.08); }
+.option-left { display: flex; align-items: center; gap: 12px; }
+.option-arrow { color: var(--text-muted); font-size: 18px; font-weight: bold; }
 
 /* Botão Flutuante do WhatsApp */
 .btn-whatsapp {
