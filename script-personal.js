@@ -30,7 +30,6 @@ const refRecebido = () => { try { return localStorage.getItem("abastece_ref") ||
 const baseSite = () => location.origin + location.pathname.replace(/[^/]*$/, "");
 const novoCodigo = () => Array.from(crypto.getRandomValues(new Uint8Array(6)), (b) => "abcdefghjkmnpqrstuvwxyz23456789"[b % 31]).join("");
 
-
 let dadosPerfil = { nome: "Promotor", cpf: "", cref: "", uid: "", status: "pendente", fotoUrl: null };
 let agendaDeHoje = [];
 let ganhosAvulsos = 0;
@@ -63,13 +62,15 @@ function cpfValido(cpf) {
 }
 
 function setLoading(on) {
-    $("login-loader").style.display = on ? "block" : "none";
-    $("btn-login").style.display = on ? "none" : "block";
+    const loader = $("login-loader");
+    const btnLogin = $("btn-login");
+    if (loader) loader.style.display = on ? "block" : "none";
+    if (btnLogin) btnLogin.style.display = on ? "none" : "block";
 }
 
 function mensagemErroAuth(error) {
     switch (error.code) {
-        case "auth/unauthorized-domain": return "Domínio não autorizado no Firebase (Authentication → Settings → Domínios autorizados).";
+        case "auth/unauthorized-domain": return "Domínio não autorizado no Firebase.";
         case "auth/operation-not-allowed": return "Login com Google não está ativado no Firebase.";
         case "auth/popup-closed-by-user":
         case "auth/cancelled-popup-request": return null;
@@ -109,7 +110,6 @@ function calcularDistanciaKm(lat1, lon1, lat2, lon2) {
         const metros = google.maps.geometry.spherical.computeDistanceBetween(pontoA, pontoB);
         return (metros / 1000).toFixed(1);
     }
-    // Fallback matemático (Haversine)
     const R = 6371; 
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
@@ -125,15 +125,18 @@ function calcularDistanciaKm(lat1, lon1, lat2, lon2) {
 // TERMOS
 // ==========================================
 function validarCheckTermos() {
-    const ok = $("check-termos").checked;
+    const chk = $("check-termos");
+    const ok = chk ? chk.checked : false;
     const btn = $("btn-login");
-    btn.disabled = !ok;
-    btn.style.opacity = ok ? "1" : "0.5";
-    btn.style.cursor = ok ? "pointer" : "not-allowed";
+    if (btn) {
+        btn.disabled = !ok;
+        btn.style.opacity = ok ? "1" : "0.5";
+        btn.style.cursor = ok ? "pointer" : "not-allowed";
+    }
 }
 function abrirModalTermos() { $("modal-termos").classList.add("active"); }
 function aceitarTermosModal() {
-    $("check-termos").checked = true;
+    if ($("check-termos")) $("check-termos").checked = true;
     validarCheckTermos();
     $("modal-termos").classList.remove("active");
 }
@@ -163,14 +166,14 @@ async function validarProfissional() {
         }
     } catch (e) {
         console.error("Firestore:", e);
-        toast("Sem acesso ao banco agora. Entrando em modo offline (em análise).");
+        toast("Sem acesso ao banco agora. Entrando em modo offline.");
     }
     setLoading(false);
     finalizarLogin({ lembreme, nome, cpf, cref, status });
 }
 
 // ==========================================
-// LOGIN GOOGLE
+// LOGIN GOOGLE (CORRIGIDO)
 // ==========================================
 async function acharProfissionalPorEmail(email) {
     const q = query(collection(db, "profissionais"), where("email", "==", email));
@@ -179,7 +182,11 @@ async function acharProfissionalPorEmail(email) {
 }
 
 async function loginComGoogle() {
-    if (!$("check-termos").checked) { toast("Aceite os Termos de Uso para continuar."); return; }
+    const chk = $("check-termos");
+    if (chk && !chk.checked) { 
+        toast("Aceite os Termos de Uso para continuar."); 
+        return; 
+    }
     try {
         const { user } = await signInWithPopup(auth, googleProvider);
         await processarUsuarioGoogle(user, true);
@@ -200,7 +207,7 @@ async function processarUsuarioGoogle(user, interativo) {
     let prof = null;
     let erroBanco = false;
     try { prof = await acharProfissionalPorEmail(user.email); }
-    catch (e) { erroBanco = true; console.error("Firestore (consulta profissionais):", e.code, e.message); }
+    catch (e) { erroBanco = true; console.error("Firestore:", e); }
 
     if (prof) {
         if (prof.status === "bloqueado") { toast("❌ Acesso não liberado para este e-mail."); return; }
@@ -217,10 +224,9 @@ async function processarUsuarioGoogle(user, interativo) {
             });
         } catch (e) {
             erroBanco = true;
-            console.error("Firestore (criar cadastro):", e.code, e.message);
+            console.error("Firestore:", e);
         }
     }
-    if (erroBanco) toast("Entrou, mas o banco recusou a leitura/gravação. Ajuste as regras do Firestore.");
     finalizarLogin({ lembreme: false, nome: user.displayName || user.email, cpf: "", cref: "", status: "pendente" });
 }
 
@@ -233,7 +239,7 @@ getRedirectResult(auth).then((r) => { if (r && r.user) processarUsuarioGoogle(r.
 // SESSÃO / DASHBOARD
 // ==========================================
 window.addEventListener("DOMContentLoaded", () => {
-    if (refRecebido() && $("login-sub")) $("login-sub").textContent = "🎁 Você foi convidado por um promotor. Cadastre-se e faça seu primeiro turno!";
+    if (refRecebido() && $("login-sub")) $("login-sub").textContent = "🎁 Você foi convidado. Cadastre-se e faça seu primeiro turno!";
     try {
         const salvo = JSON.parse(localStorage.getItem("abastece_ja_promotor") || "null");
         if (salvo) { $("input-nome").value = salvo.nome \vert{}\vert{} ""; $("check-remember").checked = true; }
@@ -248,15 +254,13 @@ function finalizarLogin({ lembreme, nome, cpf, cref, status }) {
         else localStorage.removeItem("abastece_ja_promotor");
     } catch (e) {}
 
-    // Ativa monitoramento de presença online em tempo real
     monitorarPresencaOnline(cpf || dadosPerfil.uid);
 
     atualizarExibicaoPerfil();
     garantirLinkIndicacao();
     const aprovado = status === "ativo";
-    $("card-status-analise").style.display = aprovado ? "none" : "block";
-    const aviso = document.querySelector("#tab-agenda .glass[style*='border-left']");
-    if (aviso) aviso.style.display = aprovado ? "none" : "flex";
+    const analise = $("card-status-analise");
+    if (analise) analise.style.display = aprovado ? "none" : "block";
 
     $("screen-login-personal").classList.remove("active");
     $("screen-dashboard").classList.add("active");
@@ -275,7 +279,7 @@ async function garantirLinkIndicacao() {
         let codigo = snap.exists() ? snap.data().refCode : "";
         if (!codigo) { codigo = novoCodigo(); await setDoc(docRef, { refCode: codigo }, { merge: true }); }
         input.value = `${baseSite()}promotor.html?ref=${codigo}`;
-    } catch (e) { console.warn("Link de indicação:", e.code); input.value = `${baseSite()}promotor.html`; }
+    } catch (e) { input.value = `${baseSite()}promotor.html`; }
 }
 
 async function sairModoPessoal() {
@@ -287,14 +291,14 @@ async function sairModoPessoal() {
 
 function atualizarExibicaoPerfil() {
     const inicial = (dadosPerfil.nome || "P").charAt(0).toUpperCase();
-    $("perfil-nome-display").innerText = dadosPerfil.nome;
-    $("perfil-cref-display").innerText = dadosPerfil.status === "ativo" ? "Status: Ativo ✓" : "Status: Em análise";
-    $("initials-perfil").innerText = inicial;
-    if (dadosPerfil.fotoUrl) {
+    if ($("perfil-nome-display")) $("perfil-nome-display").innerText = dadosPerfil.nome;
+    if ($("perfil-cref-display")) $("perfil-cref-display").innerText = dadosPerfil.status === "ativo" ? "Status: Ativo ✓" : "Status: Em análise";
+    if ($("initials-perfil")) $("initials-perfil").innerText = inicial;
+    if (dadosPerfil.fotoUrl && $("img-perfil-preview")) {
         const img = $("img-perfil-preview");
         img.src = dadosPerfil.fotoUrl;
         img.style.display = "block";
-        $("initials-perfil").style.display = "none";
+        if ($("initials-perfil")) $("initials-perfil").style.display = "none";
     }
     if ($("perfil-input-nome")) $("perfil-input-nome").value = dadosPerfil.nome;
     if ($("perfil-input-cpf") && dadosPerfil.cpf) $("perfil-input-cpf").value = dadosPerfil.cpf;
@@ -305,7 +309,8 @@ function atualizarExibicaoPerfil() {
 // ==========================================
 function switchTabPersonal(tabId, navElement) {
     document.querySelectorAll("#screen-dashboard .tab-content").forEach((t) => t.classList.remove("active"));
-    $(tabId).classList.add("active");
+    const tab = $(tabId);
+    if (tab) tab.classList.add("active");
     document.querySelectorAll("#nav-personal .nav-item").forEach((i) => i.classList.remove("active"));
     if (navElement) navElement.classList.add("active");
     window.scrollTo(0, 0);
@@ -322,9 +327,9 @@ const SUBTELAS = {
 };
 function abrirOpcaoMenu(nome) {
     const id = SUBTELAS[nome];
-    if (id) $(id).style.display = "block";
+    if (id && $(id))$(id).style.display = "block";
 }
-function fecharSubtela(id) { $(id).style.display = "none"; }
+function fecharSubtela(id) { if ($(id))$(id).style.display = "none"; }
 
 // ==========================================
 // PERFIL / BANCO / PREFERÊNCIAS
@@ -347,7 +352,7 @@ async function salvarPerfilProfissionalCompleto() {
         atualizarExibicaoPerfil();
         toast("✅ Perfil salvo!");
         fecharSubtela("subscreen-perfil-detalhes");
-    } catch (e) { console.error(e); toast("Não foi possível salvar o perfil."); }
+    } catch (e) { toast("Não foi possível salvar o perfil."); }
 }
 
 async function salvarDadosBancarios() {
@@ -362,7 +367,7 @@ async function salvarDadosBancarios() {
         });
         toast("✅ Dados bancários salvos!");
         fecharSubtela("subscreen-dados-bancarios");
-    } catch (e) { console.error(e); toast("Não foi possível salvar os dados bancários."); }
+    } catch (e) { toast("Não foi possível salvar os dados bancários."); }
 }
 
 function atualizarFotoPerfil(event) {
@@ -390,53 +395,58 @@ async function carregarAgendaDoBanco() {
             const snap = await getDocs(query(collection(db, "solicitacoes"), where("promotorChave", "==", chave)));
             agendaDeHoje = snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => `${a.data}${a.entrada}`.localeCompare(`${b.data}${b.entrada}`));
         }
-    } catch (e) { console.warn("Agenda não carregada:", e.code); }
+    } catch (e) { console.warn("Agenda:", e.code); }
     ganhosAvulsos = agendaDeHoje.filter((x) => x.status === "concluida").reduce((t, x) => t + x.valor * 0.85, 0);
     atualizarFinanceiro();
     renderizarAgenda();
 }
 
 function estadoVazio(icone, titulo, texto) {
-    return `<div class="empty-state"><div class="empty-icon">${icone}</div><h4>${titulo}</h4><p>${texto}</p></div>`;
+    return `<div class="empty-state" style="text-align:center; padding:30px;"><div style="font-size:36px; margin-bottom:10px;">${icone}</div><h4 style="color:#fff; margin-bottom:5px;">${titulo}</h4><p style="color:var(--text-muted); font-size:12px;">${texto}</p></div>`;
 }
 
 function renderizarAgenda() {
     atualizarProximaReposicao();
     const lista = $("lista-agenda"), resumo = $("lista-agenda-resumo");
+    if (!lista && !resumo) return;
     if (!agendaDeHoje.length) {
         const v = estadoVazio("📅", "Nenhum turno por aqui", "Os turnos que você aceitar nas Ofertas aparecem neste espaço.");
-        lista.innerHTML = v; resumo.innerHTML = v; return;
+        if (lista) lista.innerHTML = v;
+        if (resumo) resumo.innerHTML = v;
+        return;
     }
-    const card = (x, acao) => `<div class="glass agenda-slot ${x.status === "concluida" ? "slot-concluida" : "slot-ocupado"}">
-        <div class="slot-time">${esc(x.entrada)}</div>
-        <div class="slot-info"><div class="slot-info-name">${esc(x.loja)}</div>
-        <div class="slot-info-desc">${fmtData(x.data)} · ${esc(x.entrada)}–${esc(x.saida)} · ${esc(x.foco)} · você recebe ${fmtBRL(x.valor * 0.85)}</div></div>${acao}</div>`;
-    lista.innerHTML = agendaDeHoje.map((x, i) => card(x, x.status === "aceita" ? `<div class="slot-actions"><button class="btn-slot-action btn-qr" onclick="mostrarQR(${i})">Cobrar (QR)</button></div>` : "")).join("");
-    resumo.innerHTML = agendaDeHoje.map((x) => card(x, "")).join("");
+    const card = (x, acao) => `<div class="glass agenda-slot" style="padding:15px; border-radius:16px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
+        <div><div style="font-weight:bold; color:#fff; font-size:14px;">${esc(x.loja)}</div>
+        <div style="font-size:12px; color:var(--text-muted);">${fmtData(x.data)} · ${esc(x.entrada)}–${esc(x.saida)} · ${esc(x.foco)}</div></div>${acao}</div>`;
+    const html = agendaDeHoje.map((x, i) => card(x, x.status === "aceita" ? `<button class="btn btn-primary" style="padding:8px 12px; font-size:12px; width:auto;" onclick="mostrarQR(${i})">Cobrar (QR)</button>` : "")).join("");
+    if (lista) lista.innerHTML = html;
+    if (resumo) resumo.innerHTML = html;
 }
 
 function mostrarQR(i) {
     const x = agendaDeHoje[i];
     const base = location.origin + location.pathname.replace(/[^/]*$/, "");
-    $("qr-box").innerHTML = "";
-    if (window.QRCode) new QRCode($("qr-box"), { text: `${base}pagar.html?id=${encodeURIComponent(x.id)}`, width: 200, height: 200 });
-    $("qr-valor").textContent = `Valor da loja: ${fmtBRL(x.valor)}`;
-    $("qr-liquido").textContent = `Plataforma 15% (${fmtBRL(x.valor * 0.15)}) · Você recebe 85% (${fmtBRL(x.valor * 0.85)})`;
-    $("modal-qr").classList.add("active");
+    if ($("qr-box")) {
+        $("qr-box").innerHTML = "";
+        if (window.QRCode) new QRCode($("qr-box"), { text: `${base}pagar.html?id=${encodeURIComponent(x.id)}`, width: 200, height: 200 });
+    }
+    if ($("qr-valor")) $("qr-valor").textContent = `Valor: ${fmtBRL(x.valor)}`;
+    if ($("qr-liquido")) $("qr-liquido").textContent = `Você recebe 85% (${fmtBRL(x.valor * 0.85)})`;
+    if ($("modal-qr")) $("modal-qr").classList.add("active");
 }
-function fecharQR() { $("modal-qr").classList.remove("active"); }
+function fecharQR() { if ($("modal-qr")) $("modal-qr").classList.remove("active"); }
 
 function atualizarFinanceiro() {
     const fmt = (v) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-    $("valor-avulso").innerText = fmt(ganhosAvulsos);
-    $("valor-total").innerText = fmt(ganhosAvulsos);
+    if ($("valor-avulso")) $("valor-avulso").innerText = fmt(ganhosAvulsos);
+    if ($("valor-total")) $("valor-total").innerText = fmt(ganhosAvulsos);
 }
 
 function renderizarCalendario() {
     const grid = $("calendar-days-grid");
     if (!grid) return;
     const ano = dataCalendario.getFullYear(), mes = dataCalendario.getMonth();
-    $("calendar-month-year").innerText = dataCalendario.toLocaleDateString("pt-BR", { month: "long", year: "numeric" }).replace(/^./, (c) => c.toUpperCase());
+    if ($("calendar-month-year")) $("calendar-month-year").innerText = dataCalendario.toLocaleDateString("pt-BR", { month: "long", year: "numeric" }).replace(/^./, (c) => c.toUpperCase());
 
     const primeiro = (new Date(ano, mes, 1).getDay() + 6) % 7;
     const total = new Date(ano, mes + 1, 0).getDate();
@@ -446,7 +456,7 @@ function renderizarCalendario() {
     for (let d = 1; d <= total; d++) {
         const ehHoje = d === hoje.getDate() && mes === hoje.getMonth() && ano === hoje.getFullYear();
         const sel = diaSelecionado === `${ano}-${mes}-${d}`;
-        html += `<div class="cal-day${ehHoje ? " today" : ""}${sel ? " selected" : ""}" onclick="selecionarDia(${d})">${d}</div>`;
+        html += `<div style="padding:8px; border-radius:8px; background:${sel ? 'var(--accent)' : (ehHoje ? 'rgba(59,130,246,0.15)' : 'transparent')}; color:#fff; cursor:pointer;" onclick="selecionarDia(${d})">${d}</div>`;
     }
     grid.innerHTML = html;
 }
@@ -457,7 +467,7 @@ function mudarMesCalendario(delta) {
 function selecionarDia(d) {
     diaSelecionado = `${dataCalendario.getFullYear()}-${dataCalendario.getMonth()}-${d}`;
     const data = new Date(dataCalendario.getFullYear(), dataCalendario.getMonth(), d);
-    $("selected-date-label").innerText = "Turnos de " + data.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
+    if ($("selected-date-label")) $("selected-date-label").innerText = "Turnos de " + data.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
     renderizarCalendario();
 }
 
@@ -466,8 +476,9 @@ function selecionarDia(d) {
 // ==========================================
 async function renderizarOfertas() {
     const el = $("lista-demandas-cards");
+    if (!el) return;
     if (dadosPerfil.status !== "ativo") {
-        el.innerHTML = estadoVazio("🔒", "Ofertas liberadas após aprovação", "Estamos analisando seu cadastro. Você será avisado por aqui.");
+        el.innerHTML = estadoVazio("🔒", "Ofertas liberadas após aprovação", "Estamos analisando seu cadastro.");
         return;
     }
     let lista = [];
@@ -480,20 +491,21 @@ async function renderizarOfertas() {
         }
         const snap = await getDocs(query(collection(db, "solicitacoes"), where("status", "==", "aberta")));
         lista = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((x) => x.valor >= valorMinimo);
-    } catch (e) { console.warn("Ofertas não carregadas:", e.code); }
-    el.innerHTML = lista.length ? lista.map((x) => `<div class="glass agenda-slot slot-livre">
-        <div class="slot-info"><div class="slot-info-name">${esc(x.loja)}</div>
-        <div class="slot-info-desc">${fmtData(x.data)} · ${esc(x.entrada)}–${esc(x.saida)} · ${esc(x.foco)}<br>Você recebe <strong>${fmtBRL(x.valor * 0.85)}</strong> (loja paga ${fmtBRL(x.valor)})</div></div>
-        <div class="slot-actions"><button class="btn-slot-action btn-qr" onclick="aceitarOferta('${x.id}')">Aceitar</button></div></div>`).join("")
-        : estadoVazio("🛒", "Sem ofertas por enquanto", valorMinimo ? `Nenhuma proposta de ${fmtBRL(valorMinimo)} ou mais na região agora.` : "Novas demandas de reposição na sua região aparecerão aqui.");
+    } catch (e) { console.warn("Ofertas:", e.code); }
+    el.innerHTML = lista.length ? lista.map((x) => `<div class="glass" style="padding:16px; border-radius:16px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
+        <div><div style="font-weight:bold; color:#fff;">${esc(x.loja)}</div>
+        <div style="font-size:12px; color:var(--text-muted);">${fmtData(x.data)} · ${esc(x.entrada)}–${esc(x.saida)} · ${esc(x.foco)}</div>
+        <div style="font-size:13px; color:var(--accent); font-weight:bold; margin-top:4px;">Recebe: ${fmtBRL(x.valor * 0.85)}</div></div>
+        <button class="btn btn-primary" style="padding:8px 16px; font-size:12px; width:auto;" onclick="aceitarOferta('${x.id}')">Aceitar</button></div>`).join("")
+        : estadoVazio("🛒", "Sem ofertas no momento", "Novas demandas aparecerão aqui.");
 }
 
 async function aceitarOferta(id) {
     try {
         await updateDoc(doc(db, "solicitacoes", id), { status: "aceita", promotorChave: chavePromotor(), promotorNome: dadosPerfil.nome, aceitoEm: serverTimestamp() });
-        toast("Turno aceito! Ele já está na sua agenda.");
+        toast("Turno aceito com sucesso!");
         carregarAgendaDoBanco(); renderizarOfertas();
-    } catch (e) { console.error(e); toast("Não foi possível aceitar. Outro promotor pode ter pegado."); }
+    } catch (e) { toast("Não foi possível aceitar. Outro profissional pode ter pego."); }
 }
 
 async function salvarPrefs() {
@@ -504,7 +516,7 @@ async function salvarPrefs() {
         toast("✅ Preferências salvas!");
         fecharSubtela("subscreen-preferencias-atendimento");
         renderizarOfertas();
-    } catch (e) { console.error(e); toast("Não foi possível salvar as preferências."); }
+    } catch (e) { toast("Erro ao salvar preferências."); }
 }
 
 function initMapAlunos() {
@@ -526,25 +538,10 @@ function initMapAlunos() {
 }
 
 // ==========================================
-// CADASTRO DE LOJA, CHAT (COM BLOQUEIO ANTI-FUGA) E PREFERÊNCIAS
+// CHAT COM BLOQUEIO ANTI-FUGA
 // ==========================================
-function abrirModalCadastrarAluno() { $("modal-cadastrar-aluno").classList.add("active"); }
-function fecharModalCadastrarAluno() {
-    $("modal-cadastrar-aluno").classList.remove("active");
-    ["cpf", "nome", "objetivo", "preco", "dias", "horario", "frequencia"].forEach((k) => { const e = $("cad-aluno-" + k); if (e) e.value = ""; });
-}
-function confirmarCadastroAluno() {
-    const nome = $("cad-aluno-nome").value.trim();
-    if (!nome) { toast("Informe o nome da loja."); return; }
-    agendaDeHoje.push({ hora: $("cad-aluno-horario").value.trim() || "12:00", loja: nome, setor: $("cad-aluno-objetivo").value.trim() \vert{}\vert{} "Geral", status: "ocupado", valor: parseFloat($("cad-aluno-preco").value) || 100 });
-    renderizarAgenda();
-    fecharModalCadastrarAluno();
-    toast("✅ Loja vinculada à sua escala!");
-}
+function fecharConversaModal() { if ($("modal-chat-flutuante")) $("modal-chat-flutuante").classList.remove("active"); }
 
-function fecharConversaModal() { $("modal-chat-flutuante").classList.remove("active"); }
-
-// Palavras-chave bloqueadas para evitar captação por fora
 const palavrasProibidas = ['whatsapp', 'wpp', 'zap', 'whats', 'pix', 'instagram', 'insta', 'telefone', 'celular', 'contato', 'chama no pv', 'privado', 'telegram'];
 const regexTelefone = /\b(?:\d{2}\s?)?\d{9}\b|\b\d{2}\s?\d{4,5}[-.\s]?\d{4}\b/;
 
@@ -557,37 +554,30 @@ function verificarConteudoMensagem(texto) {
 
 function enviarMensagemChat() {
     const input = $("input-chat-msg");
+    if (!input) return;
     const texto = input.value.trim();
     if (!texto) return;
 
     if (verificarConteudoMensagem(texto)) {
-        toast("⚠️ Advertência: O envio de contatos ou Pix externos viola os Termos de Uso. Na próxima ocorrência, sua conta será banida.");
+        toast("⚠️ Advertência: Envio de contatos/Pix externos viola os Termos. Na próxima ocorrência, sua conta será banida.");
         input.value = '';
         return;
     }
 
     const box = $("chat-box");
-    const m = document.createElement("div");
-    m.className = "msg msg-sent";
-    m.textContent = texto;
-    box.appendChild(m);
+    if (box) {
+        const m = document.createElement("div");
+        m.className = "msg msg-sent";
+        m.textContent = texto;
+        box.appendChild(m);
+        box.scrollTop = box.scrollHeight;
+    }
     input.value = "";
-    box.scrollTop = box.scrollHeight;
 }
-function enviarPropostaPersonal() { toast("Orçamento enviado à loja."); }
-
-function toggleDiaTrabalho(btn) { /* mantido no HTML inline */ }
-
-Object.assign(window, {
-    validarProfissional, loginComGoogle, validarCheckTermos, abrirModalTermos, aceitarTermosModal,
-    abrirOpcaoMenu, fecharSubtela, salvarPerfilProfissionalCompleto, salvarDadosBancarios,
-    atualizarFotoPerfil, sairModoPessoal, switchTabPersonal, mudarMesCalendario, selecionarDia,
-    abrirModalCadastrarAluno, fecharModalCadastrarAluno,
-    confirmarCadastroAluno, fecharConversaModal, enviarMensagemChat, enviarPropostaPersonal, initMapAlunos
-});
+function enviarPropostaPersonal() { toast("Orçamento enviado."); }
 
 // ==========================================
-// PARIDADE COM O APP DO CONTRATANTE
+// OUTROS E MAPPED WINDOWS
 // ==========================================
 function toggleTheme() {
     const claro = $("theme-toggle").checked;
@@ -603,9 +593,9 @@ try {
 
 async function salvarContato() {
     const tel = $("promotor-input-telefone").value.trim();
-    if (!tel) { toast("Informe seu telefone ou WhatsApp."); return; }
+    if (!tel) { toast("Informe seu telefone."); return; }
     try { await salvarMerge({ telefone: tel }); toast("✅ Contato salvo!"); }
-    catch (e) { console.error(e); toast("Não foi possível salvar o contato."); }
+    catch (e) { toast("Erro ao salvar contato."); }
 }
 
 function atualizarProximaReposicao() {
@@ -616,7 +606,13 @@ function atualizarProximaReposicao() {
 
 window.addEventListener("DOMContentLoaded", () => {
     const c = $("lista-conversas-promotor");
-    if (c) c.innerHTML = estadoVazio("💬", "Nenhuma conversa ainda", "Quando você aceitar um turno, o chat com a loja aparece aqui.");
+    if (c) c.innerHTML = estadoVazio("💬", "Nenhuma conversa ainda", "As conversas com as lojas aparecerão aqui.");
 });
 
-Object.assign(window, { toggleTheme, salvarContato, toast, mostrarQR, fecharQR, aceitarOferta, salvarPrefs, calcularDistanciaKm });
+Object.assign(window, {
+    validarProfissional, loginComGoogle, validarCheckTermos, abrirModalTermos, aceitarTermosModal,
+    abrirOpcaoMenu, fecharSubtela, salvarPerfilProfissionalCompleto, salvarDadosBancarios,
+    atualizarFotoPerfil, sairModoPessoal, switchTabPersonal, mudarMesCalendario, selecionarDia,
+    fecharConversaModal, enviarMensagemChat, enviarPropostaPersonal, initMapAlunos,
+    toggleTheme, salvarContato, toast, mostrarQR, fecharQR, aceitarOferta, salvarPrefs, calcularDistanciaKm
+});
