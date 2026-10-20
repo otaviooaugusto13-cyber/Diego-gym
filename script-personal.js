@@ -25,12 +25,12 @@ const $ = (id) => document.getElementById(id);
 // ==========================================
 // INDICAÇÃO: guarda ?ref= do link que o amigo abriu
 // ==========================================
-try { const r = new URLSearchParams(location.search).get("ref"); if (r) localStorage.setItem("abastece_ref", r.replace(/[^\w-]/g, "").slice(0, 40)); } catch (e) {}
-const refRecebido = () => { try { return localStorage.getItem("abastece_ref") || ""; } catch (e) { return ""; } };
+try { const r = new URLSearchParams(location.search).get("ref"); if (r) localStorage.setItem("personow_ref", r.replace(/[^\w-]/g, "").slice(0, 40)); } catch (e) {}
+const refRecebido = () => { try { return localStorage.getItem("personow_ref") || ""; } catch (e) { return ""; } };
 const baseSite = () => location.origin + location.pathname.replace(/[^/]*$/, "");
 const novoCodigo = () => Array.from(crypto.getRandomValues(new Uint8Array(6)), (b) => "abcdefghjkmnpqrstuvwxyz23456789"[b % 31]).join("");
 
-let dadosPerfil = { nome: "Promotor", cpf: "", cref: "", uid: "", status: "pendente", fotoUrl: null };
+let dadosPerfil = { nome: "Personal", cpf: "", cref: "", uid: "", status: "pendente", fotoUrl: null };
 let agendaDeHoje = [];
 let ganhosAvulsos = 0;
 let mapaOfertas = null;
@@ -237,19 +237,19 @@ getRedirectResult(auth).then((r) => { if (r && r.user) processarUsuarioGoogle(r.
 // SESSÃO / DASHBOARD
 // ==========================================
 window.addEventListener("DOMContentLoaded", () => {
-    if (refRecebido() && $("login-sub")) $("login-sub").textContent = "🎁 Você foi convidado. Cadastre-se e faça seu primeiro turno!";
+    if (refRecebido() && $("login-sub")) $("login-sub").textContent = "🎁 Você foi convidado. Cadastre-se e faça sua primeira aula!";
     try {
-        const salvo = JSON.parse(localStorage.getItem("abastece_ja_promotor") || "null");
+        const salvo = JSON.parse(localStorage.getItem("personow_personal") || "null");
         if (salvo && $("input-nome")) { $("input-nome").value = salvo.nome || ""; if ($("check-remember")) $("check-remember").checked = true; }
     } catch (e) {}
 });
 
 function finalizarLogin({ lembreme, nome, cpf, cref, status }) {
-    dadosPerfil = { ...dadosPerfil, nome: nome || "Promotor", cpf, cref, status };
+    dadosPerfil = { ...dadosPerfil, nome: nome || "Personal", cpf, cref, status };
 
     try {
-        if (lembreme) localStorage.setItem("abastece_ja_promotor", JSON.stringify({ nome }));
-        else localStorage.removeItem("abastece_ja_promotor");
+        if (lembreme) localStorage.setItem("personow_personal", JSON.stringify({ nome }));
+        else localStorage.removeItem("personow_personal");
     } catch (e) {}
 
     monitorarPresencaOnline(cpf || dadosPerfil.uid);
@@ -276,8 +276,8 @@ async function garantirLinkIndicacao() {
         const snap = await getDoc(docRef);
         let codigo = snap.exists() ? snap.data().refCode : "";
         if (!codigo) { codigo = novoCodigo(); await setDoc(docRef, { refCode: codigo }, { merge: true }); }
-        input.value = `${baseSite()}promotor.html?ref=${codigo}`;
-    } catch (e) { input.value = `${baseSite()}promotor.html`; }
+        input.value = `${baseSite()}personal.html?ref=${codigo}`;
+    } catch (e) { input.value = `${baseSite()}personal.html`; }
 }
 
 async function sairModoPessoal() {
@@ -312,7 +312,8 @@ function switchTabPersonal(tabId, navElement) {
     document.querySelectorAll("#nav-personal .nav-item").forEach((i) => i.classList.remove("active"));
     if (navElement) navElement.classList.add("active");
     window.scrollTo(0, 0);
-    if (tabId === "tab-ofertas") initMapAlunos();
+    if (tabId === "tab-ofertas") { initMapAlunos(); renderizarOfertas(); }
+    if (tabId === "tab-inicio" || tabId === "tab-agenda" || tabId === "tab-carteira") carregarAgendaDoBanco();
 }
 
 const SUBTELAS = {
@@ -404,18 +405,18 @@ function estadoVazio(icone, titulo, texto) {
 }
 
 function renderizarAgenda() {
-    atualizarProximaReposicao();
+    atualizarProximaAula();
     const lista = $("lista-agenda"), resumo = $("lista-agenda-resumo");
     if (!lista && !resumo) return;
     if (!agendaDeHoje.length) {
-        const v = estadoVazio("📅", "Nenhum turno por aqui", "Os turnos que você aceitar nas Ofertas aparecem neste espaço.");
+        const v = estadoVazio("📅", "Nenhuma aula por aqui", "As aulas que você aceitar em Ofertas aparecem neste espaço.");
         if (lista) lista.innerHTML = v;
         if (resumo) resumo.innerHTML = v;
         return;
     }
     const card = (x, acao) => `<div class="glass agenda-slot" style="padding:15px; border-radius:16px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
         <div><div style="font-weight:bold; color:#fff; font-size:14px;">${esc(x.loja)}</div>
-        <div style="font-size:12px; color:var(--text-muted);">${fmtData(x.data)} · ${esc(x.entrada)}–${esc(x.saida)} · ${esc(x.foco)}</div></div>${acao}</div>`;
+        <div style="font-size:12px; color:var(--text-muted);">${fmtData(x.data)} · ${esc(x.entrada)}${x.saida ? "–" + esc(x.saida) : ""} · ${esc(x.foco)}</div></div>${acao}</div>`;
     const html = agendaDeHoje.map((x, i) => card(x, x.status === "aceita" ? `<button class="btn btn-primary" style="padding:8px 12px; font-size:12px; width:auto;" onclick="mostrarQR(${i})">Cobrar (QR)</button>` : "")).join("");
     if (lista) lista.innerHTML = html;
     if (resumo) resumo.innerHTML = html;
@@ -465,18 +466,30 @@ function mudarMesCalendario(delta) {
 function selecionarDia(d) {
     diaSelecionado = `${dataCalendario.getFullYear()}-${dataCalendario.getMonth()}-${d}`;
     const data = new Date(dataCalendario.getFullYear(), dataCalendario.getMonth(), d);
-    if ($("selected-date-label")) $("selected-date-label").innerText = "Turnos de " + data.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
+    if ($("selected-date-label")) $("selected-date-label").innerText = "Aulas de " + data.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
     renderizarCalendario();
 }
 
 // ==========================================
-// OFERTAS + MAPA
+// PEDIDOS DE TREINO (OFERTAS) + MAPA
 // ==========================================
 async function renderizarOfertas() {
     const el = $("lista-demandas-cards");
     if (!el) return;
+    try {
+        const chaveAtual = chavePromotor();
+        if (chaveAtual) {
+            const atual = await getDoc(doc(db, "profissionais", chaveAtual));
+            if (atual.exists() && atual.data().status) {
+                dadosPerfil.status = atual.data().status;
+                atualizarExibicaoPerfil();
+                const analise = $("card-status-analise");
+                if (analise) analise.style.display = dadosPerfil.status === "ativo" ? "none" : "block";
+            }
+        }
+    } catch (e) { console.warn("Status:", e.code); }
     if (dadosPerfil.status !== "ativo") {
-        el.innerHTML = estadoVazio("🔒", "Ofertas liberadas após aprovação", "Estamos analisando seu cadastro.");
+        el.innerHTML = estadoVazio("🔒", "Pedidos liberados após aprovação", "Estamos analisando seu cadastro de personal.");
         return;
     }
     let lista = [];
@@ -495,13 +508,13 @@ async function renderizarOfertas() {
         <div style="font-size:12px; color:var(--text-muted);">${fmtData(x.data)} · ${esc(x.entrada)}–${esc(x.saida)} · ${esc(x.foco)}</div>
         <div style="font-size:13px; color:var(--accent); font-weight:bold; margin-top:4px;">Recebe: ${fmtBRL(x.valor * 0.85)}</div></div>
         <button class="btn btn-primary" style="padding:8px 16px; font-size:12px; width:auto;" onclick="aceitarOferta('${x.id}')">Aceitar</button></div>`).join("")
-        : estadoVazio("🛒", "Sem ofertas no momento", "Novas demandas aparecerão aqui.");
+        : estadoVazio("🏋️", "Sem pedidos no momento", "Novos pedidos de treino aparecerão aqui.");
 }
 
 async function aceitarOferta(id) {
     try {
         await updateDoc(doc(db, "solicitacoes", id), { status: "aceita", promotorChave: chavePromotor(), promotorNome: dadosPerfil.nome, aceitoEm: serverTimestamp() });
-        toast("Turno aceito com sucesso!");
+        toast("Aula aceita com sucesso!");
         carregarAgendaDoBanco(); renderizarOfertas();
     } catch (e) { toast("Não foi possível aceitar. Outro profissional pode ter pego."); }
 }
@@ -536,7 +549,7 @@ function initMapAlunos() {
 }
 
 // ==========================================
-// CADASTRO DE LOJA E CHAT (ANTI-FUGA)
+// CADASTRO DE ALUNO E CHAT (ANTI-FUGA)
 // ==========================================
 function abrirModalCadastrarAluno() { if ($("modal-cadastrar-aluno")) $("modal-cadastrar-aluno").classList.add("active"); }
 function fecharModalCadastrarAluno() {
@@ -545,11 +558,12 @@ function fecharModalCadastrarAluno() {
 }
 function confirmarCadastroAluno() {
     const nome = $("cad-aluno-nome").value.trim();
-    if (!nome) { toast("Informe o nome da loja."); return; }
-    agendaDeHoje.push({ hora: $("cad-aluno-horario").value.trim() || "12:00", loja: nome, setor: $("cad-aluno-objetivo").value.trim() \vert{}\vert{} "Geral", status: "ocupado", valor: parseFloat($("cad-aluno-preco").value) || 100 });
+    if (!nome) { toast("Informe o nome do aluno."); return; }
+    const d = new Date(), hoje = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    agendaDeHoje.push({ data: hoje, entrada: $("cad-aluno-horario").value.trim() || "12:00", saida: "", loja: nome, foco: $("cad-aluno-objetivo").value.trim() || "Geral", status: "ocupado", valor: parseFloat($("cad-aluno-preco").value) || 100 });
     renderizarAgenda();
     fecharModalCadastrarAluno();
-    toast("✅ Loja vinculada à sua escala!");
+    toast("✅ Aluno vinculado à sua agenda!");
 }
 
 function fecharConversaModal() { if ($("modal-chat-flutuante")) $("modal-chat-flutuante").classList.remove("active"); }
@@ -586,7 +600,7 @@ function enviarMensagemChat() {
     }
     input.value = "";
 }
-function enviarPropostaPersonal() { toast("Orçamento enviado à loja."); }
+function enviarPropostaPersonal() { toast("Orçamento enviado ao aluno."); }
 function toggleDiaTrabalho(btn) {}
 
 // ==========================================
@@ -595,10 +609,10 @@ function toggleDiaTrabalho(btn) {}
 function toggleTheme() {
     const claro = $("theme-toggle").checked;
     document.body.classList.toggle("light-theme", claro);
-    try { localStorage.setItem("abastece_tema", claro ? "claro" : "escuro"); } catch (e) {}
+    try { localStorage.setItem("personow_tema", claro ? "claro" : "escuro"); } catch (e) {}
 }
 try {
-    if (localStorage.getItem("abastece_tema") === "claro") {
+    if (localStorage.getItem("personow_tema") === "claro") {
         document.body.classList.add("light-theme");
         window.addEventListener("DOMContentLoaded", () => { const t = $("theme-toggle"); if (t) t.checked = true; });
     }
@@ -611,15 +625,15 @@ async function salvarContato() {
     catch (e) { toast("Não foi possível salvar o contato."); }
 }
 
-function atualizarProximaReposicao() {
-    const el = $("proxima-reposicao");
+function atualizarProximaAula() {
+    const el = $("proxima-aula");
     const prox = agendaDeHoje.find((x) => x.status === "aceita");
-    if (el) el.textContent = prox ? `${fmtData(prox.data)} · ${prox.entrada}–${prox.saida} · ${prox.loja}` : "Nenhum turno agendado.";
+    if (el) el.textContent = prox ? `${fmtData(prox.data)} · ${prox.entrada}–${prox.saida} · ${prox.loja}` : "Nenhuma aula agendada.";
 }
 
 window.addEventListener("DOMContentLoaded", () => {
     const c = $("lista-conversas-promotor");
-    if (c) c.innerHTML = estadoVazio("💬", "Nenhuma conversa ainda", "Quando você aceitar um turno, o chat com a loja aparece aqui.");
+    if (c) c.innerHTML = estadoVazio("💬", "Nenhuma conversa ainda", "Quando você aceitar uma aula, o chat com o aluno aparece aqui.");
 });
 
 Object.assign(window, {
@@ -630,3 +644,6 @@ Object.assign(window, {
     fecharConversaModal, enviarMensagemChat, enviarPropostaPersonal, initMapAlunos,
     toggleTheme, salvarContato, toast, mostrarQR, fecharQR, aceitarOferta, salvarPrefs, calcularDistanciaKm
 });
+
+// Se o Maps carregou antes do módulo, inicia agora
+if (window.google && window.google.maps) initMapAlunos();
