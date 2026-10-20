@@ -1,0 +1,123 @@
+/* ==========================================
+   PERSONOW - Polish & Overlays (polish.css)
+   ========================================== */
+
+/* Overlays e Subtelas de Configuração */
+.app-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10000;
+    background: rgba(7, 9, 14, 0.95);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    display: none;
+    flex-direction: column;
+    padding: 20px;
+    box-sizing: border-box;
+    overflow-y: auto;
+}
+
+.app-overlay.active {
+    display: flex;
+    animation: slideIn 0.3s forwards;
+}
+
+@keyframes slideIn {
+    from { transform: translateY(100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.modal-box {
+    width: 100%;
+    max-width: 420px;
+    margin: auto;
+    padding: 25px;
+    border-radius: 20px;
+}
+
+.sub-inner {
+    max-width: 480px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+.sub-head {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 25px;
+    border-bottom: 1px solid var(--glass-border);
+    padding-bottom: 15px;
+}
+
+.sub-head button {
+    background: transparent;
+    border: none;
+    color: var(--gold);
+    font-size: 22px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.fld {
+    font-size: 12px;
+    font-weight: bold;
+    color: var(--gold);
+    display: block;
+    margin-bottom: 6px;
+}
+
+.sw-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--glass-border);
+    font-size: 13px;
+}
+
+/* Notificações Toast */
+#toast {
+    position: fixed;
+    top: -60px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--gold);
+    color: #000;
+    padding: 12px 24px;
+    border-radius: 30px;
+    font-weight: bold;
+    font-size: 13px;
+    transition: top 0.4s ease;
+    z-index: 999999;
+    box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);
+}
+
+#toast.show {
+    top: 20px;
+}
+
+/* Estados Vazios (Empty State) */
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+}
+
+.empty-state .empty-icon {
+    font-size: 36px;
+    margin-bottom: 10px;
+}
+
+.empty-state h4 {
+    color: #fff;
+    margin-bottom: 6px;
+    font-size: 16px;
+}
+
+.empty-state p {
+    font-size: 12px;
+}
