@@ -1,6 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getFirestore, collection, getDocs, doc, setDoc, getDoc, updateDoc, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { getAuth, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getDatabase, ref, set, onDisconnect, onValue, serverTimestamp as rtdbServerTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyA2PVDpo4X3G8ok_Mk5MU1WeRUaxwIhEpg",
@@ -14,6 +15,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const rtdb = getDatabase(app);
 const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: "select_account" });
@@ -77,7 +79,50 @@ function mensagemErroAuth(error) {
 }
 
 // ==========================================
-// TERMOS (antes: funções não existiam → botão ficava desabilitado para sempre)
+// STATUS "ONLINE DE VERDADE" (PRESENÇA RTDB)
+// ==========================================
+function monitorarPresencaOnline(promotorId) {
+    if (!promotorId) return;
+    const statusRef = ref(rtdb, `presenca/${promotorId}`);
+    const conexaoRef = ref(rtdb, '.info/connected');
+
+    onValue(conexaoRef, (snapshot) => {
+        if (snapshot.val() === false) return;
+        onDisconnect(statusRef).set({
+            online: false,
+            ultimaVez: rtdbServerTimestamp()
+        });
+        set(statusRef, {
+            online: true,
+            ultimaVez: rtdbServerTimestamp()
+        });
+    });
+}
+
+// ==========================================
+// CÁLCULO DE DISTÂNCIA REAL EM QUILÔMETROS (KM)
+// ==========================================
+function calcularDistanciaKm(lat1, lon1, lat2, lon2) {
+    if (window.google && google.maps && google.maps.geometry) {
+        const pontoA = new google.maps.LatLng(lat1, lon1);
+        const pontoB = new google.maps.LatLng(lat2, lon2);
+        const metros = google.maps.geometry.spherical.computeDistanceBetween(pontoA, pontoB);
+        return (metros / 1000).toFixed(1);
+    }
+    // Fallback matemático (Haversine)
+    const R = 6371; 
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return (R * c).toFixed(1);
+}
+
+// ==========================================
+// TERMOS
 // ==========================================
 function validarCheckTermos() {
     const ok = $("check-termos").checked;
@@ -103,19 +148,18 @@ async function validarProfissional() {
     const lembreme = $("check-remember").checked;
 
     if (!nome || !cpf) { toast("Preencha nome e CPF."); return; }
-    // Antes: exigia 14 dígitos (CNPJ), mas o campo aceita só 11 → login sempre falhava
     if (!cpfValido(cpf)) { toast("CPF inválido. Confira os 11 dígitos."); return; }
 
     setLoading(true);
     let status = "pendente";
     try {
-        const ref = doc(db, "profissionais", cpf);
-        const snap = await getDoc(ref);
+        const docRef = doc(db, "profissionais", cpf);
+        const snap = await getDoc(docRef);
         if (snap.exists()) {
             status = snap.data().status || "pendente";
             if (status === "bloqueado") { toast("❌ Acesso não liberado para este CPF."); setLoading(false); return; }
         } else {
-            await setDoc(ref, { nome, cpf, cref, status: "pendente", indicadoPor: refRecebido(), criadoEm: serverTimestamp() });
+            await setDoc(docRef, { nome, cpf, cref, status: "pendente", indicadoPor: refRecebido(), criadoEm: serverTimestamp() });
         }
     } catch (e) {
         console.error("Firestore:", e);
@@ -163,11 +207,8 @@ async function processarUsuarioGoogle(user, interativo) {
         finalizarLogin({ lembreme: false, nome: prof.nome || user.displayName, cpf: prof.cpf || "", cref: prof.cref || "", status: prof.status || "pendente" });
         return;
     }
-    // Restauração automática de sessão sem cadastro de promotor: fica na tela de login
     if (!interativo) return;
 
-    // Primeiro acesso: cria o cadastro como "pendente" e ENTRA (sem prompt, que alguns navegadores bloqueiam).
-    // O CPF pode ser preenchido depois em Menu → Perfil.
     if (!erroBanco) {
         try {
             await setDoc(doc(db, "profissionais", user.uid), {
@@ -195,7 +236,7 @@ window.addEventListener("DOMContentLoaded", () => {
     if (refRecebido() && $("login-sub")) $("login-sub").textContent = "🎁 Você foi convidado por um promotor. Cadastre-se e faça seu primeiro turno!";
     try {
         const salvo = JSON.parse(localStorage.getItem("abastece_ja_promotor") || "null");
-        if (salvo) { $("input-nome").value = salvo.nome || ""; $("check-remember").checked = true; }
+        if (salvo) { $("input-nome").value = salvo.nome \vert{}\vert{} ""; $("check-remember").checked = true; }
     } catch (e) {}
 });
 
@@ -203,10 +244,12 @@ function finalizarLogin({ lembreme, nome, cpf, cref, status }) {
     dadosPerfil = { ...dadosPerfil, nome: nome || "Promotor", cpf, cref, status };
 
     try {
-        // Guarda só o nome (CPF no localStorage é dado pessoal exposto)
         if (lembreme) localStorage.setItem("abastece_ja_promotor", JSON.stringify({ nome }));
         else localStorage.removeItem("abastece_ja_promotor");
     } catch (e) {}
+
+    // Ativa monitoramento de presença online em tempo real
+    monitorarPresencaOnline(cpf || dadosPerfil.uid);
 
     atualizarExibicaoPerfil();
     garantirLinkIndicacao();
@@ -227,10 +270,10 @@ async function garantirLinkIndicacao() {
     const chave = dadosPerfil.cpf || dadosPerfil.uid;
     if (!input || !chave) return;
     try {
-        const ref = doc(db, "profissionais", chave);
-        const snap = await getDoc(ref);
+        const docRef = doc(db, "profissionais", chave);
+        const snap = await getDoc(docRef);
         let codigo = snap.exists() ? snap.data().refCode : "";
-        if (!codigo) { codigo = novoCodigo(); await setDoc(ref, { refCode: codigo }, { merge: true }); }
+        if (!codigo) { codigo = novoCodigo(); await setDoc(docRef, { refCode: codigo }, { merge: true }); }
         input.value = `${baseSite()}promotor.html?ref=${codigo}`;
     } catch (e) { console.warn("Link de indicação:", e.code); input.value = `${baseSite()}promotor.html`; }
 }
@@ -299,7 +342,6 @@ async function salvarPerfilProfissionalCompleto() {
             nascimento: $("perfil-input-nascimento").value,
             cidade: $("perfil-input-naturalidade").value.trim(),
             bio: $("personal-input-bio").value.trim()
-            // Fotos de documento/selfie exigem Firebase Storage — ver orientações
         });
         dadosPerfil.nome = $("perfil-input-nome").value.trim() || dadosPerfil.nome;
         atualizarExibicaoPerfil();
@@ -396,7 +438,7 @@ function renderizarCalendario() {
     const ano = dataCalendario.getFullYear(), mes = dataCalendario.getMonth();
     $("calendar-month-year").innerText = dataCalendario.toLocaleDateString("pt-BR", { month: "long", year: "numeric" }).replace(/^./, (c) => c.toUpperCase());
 
-    const primeiro = (new Date(ano, mes, 1).getDay() + 6) % 7; // semana começa na segunda
+    const primeiro = (new Date(ano, mes, 1).getDay() + 6) % 7;
     const total = new Date(ano, mes + 1, 0).getDate();
     const hoje = new Date();
     let html = "";
@@ -484,7 +526,7 @@ function initMapAlunos() {
 }
 
 // ==========================================
-// CADASTRO DE LOJA, CHAT, PREFERÊNCIAS
+// CADASTRO DE LOJA, CHAT (COM BLOQUEIO ANTI-FUGA) E PREFERÊNCIAS
 // ==========================================
 function abrirModalCadastrarAluno() { $("modal-cadastrar-aluno").classList.add("active"); }
 function fecharModalCadastrarAluno() {
@@ -494,17 +536,36 @@ function fecharModalCadastrarAluno() {
 function confirmarCadastroAluno() {
     const nome = $("cad-aluno-nome").value.trim();
     if (!nome) { toast("Informe o nome da loja."); return; }
-    agendaDeHoje.push({ hora: $("cad-aluno-horario").value.trim() || "12:00", loja: nome, setor: $("cad-aluno-objetivo").value.trim() || "Geral", status: "ocupado", valor: parseFloat($("cad-aluno-preco").value) || 100 });
+    agendaDeHoje.push({ hora: $("cad-aluno-horario").value.trim() || "12:00", loja: nome, setor: $("cad-aluno-objetivo").value.trim() \vert{}\vert{} "Geral", status: "ocupado", valor: parseFloat($("cad-aluno-preco").value) || 100 });
     renderizarAgenda();
     fecharModalCadastrarAluno();
     toast("✅ Loja vinculada à sua escala!");
 }
 
 function fecharConversaModal() { $("modal-chat-flutuante").classList.remove("active"); }
+
+// Palavras-chave bloqueadas para evitar captação por fora
+const palavrasProibidas = ['whatsapp', 'wpp', 'zap', 'whats', 'pix', 'instagram', 'insta', 'telefone', 'celular', 'contato', 'chama no pv', 'privado', 'telegram'];
+const regexTelefone = /\b(?:\d{2}\s?)?\d{9}\b|\b\d{2}\s?\d{4,5}[-.\s]?\d{4}\b/;
+
+function verificarConteudoMensagem(texto) {
+    const textoLower = texto.toLowerCase();
+    const encontrouPalavra = palavrasProibidas.some(palavra => textoLower.includes(palavra));
+    const encontrouNumero = regexTelefone.test(texto);
+    return encontrouPalavra || encontrouNumero;
+}
+
 function enviarMensagemChat() {
     const input = $("input-chat-msg");
     const texto = input.value.trim();
     if (!texto) return;
+
+    if (verificarConteudoMensagem(texto)) {
+        toast("⚠️ Advertência: O envio de contatos ou Pix externos viola os Termos de Uso. Na próxima ocorrência, sua conta será banida.");
+        input.value = '';
+        return;
+    }
+
     const box = $("chat-box");
     const m = document.createElement("div");
     m.className = "msg msg-sent";
@@ -524,7 +585,6 @@ Object.assign(window, {
     abrirModalCadastrarAluno, fecharModalCadastrarAluno,
     confirmarCadastroAluno, fecharConversaModal, enviarMensagemChat, enviarPropostaPersonal, initMapAlunos
 });
-
 
 // ==========================================
 // PARIDADE COM O APP DO CONTRATANTE
@@ -559,4 +619,4 @@ window.addEventListener("DOMContentLoaded", () => {
     if (c) c.innerHTML = estadoVazio("💬", "Nenhuma conversa ainda", "Quando você aceitar um turno, o chat com a loja aparece aqui.");
 });
 
-Object.assign(window, { toggleTheme, salvarContato, toast, mostrarQR, fecharQR, aceitarOferta, salvarPrefs });
+Object.assign(window, { toggleTheme, salvarContato, toast, mostrarQR, fecharQR, aceitarOferta, salvarPrefs, calcularDistanciaKm });
