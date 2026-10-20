@@ -1,6 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, doc, setDoc, query, where, onSnapshot, orderBy, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, doc, setDoc, getDoc, getDocs, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import {
+    getAuth, signInWithPopup, signInWithRedirect, getRedirectResult,
+    GoogleAuthProvider, signOut, onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyA2PVDpo4X3G8ok_Mk5MU1WeRUaxwIhEpg",
@@ -12,589 +15,452 @@ const firebaseConfig = {
     measurementId: "G-P2J3HHKK2R"
 };
 
+// ==========================================
+// FIREBASE (antes não era inicializado — causa nº 1 do login quebrado)
+// ==========================================
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
 const auth = getAuth(app);
+const db = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({ prompt: "select_account" });
 
-let alunoLogado = null;
+let usuarioAtual = null;
 let mapRadar;
-let marcadoresPersonal = {};
-let conversaAtivaPersonal = null;
-let avaliacaoEstrelasSelecionadas = 5;
-let unsubscribeChat = null;
+let userMarker;
 
-window.addEventListener('DOMContentLoaded', () => {
-    onAuthStateChanged(auth, async (user) => {
-        if (user) {
-            alunoLogado = {
-                uid: user.uid,
-                nome: user.displayName || "Aluno",
-                email: user.email,
-                foto: user.photoURL
-            };
-            iniciarAppAluno();
-        }
-    });
-});
+// Banco de lojas/promotores (demonstração)
+const lojasDB = []; // sem dados fictícios: só promotores reais
 
+// ==========================================
+// UTILITÁRIOS
+// ==========================================
+const $ = (id) => document.getElementById(id);
+const hojeLocal = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+
+function toast(msg) {
+    let t = $("toast");
+    if (!t) {
+        t = document.createElement("div");
+        t.id = "toast";
+        document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => t.classList.remove("show"), 3500);
+}
+
+function setLoginLoading(loading) {
+    const btn = $("btn-login-aluno");
+    if (!btn) return;
+    btn.disabled = loading;
+    btn.classList.toggle("loading", loading);
+    btn.dataset.label = btn.dataset.label || btn.innerHTML;
+    if (loading) btn.innerHTML = '<span class="spinner"></span> Entrando...';
+    else btn.innerHTML = btn.dataset.label;
+}
+
+function mensagemErroAuth(error) {
+    switch (error.code) {
+        case "auth/unauthorized-domain":
+            return "Domínio não autorizado no Firebase. Adicione este endereço em Authentication → Settings → Domínios autorizados.";
+        case "auth/operation-not-allowed":
+            return "Login com Google não está ativado no Firebase (Authentication → Sign-in method).";
+        case "auth/popup-closed-by-user":
+        case "auth/cancelled-popup-request":
+            return null; // usuário fechou, sem alerta
+        case "auth/network-request-failed":
+            return "Sem conexão com a internet. Tente novamente.";
+        default:
+            return "Não foi possível entrar com o Google. (" + (error.code || "erro") + ")";
+    }
+}
+
+// ==========================================
+// LOGIN / LOGOUT
+// ==========================================
 async function loginGoogleAluno() {
+    const termos = $("check-termos-aluno");
+    if (termos && !termos.checked) {
+        toast("Aceite os Termos de Uso para continuar.");
+        return;
+    }
+    setLoginLoading(true);
     try {
-        const result = await signInWithPopup(auth, googleProvider);
-        const user = result.user;
-        alunoLogado = {
-            uid: user.uid,
-            nome: user.displayName || "Aluno",
-            email: user.email,
-            foto: user.photoURL
-        };
-        await setDoc(doc(db, "usuarios", user.uid), {
-            nome: alunoLogado.nome,
-            email: alunoLogado.email,
-            foto: alunoLogado.foto || "",
-            criadoEm: new Date().toISOString()
-        }, { merge: true });
-        iniciarAppAluno();
+        await signInWithPopup(auth, googleProvider);
+        // onAuthStateChanged cuida do resto
     } catch (error) {
-        console.error("Erro login aluno:", error);
-    }
-}
-
-function iniciarAppAluno() {
-    document.getElementById('display-name-home').innerText = alunoLogado.nome;
-    document.getElementById('display-name-profile').innerText = alunoLogado.nome;
-    
-    const initial = alunoLogado.nome.charAt(0).toUpperCase();
-    const mainAvatar = document.getElementById('main-user-avatar');
-    const profileSpan = document.getElementById('display-avatar-profile');
-    const profileImg = document.getElementById('img-aluno-perfil-preview');
-
-    if (mainAvatar) {
-        mainAvatar.innerText = initial;
-        if (alunoLogado.foto) {
-            mainAvatar.innerHTML = `<img src="${alunoLogado.foto}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+        if (error.code === "auth/popup-blocked") {
+            // Celulares/navegadores que bloqueiam popup: usa redirecionamento
+            try { await signInWithRedirect(auth, googleProvider); return; } catch (e) { error = e; }
         }
-    }
-
-    if (profileSpan && profileImg) {
-        if (alunoLogado.foto) {
-            profileImg.src = alunoLogado.foto;
-            profileImg.style.display = 'block';
-            profileSpan.style.display = 'none';
-        } else {
-            profileSpan.innerText = initial;
-            profileImg.style.display = 'none';
-            profileSpan.style.display = 'block';
-        }
-    }
-
-    const btnWp = document.getElementById('btn-whatsapp-suporte');
-    if (btnWp) btnWp.style.display = 'none';
-
-    navTo('screen-main');
-    setTimeout(() => { if (mapRadar) google.maps.event.trigger(mapRadar, 'resize'); }, 400);
-    escutarPersonaisEmTempoReal();
-    carregarListaConversasAluno();
-    carregarProximoAgendamentoAluno();
-}
-
-function calcularPrecoDinamico() {
-    const horaAtual = new Date().getHours();
-    const ehPico = (horaAtual >= 6 && horaAtual <= 8) || (horaAtual >= 17 && horaAtual <= 20);
-    return {
-        valor: ehPico ? 80 : 60,
-        ehPico: ehPico
-    };
-}
-
-window.solicitarTreinoModoUber = async function() {
-    if (!alunoLogado) return alert("Faça login para solicitar um treino.");
-    const horario = document.getElementById('solicitacao-horario').value;
-    const foco = document.getElementById('solicitacao-foco').value;
-    const local = document.getElementById('solicitacao-local').value.trim() || "Localização Atual (GPS)";
-
-    const tarifa = calcularPrecoDinamico();
-
-    try {
-        await addDoc(collection(db, "chamadas_uber"), {
-            alunoId: alunoLogado.uid,
-            alunoNome: alunoLogado.nome,
-            horario: horario,
-            foco: foco,
-            local: local,
-            valor: tarifa.valor,
-            ehPico: tarifa.ehPico,
-            status: "pendente",
-            criadoEm: new Date().toISOString()
-        });
-        
-        const msgPico = tarifa.ehPico ? "\n⚡ (Tarifa ajustada para Horário de Pico nas Academias: R$ 80,00)" : "";
-        alert(`🚀 Chamada enviada em TEMPO REAL para os personais da área!${msgPico}\n\nAguarde o aceite de um profissional...`);
-    } catch (e) {
-        console.error("Erro ao solicitar treino:", e);
-    }
-}
-
-async function carregarProximoAgendamentoAluno() {
-    const container = document.getElementById('card-proximo-treino-conteudo');
-    if (!container || !alunoLogado) return;
-
-    try {
-        const q = query(collection(db, "agenda"), where("nome", "==", alunoLogado.nome));
-        const querySnapshot = await getDocs(q);
-
-        if (querySnapshot.empty) {
-            container.innerHTML = `
-                <p style="font-size: 13px; color: var(--text-muted); margin: 5px 0;">Nenhum treino agendado no momento.</p>
-                <small style="font-size: 11px; color: var(--gold);">Combine um horário pelo chat com um personal!</small>
-            `;
-            return;
-        }
-
-        let agendamentoDocId = null;
-        let proximoAgendamento = null;
-
-        querySnapshot.forEach((docItem) => {
-            agendamentoDocId = docItem.id;
-            proximoAgendamento = docItem.data();
-        });
-
-        if (proximoAgendamento) {
-            const hojeStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
-            const horaClean = (proximoAgendamento.horario || "15:00").replace(':', '') + '00';
-            const gCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=Treino+TAPAGO&dates=${hojeStr}T${horaClean}/${hojeStr}T${parseInt(proximoAgendamento.horario||15)+1}0000&details=Treino+confirmado+via+TAPAGO`;
-
-            container.innerHTML = `
-                <div style="margin-top: 5px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <h3 style="font-size: 15px; font-weight: bold; margin: 0; color: var(--text-color);">${proximoAgendamento.frequencia || 'Aula Confirmada'}</h3>
-                            <p style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0 0;">Horário: <strong>${proximoAgendamento.horario || '08:00'}</strong> • R$ ${proximoAgendamento.preco || 60},00</p>
-                        </div>
-                        <a href="${gCalUrl}" target="_blank" style="background: var(--neon-green); color: #000; text-decoration: none; padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: bold;">Google Agenda 📅</a>
-                    </div>
-                    <button onclick="desmarcarTreinoAluno('${agendamentoDocId}')" style="margin-top: 10px; width: 100%; background: rgba(255, 51, 51, 0.15); color: #ff3333; border: 1px solid #ff3333; padding: 6px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer;">
-                        ✕ Desmarcar Treino (Taxa R$ 15,00)
-                    </button>
-                </div>
-            `;
-        }
-    } catch (e) {
-        console.error("Erro ao carregar agendamento:", e);
-    }
-}
-
-window.desmarcarTreinoAluno = async function(agendamentoId) {
-    const confirma = confirm("⚠️ TAXA DE CANCELAMENTO:\n\nTem certeza que deseja desmarcar o treino?\n\nO cancelamento de última hora acarreta uma taxa administrativa de R$ 15,00 rebatida na sua conta.");
-    if (!confirma) return;
-
-    try {
-        await deleteDoc(doc(db, "agenda", agendamentoId));
-        alert("✅ Treino desmarcado com sucesso.");
-        carregarProximoAgendamentoAluno();
-    } catch (e) {
-        console.error("Erro ao desmarcar treino:", e);
-    }
-}
-
-window.atualizarFotoPerfilAluno = function(event) {
-    const file = event.target.files[0];
-    if (file && alunoLogado) {
-        const reader = new FileReader();
-        reader.onload = async function(e) {
-            const base64Img = e.target.result;
-            alunoLogado.foto = base64Img;
-            
-            const profileImg = document.getElementById('img-aluno-perfil-preview');
-            const profileSpan = document.getElementById('display-avatar-profile');
-            if (profileImg && profileSpan) {
-                profileImg.src = base64Img;
-                profileImg.style.display = 'block';
-                profileSpan.style.display = 'none';
-            }
-            const mainAvatar = document.getElementById('main-user-avatar');
-            if (mainAvatar) {
-                mainAvatar.innerHTML = `<img src="${base64Img}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
-            }
-
-            try {
-                await setDoc(doc(db, "usuarios", alunoLogado.uid), {
-                    foto: base64Img
-                }, { merge: true });
-                alert("✅ Foto de perfil atualizada com sucesso!");
-            } catch (err) {
-                console.error("Erro ao salvar foto no Firestore:", err);
-            }
-        };
-        reader.readAsDataURL(file);
+        console.error("Erro no login Google:", error);
+        const msg = mensagemErroAuth(error);
+        if (msg) toast(msg);
+        setLoginLoading(false);
     }
 }
 
 async function logoutAluno() {
-    if (confirm("Deseja realmente sair?")) {
-        await signOut(auth);
-        alunoLogado = null;
-        const btnWp = document.getElementById('btn-whatsapp-suporte');
-        if (btnWp) btnWp.style.display = 'flex';
-        navTo('screen-login');
-    }
+    try { await signOut(auth); } catch (e) { console.error(e); }
 }
 
+function mostrarApp(user) {
+    usuarioAtual = user;
+    const nome = user.displayName || user.email.split("@")[0];
+
+    $("display-name-home").innerText = nome.split(" ")[0];
+    $("display-name-profile").innerText = nome;
+
+    const inicial = nome.charAt(0).toUpperCase();
+    $("main-user-avatar").innerText = inicial;
+    $("display-avatar-profile").innerText = inicial;
+
+    if (user.photoURL) {
+        const img = $("img-aluno-perfil-preview");
+        img.src = user.photoURL;
+        img.style.display = "block";
+        $("display-avatar-profile").style.display = "none";
+    }
+
+    navTo("screen-main");
+    const lk = $("input-link-indicacao"); if (lk) lk.value = location.origin + location.pathname.replace(/[^/]*$/, "") + "index.html";
+    const inpData = $("solicitacao-data");
+    if (inpData) { inpData.min = hojeLocal(); if (!inpData.value) inpData.value = hojeLocal(); }
+    renderPromotores();
+    renderConversas();
+    renderCalendario();
+    carregarPedidos();
+    carregarPerfilLoja();
+    carregarProximoAbastecimento();
+    if (window.google && !mapRadar) initMap();
+}
+
+function mostrarLogin() {
+    usuarioAtual = null;
+    setLoginLoading(false);
+    navTo("screen-login");
+}
+
+onAuthStateChanged(auth, (user) => {
+    if (user) mostrarApp(user);
+    else mostrarLogin();
+});
+
+getRedirectResult(auth).catch((error) => {
+    const msg = mensagemErroAuth(error);
+    if (msg) toast(msg);
+});
+
+// ==========================================
+// NAVEGAÇÃO
+// ==========================================
 function navTo(screenId) {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById(screenId).classList.add('active');
+    document.querySelectorAll(".screen").forEach((s) => s.classList.remove("active"));
+    $(screenId).classList.add("active");
+    window.scrollTo(0, 0);
 }
 
 function switchTab(tabId, navElement) {
-    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-    document.getElementById(tabId).classList.add('active');
-    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-    if (navElement) navElement.classList.add('active');
-
-    if (tabId === 'tab-home') {
-        setTimeout(() => { if (mapRadar) google.maps.event.trigger(mapRadar, 'resize'); }, 200);
-    }
-    if (tabId === 'tab-mensagens') carregarListaConversasAluno();
-    if (tabId === 'tab-perfil') carregarProximoAgendamentoAluno();
+    document.querySelectorAll(".tab-content").forEach((t) => t.classList.remove("active"));
+    $(tabId).classList.add("active");
+    document.querySelectorAll(".nav-item").forEach((i) => i.classList.remove("active"));
+    if (navElement) navElement.classList.add("active");
+    window.scrollTo(0, 0);
 }
 
 function toggleTheme() {
-    if (document.getElementById('theme-toggle').checked) {
-        document.body.classList.add('light-theme');
-    } else {
-        document.body.classList.remove('light-theme');
+    const claro = $("theme-toggle").checked;
+    document.body.classList.toggle("light-theme", claro);
+    try { localStorage.setItem("abastece_tema", claro ? "claro" : "escuro"); } catch (e) {}
+}
+
+try {
+    if (localStorage.getItem("abastece_tema") === "claro") {
+        document.body.classList.add("light-theme");
+        const tg = $("theme-toggle");
+        if (tg) tg.checked = true;
+    }
+} catch (e) {}
+
+// ==========================================
+// LISTAS (PROMOTORES / CONVERSAS)
+// ==========================================
+async function renderPromotores() {
+    const lista = $("lista-personais-reais");
+    if (!lista) return;
+    let ativos = [];
+    try {
+        const s = await getDocs(query(collection(db, "profissionais"), where("status", "==", "ativo")));
+        ativos = s.docs.map((d) => d.data());
+    } catch (e) { console.warn("Promotores não carregados:", e.code); }
+    lista.innerHTML = ativos.length ? ativos.map((p) => `
+        <div class="glass trainer-card card-gold">
+            <div class="trainer-header">
+                <div class="avatar-container story-ring"><div class="avatar">${esc((p.nome || "P").charAt(0))}</div></div>
+                <div class="trainer-info"><h4>${esc(p.nome)}</h4><p>${esc(p.especialidade || "Reposição e abastecimento")}</p>
+                <div class="trainer-status status-online"><span class="dot"></span>Disponível</div></div>
+            </div>
+            <div class="trainer-actions"><button class="btn-action btn-fill" data-nome="${esc(p.nome)}" onclick="solicitarPromotorEspecifico(this.dataset.nome)">Solicitar</button></div>
+        </div>`).join("") : vazio("🧑‍🔧", "Nenhum promotor ativo ainda", "Faça seu pedido acima: os promotores da região recebem a proposta.");
+}
+
+function renderConversas() {
+    const el = $("lista-conversas");
+    if (!el) return;
+    el.innerHTML = `<div class="empty-state">
+        <div class="empty-icon">💬</div>
+        <h4>Nenhuma conversa ainda</h4>
+        <p>Quando um promotor aceitar sua solicitação, o chat aparecerá aqui.</p>
+    </div>`;
+}
+
+function abrirChatSimples(nome) {
+    toast("Chat com " + nome + " estará disponível após a solicitação ser aceita.");
+}
+
+// ==========================================
+// SOLICITAÇÕES (Firestore)
+// ==========================================
+async function enviarSolicitacao(extra = {}) {
+    if (!usuarioAtual) { toast("Faça login primeiro."); return; }
+    const local = $("solicitacao-local").value.trim();
+    const data = $("solicitacao-data").value, entrada = $("solicitacao-entrada").value, saida = $("solicitacao-saida").value;
+    const valor = parseFloat($("solicitacao-valor").value);
+    if (!local) { toast("Informe o nome/endereço da loja."); $("solicitacao-local").focus(); return; }
+    if (!data) { toast("Escolha o dia do serviço."); return; }
+    if (data < hojeLocal()) { toast("O dia não pode ser anterior a hoje."); return; }
+    if (!entrada || !saida || saida <= entrada) { toast("A saída precisa ser depois da entrada."); return; }
+    if (!(valor > 0)) { toast("Informe o valor que deseja pagar."); $("solicitacao-valor").focus(); return; }
+    try {
+        await addDoc(collection(db, "solicitacoes"), {
+            uid: usuarioAtual.uid, email: usuarioAtual.email, loja: local,
+            data, entrada, saida, horario: `${entrada}–${saida}`, valor,
+            foco: $("solicitacao-foco").value, status: "aberta", criadoEm: serverTimestamp(), ...extra
+        });
+        toast("✅ Pedido enviado! Promotores com esse valor serão avisados.");
+        $("solicitacao-local").value = ""; $("solicitacao-valor").value = "";
+        $("rv-prom").textContent = fmtBRL(0); $("rv-taxa").textContent = fmtBRL(0);
+        carregarPedidos();
+    } catch (e) {
+        console.error(e);
+        toast("Não foi possível enviar. Verifique as regras do Firestore.");
     }
 }
 
-window.initMap = function() {
-    const mapaElemento = document.getElementById("mapa-quadrado");
-    if (!mapaElemento) return;
+function solicitarTreinoModoUber() { enviarSolicitacao(); }
+function solicitarPromotorEspecifico(nome) { enviarSolicitacao({ promotorPreferido: nome }); }
+
+function carregarProximoAbastecimento(s) {
+    const el = $("card-proximo-treino-conteudo");
+    if (!el) return;
+    if (!s) {
+        el.innerHTML = '<p class="muted-line">Nenhum abastecimento agendado.</p>';
+        return;
+    }
+    el.innerHTML = `<p style="font-size:14px;font-weight:600">${s.loja}</p>
+                    <p class="muted-line">${s.horario} · aguardando promotor</p>`;
+}
+
+// ==========================================
+// PERFIL DA LOJA
+// ==========================================
+async function carregarPerfilLoja() {
+    try {
+        const snap = await getDoc(doc(db, "contratantes", usuarioAtual.uid));
+        if (snap.exists()) {
+            const d = snap.data();
+            if (d.ramo) $("aluno-select-objetivo").value = d.ramo;
+            if (d.telefone) $("aluno-input-telefone").value = d.telefone;
+        }
+    } catch (e) { console.warn("Perfil não carregado:", e.code); }
+}
+
+async function salvarPerfilAluno() {
+    if (!usuarioAtual) return;
+    try {
+        await setDoc(doc(db, "contratantes", usuarioAtual.uid), {
+            nome: usuarioAtual.displayName || "",
+            email: usuarioAtual.email,
+            ramo: $("aluno-select-objetivo").value,
+            telefone: $("aluno-input-telefone").value.trim(),
+            atualizadoEm: serverTimestamp()
+        }, { merge: true });
+        toast("✅ Dados da loja salvos!");
+    } catch (e) {
+        console.error(e);
+        toast("Erro ao salvar. Verifique as regras do Firestore.");
+    }
+}
+
+function atualizarFotoPerfilAluno(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const img = $("img-aluno-perfil-preview");
+        img.src = e.target.result;
+        img.style.display = "block";
+        $("display-avatar-profile").style.display = "none";
+    };
+    reader.readAsDataURL(file);
+}
+
+// ==========================================
+// GOOGLE MAPS
+// ==========================================
+function initMap() {
+    const el = $("mapa-quadrado");
+    if (!el || mapRadar || !window.google) return;
+    // Só cria o mapa com a tela visível (container oculto tem tamanho 0)
+    if (!$("screen-main").classList.contains("active")) return;
+
     const pontoInicial = { lat: -22.4389, lng: -46.8258 };
-    mapRadar = new google.maps.Map(mapaElemento, {
+    mapRadar = new google.maps.Map(el, {
         zoom: 14,
         center: pontoInicial,
-        disableDefaultUI: true
+        disableDefaultUI: true,
+        styles: [
+            { elementType: "geometry", stylers: [{ color: "#1a1a24" }] },
+            { elementType: "labels.text.stroke", stylers: [{ color: "#1a1a24" }] },
+            { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
+            { featureType: "road", elementType: "geometry", stylers: [{ color: "#2c2c38" }] },
+            { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#212123" }] },
+            { featureType: "water", elementType: "geometry", stylers: [{ color: "#0e1626" }] }
+        ]
     });
-}
 
-function estaNoHorarioTrabalho(data) {
-    const agora = new Date();
-    const horaAtual = agora.getHours();
-    const diaSemana = agora.getDay();
-    const inicio = data.horaInicio ? parseInt(data.horaInicio) : 8;
-    const fim = data.horaFim ? parseInt(data.horaFim) : 21;
-    const diaFolga = data.diaFolga !== undefined ? parseInt(data.diaFolga) : 0;
-
-    if (diaSemana === diaFolga) return false;
-    if (horaAtual < inicio || horaAtual >= fim) return false;
-    return true;
-}
-
-function escutarPersonaisEmTempoReal() {
-    const container = document.getElementById('lista-personais-reais');
-    if (!container) return;
-
-    onSnapshot(collection(db, "profissionais"), (snapshot) => {
-        container.innerHTML = "";
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition((pos) => {
-                const localAluno = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                if (mapRadar) mapRadar.setCenter(localAluno);
-                processarSnapshotPersonais(snapshot, localAluno, container);
-            }, () => {
-                processarSnapshotPersonais(snapshot, { lat: -22.4389, lng: -46.8258 }, container);
+    const marcarLojas = (origem) => {
+        lojasDB.forEach((loja) => {
+            const m = new google.maps.Marker({ position: { lat: loja.lat, lng: loja.lng }, map: mapRadar, title: loja.nome });
+            let texto = "Aprox. 1,2 km de você";
+            if (origem) {
+                const metros = google.maps.geometry.spherical.computeDistanceBetween(
+                    new google.maps.LatLng(origem.lat, origem.lng),
+                    new google.maps.LatLng(loja.lat, loja.lng)
+                );
+                texto = metros < 1000 ? `${Math.round(metros)} m de você` : `${(metros / 1000).toFixed(1)} km de você`;
+            }
+            const info = new google.maps.InfoWindow({
+                content: `<div style="color:#000;font-weight:bold;padding:2px">${loja.nome}<br><span style="font-weight:normal;font-size:11px">📍 ${texto}</span></div>`
             });
-        } else {
-            processarSnapshotPersonais(snapshot, { lat: -22.4389, lng: -46.8258 }, container);
-        }
-    });
-}
-
-function processarSnapshotPersonais(snapshot, localAluno, container) {
-    let count = 0;
-    snapshot.forEach((docItem) => {
-        const data = docItem.data();
-        if (data.status === "ativo") {
-            count++;
-            const onlinePorHorario = estaNoHorarioTrabalho(data);
-            const pLat = data.lat || (-22.4389 + (count * 0.003));
-            const pLng = data.lng || (-46.8258 + (count * 0.003));
-            const nomeProf = data.nome || "Personal";
-
-            if (mapRadar && onlinePorHorario) {
-                const posLatLng = new google.maps.LatLng(pLat, pLng);
-                if (marcadoresPersonal[docItem.id]) {
-                    marcadoresPersonal[docItem.id].setPosition(posLatLng);
-                } else {
-                    marcadoresPersonal[docItem.id] = new google.maps.Marker({
-                        position: posLatLng,
-                        map: mapRadar,
-                        title: nomeProf
-                    });
-                }
-            } else if (marcadoresPersonal[docItem.id]) {
-                marcadoresPersonal[docItem.id].setMap(null);
-            }
-
-            let distanciaTexto = "Próximo";
-            if (window.google && google.maps && google.maps.geometry) {
-                const pAluno = new google.maps.LatLng(localAluno.lat, localAluno.lng);
-                const pProf = new google.maps.LatLng(pLat, pLng);
-                const metros = google.maps.geometry.spherical.computeDistanceBetween(pAluno, pProf);
-                distanciaTexto = metros < 1000 ? `${Math.round(metros)}m de você` : `${(metros / 1000).toFixed(1)}km de você`;
-            }
-
-            const card = document.createElement('div');
-            card.className = 'trainer-card glass card-gold';
-            card.innerHTML = `
-                <div class="trainer-header">
-                    <div class="avatar-container story-ring">
-                        <div class="avatar">${nomeProf.charAt(0)}</div>
-                    </div>
-                    <div class="trainer-info">
-                        <h4>${nomeProf} <span class="badge badge-gold">Verificado</span></h4>
-                        <p>CREF: ${data.cref || 'Ativo'}</p>
-                        <div class="trainer-status" style="color: ${onlinePorHorario ? '#39ff14' : '#ff3333'};">
-                            <span class="dot" style="background:${onlinePorHorario ? '#39ff14' : '#ff3333'};"></span> 
-                            ${onlinePorHorario ? 'ONLINE' : 'OFFLINE'} • <span>${distanciaTexto}</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="trainer-actions">
-                    <button class="btn-action btn-outline" onclick="openTrainerProfile('${nomeProf}')">Ver Perfil</button>
-                    <button class="btn-action btn-fill" onclick="openActiveChat('${nomeProf}')">Conversar</button>
-                </div>
-            `;
-            container.appendChild(card);
-        }
-    });
-}
-
-let viewingTrainerName = "";
-window.openTrainerProfile = async function(nomeProfessor) {
-    viewingTrainerName = nomeProfessor;
-    document.getElementById('tp-name').innerText = nomeProfessor;
-    document.getElementById('tp-avatar').innerText = nomeProfessor.charAt(0);
-    document.getElementById('tp-spec').innerText = "Profissional Credenciado TAPAGO";
-    await carregarAvaliacoesFirestore(nomeProfessor);
-    document.getElementById('trainer-profile-overlay').classList.add('active');
-}
-
-window.closeTrainerProfile = function() {
-    document.getElementById('trainer-profile-overlay').classList.remove('active');
-}
-
-window.setRating = function(estrelas) {
-    avaliacaoEstrelasSelecionadas = estrelas;
-    const spans = document.querySelectorAll('#star-selector span');
-    spans.forEach((s, idx) => {
-        s.style.color = idx < estrelas ? 'var(--gold)' : 'rgba(255,255,255,0.2)';
-    });
-}
-
-async function carregarAvaliacoesFirestore(nomeProf) {
-    const listaArea = document.getElementById('reviews-list');
-    listaArea.innerHTML = "<p style='color: var(--text-muted); font-size: 13px;'>Carregando avaliações...</p>";
-    try {
-        const q = query(collection(db, "avaliacoes"), where("professor", "==", nomeProf));
-        const querySnapshot = await getDocs(q);
-        listaArea.innerHTML = "";
-        let soma = 0, total = 0;
-
-        if (querySnapshot.empty) {
-            listaArea.innerHTML = "<p style='color: var(--text-muted); font-size: 13px;'>Nenhuma avaliação ainda.</p>";
-            document.getElementById('tp-media-estrelas').innerText = "⭐⭐⭐⭐⭐ (Novo)";
-            return;
-        }
-
-        querySnapshot.forEach((docItem) => {
-            const av = docItem.data();
-            total++;
-            soma += (av.estrelas || 5);
-            const div = document.createElement('div');
-            div.className = 'review-card';
-            div.innerHTML = `
-                <div class="review-header">
-                    <span class="review-author">${av.autor}</span>
-                    <span class="review-date">${new Date(av.data).toLocaleDateString()}</span>
-                </div>
-                <div style="color: var(--gold); font-size: 11px; margin-bottom: 5px;">${"★".repeat(av.estrelas || 5)}</div>
-                <div class="review-text">${av.texto}</div>
-            `;
-            listaArea.appendChild(div);
+            m.addListener("click", () => info.open(mapRadar, m));
+            const elem = $(loja.elementId);
+            if (elem) elem.innerText = texto;
         });
-        document.getElementById('tp-media-estrelas').innerText = `⭐⭐⭐⭐⭐ (${(soma/total).toFixed(1)})`;
-    } catch (e) {
-        console.error("Erro avaliacoes:", e);
+    };
+
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                const eu = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                mapRadar.setCenter(eu);
+                userMarker = new google.maps.Marker({
+                    position: eu, map: mapRadar, title: "Você",
+                    icon: { path: google.maps.SymbolPath.CIRCLE, scale: 7, fillColor: "#ffd700", fillOpacity: 1, strokeWeight: 2, strokeColor: "#ffffff" }
+                });
+                marcarLojas(eu);
+            },
+            () => marcarLojas(null)
+        );
+    } else {
+        marcarLojas(null);
     }
 }
 
-window.submitReview = async function() {
-    const textArea = document.getElementById('new-review-text');
-    const texto = textArea.value.trim();
-    if (texto === "") return alert("Escreva sua avaliação.");
+// ==========================================
+// EXPORTS PARA O HTML (onclick="...")
+// Módulos ES não expõem funções ao escopo global automaticamente.
+// ==========================================
+// ==========================================
+// PEDIDOS / AGENDA / CARTEIRA / MENU
+// ==========================================
+let pedidos = [];
+let dataCalendario = new Date();
+const ROTULO = { aberta: "Aguardando promotor", aceita: "Aceito", concluida: "Concluído", cancelada: "Cancelado" };
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmtData = (d) => (d ? d.split("-").reverse().join("/") : "");
+const fmtBRL = (v) => (Number(v) || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const vazio = (i, t, x) => `<div class="empty-state"><div class="empty-icon">${i}</div><h4>${t}</h4><p>${x}</p></div>`;
 
+async function carregarPedidos() {
     try {
-        await addDoc(collection(db, "avaliacoes"), {
-            professor: viewingTrainerName,
-            autor: alunoLogado ? alunoLogado.nome : "Aluno",
-            estrelas: avaliacaoEstrelasSelecionadas,
-            texto: texto,
-            data: new Date().toISOString()
-        });
-        textArea.value = "";
-        alert("✅ Avaliação publicada!");
-        carregarAvaliacoesFirestore(viewingTrainerName);
-    } catch (e) {
-        console.error("Erro review:", e);
-    }
+        const snap = await getDocs(query(collection(db, "solicitacoes"), where("uid", "==", usuarioAtual.uid)));
+        pedidos = snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => (b.criadoEm?.seconds || 0) - (a.criadoEm?.seconds || 0));
+    } catch (e) { console.warn("Pedidos não carregados:", e.code); pedidos = []; }
+    renderPedidos();
+    renderCarteira();
+    carregarProximoAbastecimento(pedidos.find((p) => p.status === "aberta" || p.status === "aceita"));
 }
 
-async function carregarListaConversasAluno() {
-    const listaConv = document.getElementById('lista-conversas');
-    if (!listaConv || !alunoLogado) return;
+function cartaoPedido(p) {
+    const st = p.status || "aberta";
+    const etapa = st === "concluida" ? 3 : st === "aceita" ? 2 : 1;
+    const barra = `<div class="steps-line"><span class="${etapa >= 1 ? "on" : ""}"></span><span class="${etapa >= 2 ? "on" : ""}"></span><span class="${etapa >= 3 ? "on" : ""}"></span></div>`;
+    const pagar = st === "aceita" ? `<a class="btn-pagar-pedido" href="pagar.html?id=${encodeURIComponent(p.id)}">💳 Pagar com Pix</a>` : "";
+    const quem = p.promotorNome ? ` · ${esc(p.promotorNome)}` : "";
+    return `<div class="glass agenda-slot slot-${st === "concluida" ? "concluida" : st === "aberta" ? "livre" : "ocupado"}" style="flex-wrap:wrap">
+        <div class="pedido-linha"><div class="slot-info-name">${esc(p.loja)}</div>
+        <div class="slot-info-desc">${fmtData(p.data)} · ${esc(p.horario)} · ${esc(p.foco)} · ${fmtBRL(p.valor)}${quem}</div>${pagar}</div>
+        <span class="badge badge-gold">${ROTULO[st] || st}</span>${barra}</div>`;
+}
+function renderPedidos() {
+    const el = $("lista-pedidos");
+    el.innerHTML = pedidos.length ? pedidos.map(cartaoPedido).join("") : vazio("🛒", "Nenhum pedido ainda", "Solicite um promotor na aba Início e acompanhe o andamento aqui.");
+    el.style.cssText = "display:flex;flex-direction:column;gap:10px";
+}
+function renderCarteira() {
+    $("cart-abertos").innerText = pedidos.filter((p) => p.status === "aberta" || p.status === "aceita").length;
+    const total = pedidos.filter((p) => p.status === "concluida").reduce((s, p) => s + (p.valor || 0), 0);
+    $("cart-total").innerText = total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function renderCalendario() {
+    const grid = $("calendar-days-grid");
+    const ano = dataCalendario.getFullYear(), mes = dataCalendario.getMonth();
+    $("calendar-month-year").innerText = dataCalendario.toLocaleDateString("pt-BR", { month: "long", year: "numeric" }).replace(/^./, (c) => c.toUpperCase());
+    const primeiro = (new Date(ano, mes, 1).getDay() + 6) % 7, total = new Date(ano, mes + 1, 0).getDate(), hoje = new Date();
+    let html = "<div></div>".repeat(primeiro);
+    for (let d = 1; d <= total; d++) {
+        const ehHoje = d === hoje.getDate() && mes === hoje.getMonth() && ano === hoje.getFullYear();
+        html += `<div class="cal-day${ehHoje ? " today" : ""}" onclick="selecionarDia(${d})">${d}</div>`;
+    }
+    grid.innerHTML = html;
+}
+function mudarMesCalendario(n) { dataCalendario = new Date(dataCalendario.getFullYear(), dataCalendario.getMonth() + n, 1); renderCalendario(); }
+function selecionarDia(d) {
+    const data = new Date(dataCalendario.getFullYear(), dataCalendario.getMonth(), d);
+    $("selected-date-label").innerText = "Turnos de " + data.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
+    const iso = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+    const dia = pedidos.filter((p) => p.data === iso);
+    $("lista-agenda").innerHTML = dia.length ? dia.map(cartaoPedido).join("") : vazio("📅", "Nenhum turno neste dia", "Pedidos para esta data aparecem aqui.");
+}
+
+const SUB = { pagamento: "pagamento", preferencias: "preferencias", indicar: "indicar", notificacoes: "notificacoes", ajuda: "ajuda" };
+function abrirOpcaoMenu(n) { const e = $("subscreen-" + SUB[n]); if (e) e.style.display = "block"; }
+function fecharSubtela(id) { $(id).style.display = "none"; }
+
+async function salvarCampos(dados, msg, subId) {
+    if (!usuarioAtual) return;
     try {
-        const snap = await getDocs(collection(db, "profissionais"));
-        listaConv.innerHTML = "";
-        snap.forEach(docProf => {
-            const prof = docProf.data();
-            if (prof.status === "ativo") {
-                const item = document.createElement('div');
-                item.className = "chat-item glass";
-                item.onclick = () => openActiveChat(prof.nome);
-                item.innerHTML = `
-                    <div class="avatar" style="border-color: var(--gold); width: 45px; height: 45px;">${prof.nome.charAt(0)}</div>
-                    <div class="chat-info">
-                        <div class="chat-header">
-                            <h4>${prof.nome}</h4>
-                            <span class="chat-time">Online</span>
-                        </div>
-                        <p>Abrir chat em tempo real</p>
-                    </div>
-                `;
-                listaConv.appendChild(item);
-            }
-        });
-    } catch (e) {
-        console.error("Erro conversas aluno:", e);
-    }
+        await setDoc(doc(db, "contratantes", usuarioAtual.uid), { ...dados, atualizadoEm: serverTimestamp() }, { merge: true });
+        toast(msg); fecharSubtela(subId);
+    } catch (e) { console.error(e); toast("Não foi possível salvar. Verifique as regras do Firestore."); }
+}
+function salvarPagamento() { salvarCampos({ pagamento: { metodo: $("pg-metodo").value, documento: $("pg-doc").value.trim() } }, "✅ Forma de pagamento salva!", "subscreen-pagamento"); }
+function salvarPreferencias() { salvarCampos({ preferencias: { setor: $("pref-setor").value, turno: $("pref-turno").value } }, "✅ Preferências salvas!", "subscreen-preferencias"); }
+function copiarLinkIndicacao() { const i = $("input-link-indicacao"); i.select(); navigator.clipboard?.writeText(i.value); toast("📋 Link copiado!"); }
+function compartilharWhatsApp() {
+    const t = encodeURIComponent("Conheça o ABASTECE JÁ: promotores e repositores sob demanda para o varejo. " + $("input-link-indicacao").value);
+    window.open("https://api.whatsapp.com/send?text=" + t, "_blank");
 }
 
-window.openActiveChat = function(nomeProfessor) {
-    if (!alunoLogado) return;
-    conversaAtivaPersonal = nomeProfessor;
-    document.getElementById('active-chat-name').innerText = nomeProfessor;
-    document.getElementById('active-chat-avatar').innerText = nomeProfessor.charAt(0);
-    document.getElementById('active-chat-screen').classList.add('active');
-    ouvirMensagensFirestore();
-}
+Object.assign(window, {
+    mudarMesCalendario, selecionarDia, abrirOpcaoMenu, fecharSubtela, salvarPagamento, salvarPreferencias, copiarLinkIndicacao, compartilharWhatsApp, toast,
+    initMap, loginGoogleAluno, logoutAluno, navTo, switchTab, toggleTheme,
+    solicitarTreinoModoUber, solicitarPromotorEspecifico, salvarPerfilAluno,
+    atualizarFotoPerfilAluno, abrirChatSimples
+});
 
-window.closeActiveChat = function() {
-    if (unsubscribeChat) unsubscribeChat();
-    document.getElementById('active-chat-screen').classList.remove('active');
-    carregarListaConversasAluno();
-}
-
-function ouvirMensagensFirestore() {
-    const msgsArea = document.getElementById('chat-messages');
-    msgsArea.innerHTML = '';
-    const chatId = `${alunoLogado.uid}_${conversaAtivaPersonal}`;
-    const q = query(collection(db, "chats", chatId, "mensagens"), orderBy("data", "asc"));
-
-    unsubscribeChat = onSnapshot(q, (snapshot) => {
-        msgsArea.innerHTML = "";
-        if (snapshot.empty) {
-            msgsArea.innerHTML = `<p style="text-align:center; color: var(--text-muted); font-size:12px; margin-top:20px;">Inicie o chat com ${conversaAtivaPersonal}</p>`;
-            return;
-        }
-        snapshot.forEach((docItem) => {
-            const msg = docItem.data();
-            const bubble = document.createElement('div');
-            
-            if (msg.tipo === "proposta") {
-                bubble.className = `chat-bubble bubble-trainer`;
-                bubble.innerHTML = `
-                    <strong>${msg.texto}</strong><br>
-                    <button onclick="aceitarProposta('${msg.horario}', '${msg.preco}', '${conversaAtivaPersonal}')" style="margin-top:8px; background:var(--neon-green); color:#000; border:none; padding:8px 12px; border-radius:6px; font-weight:bold; cursor:pointer; width:100%;">Aceitar e Agendar no Google Agenda</button>
-                `;
-            } else {
-                bubble.className = `chat-bubble ${msg.remetente === alunoLogado.uid ? 'bubble-user' : 'bubble-trainer'}`;
-                bubble.innerText = msg.texto;
-            }
-            msgsArea.appendChild(bubble);
-        });
-        msgsArea.scrollTop = msgsArea.scrollHeight;
-    });
-}
-
-window.aceitarProposta = async function(horario, preco, nomeProf) {
-    try {
-        await addDoc(collection(db, "agenda"), {
-            nome: alunoLogado.nome,
-            aluno: alunoLogado.nome,
-            professor: nomeProf,
-            objetivo: "Treino Personalizado",
-            preco: parseFloat(preco),
-            horario: horario,
-            diaSemana: "Hoje",
-            frequencia: "Aula Confirmada",
-            status: "ativo",
-            criadoEm: new Date().toISOString()
-        });
-
-        const hojeStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
-        const horaClean = horario.replace(':', '') + '00';
-        const gCalendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=Treino+com+${encodeURIComponent(nomeProf)}&dates=${hojeStr}T${horaClean}/${hojeStr}T${parseInt(horario)+1}0000&details=Treino+contratado+via+TAPAGO+por+R$${preco}+recolhendo+15%+da+plataforma&location=Itapira+SP`;
-
-        alert(`🎉 Proposta aceita com sucesso!\n\nSalvando horário na sua agenda...`);
-        carregarProximoAgendamentoAluno();
-        window.open(gCalendarUrl, '_blank');
-    } catch (e) {
-        console.error("Erro ao aceitar proposta:", e);
-    }
-}
-
-window.salvarPerfilAluno = async function() {
-    if (!alunoLogado) return;
-    const objetivo = document.getElementById('aluno-select-objetivo').value;
-    const telefone = document.getElementById('aluno-input-telefone').value.trim();
-
-    try {
-        await setDoc(doc(db, "usuarios", alunoLogado.uid), {
-            objetivo: objetivo,
-            telefone: telefone,
-            atualizadoEm: new Date().toISOString()
-        }, { merge: true });
-        alert("✅ Preferências de perfil salvas com sucesso!");
-    } catch (e) {
-        console.error("Erro ao salvar perfil do aluno:", e);
-    }
-}
-
-window.handleEnter = function(event) { if (event.key === 'Enter') sendMessage(); }
-
-window.sendMessage = async function() {
-    const input = document.getElementById('chat-message-input');
-    const texto = input.value.trim();
-    if (texto === "" || !alunoLogado) return;
-    const chatId = `${alunoLogado.uid}_${conversaAtivaPersonal}`;
-    input.value = "";
-
-    try {
-        await addDoc(collection(db, "chats", chatId, "mensagens"), {
-            remetente: alunoLogado.uid,
-            nomeRemetente: alunoLogado.nome,
-            destinatario: conversaAtivaPersonal,
-            texto: texto,
-            data: new Date().toISOString()
-        });
-    } catch (e) {
-        console.error("Erro envio aluno:", e);
-    }
-}
-
-window.loginGoogleAluno = loginGoogleAluno;
-window.logoutAluno = logoutAluno;
-window.navTo = navTo;
-window.switchTab = switchTab;
-window.toggleTheme = toggleTheme;
+// Se o Maps carregou antes do módulo, inicia agora
+if (window.google && window.google.maps) initMap();
