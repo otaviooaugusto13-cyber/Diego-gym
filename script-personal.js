@@ -1,875 +1,477 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, doc, setDoc, query, where, onSnapshot, orderBy, updateDoc, deleteDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getFirestore, collection, getDocs, doc, setDoc, getDoc, updateDoc, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getAuth, signInWithPopup, signInWithRedirect, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyA2PVDpo4X3G8ok_Mk5MU1WeRUaxwIhEpg",
-    authDomain: "app-diego-e0591.firebaseapp.com",
-    projectId: "app-diego-e0591",
-    storageBucket: "app-diego-e0591.firebasestorage.app",
-    messagingSenderId: "69109305372",
-    appId: "1:69109305372:web:5139a52f1342671c520fd9",
-    measurementId: "G-P2J3HHKK2R"
+    apiKey: "AIzaSyA0Z1SEkqrtXuAjtFntv1WRvkKIuY1zilY",
+    authDomain: "abastece-ja-240d5.firebaseapp.com",
+    projectId: "abastece-ja-240d5",
+    storageBucket: "abastece-ja-240d5.firebasestorage.app",
+    messagingSenderId: "1061248119348",
+    appId: "1:1061248119348:web:90d82ea266683086a39061",
+    measurementId: "G-8XFZ5ZGK4L"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({ prompt: "select_account" });
 
-const ADMIN_CPF = "11122233344";
+const $ = (id) => document.getElementById(id);
 
-let dadosPerfil = {
-    nome: "Professor",
-    cref: "",
-    cpf: "",
-    horaInicio: 8,
-    horaFim: 21,
-    diaFolga: 0,
-    fotoUrl: null,
-    status: "pendente",
-    dadosBancarios: null
+try { 
+    const r = new URLSearchParams(location.search).get("ref"); 
+    if (r) localStorage.setItem("personow_ref", r.replace(/[^\w-]/g, "").slice(0, 40)); 
+} catch (e) {}
+
+const refRecebido = () => { 
+    try { return localStorage.getItem("personow_ref") || ""; } catch (e) { return ""; } 
 };
 
-let mapAlunos;
-let marcadoresAlunosMap = {};
-let conversaAtiva = null;
-let unsubscribePersonalChat = null;
-let ganhosAvulsos = 0;
+let dadosPerfil = { nome: "Personal", cpf: "", cref: "", uid: "", status: "pendente", fotoUrl: null };
 let agendaDeHoje = [];
-let primeiraCargaChamadas = true;
-let audioCtx = null;
+let ganhosAvulsos = 0;
+let mapaOfertas = null;
+let dataCalendario = new Date();
 
-// ==========================================
-// CALENDÁRIO MENSAL (ESTILO GOOGLE AGENDA)
-// ==========================================
-let dataAtualCalendario = new Date(2026, 9, 10);
-let diaSelecionadoCalendario = 10;
-
-function renderizarCalendario() {
-    const monthYearText = document.getElementById('calendar-month-year');
-    const grid = document.getElementById('calendar-days-grid');
-    if (!grid || !monthYearText) return;
-
-    const meses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-    const ano = dataAtualCalendario.getFullYear();
-    const mes = dataAtualCalendario.getMonth();
-
-    monthYearText.innerText = `${meses[mes]} ${ano}`;
-    grid.innerHTML = "";
-
-    const primeiroDiaSemana = new Date(ano, mes, 1).getDay();
-    const totalDiasMes = new Date(ano, mes + 1, 0).getDate();
-
-    for (let i = 0; i < primeiroDiaSemana; i++) {
-        grid.innerHTML += `<div></div>`;
+function toast(msg) {
+    let t = $("toast");
+    if (!t) { 
+        t = document.createElement("div"); 
+        t.id = "toast"; 
+        document.body.appendChild(t); 
     }
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => t.classList.remove("show"), 3500);
+}
 
-    for (let dia = 1; dia <= totalDiasMes; dia++) {
-        const ehHoje = (dia === diaSelecionadoCalendario);
-        grid.innerHTML += `
-            <div onclick="selecionarDiaCalendario(${dia})" style="padding: 8px 0; border-radius: 50%; font-size: 12px; cursor: pointer; font-weight: ${ehHoje ? 'bold' : 'normal'}; background: ${ehHoje ? 'var(--gold)' : 'transparent'}; color: ${ehHoje ? '#000' : 'var(--text-color)'};">
-                ${dia}
-            </div>
-        `;
+function cpfValido(cpf) {
+    cpf = (cpf || "").replace(/\D/g, "");
+    if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
+    for (let t = 9; t < 11; t++) {
+        let soma = 0;
+        for (let i = 0; i < t; i++) soma += parseInt(cpf[i]) * (t + 1 - i);
+        const dig = ((soma * 10) % 11) % 10;
+        if (dig !== parseInt(cpf[t])) return false;
+    }
+    return true;
+}
+
+function setLoading(on) {
+    if ($("login-loader")) $("login-loader").style.display = on ? "block" : "none";
+    if ($("btn-login")) $("btn-login").style.display = on ? "none" : "block";
+}
+
+function validarCheckTermos() {
+    const ok = $("check-termos")?.checked;
+    const btn = $("btn-login");
+    if (btn) {
+        btn.disabled = !ok;
+        btn.style.opacity = ok ? "1" : "0.5";
+        btn.style.cursor = ok ? "pointer" : "not-allowed";
     }
 }
 
-window.mudarMesCalendario = function(delta) {
-    dataAtualCalendario.setMonth(dataAtualCalendario.getMonth() + delta);
-    renderizarCalendario();
+function abrirModalTermos() { 
+    $("modal-termos")?.classList.add("active"); 
 }
 
-window.selecionarDiaCalendario = function(dia) {
-    diaSelecionadoCalendario = dia;
-    renderizarCalendario();
-    const label = document.getElementById('selected-date-label');
-    if (label) label.innerText = `Atendimentos agendados para o dia ${dia}/${dataAtualCalendario.getMonth() + 1}/${dataAtualCalendario.getFullYear()}:`;
-    carregarAgendaDoBanco();
-}
-
-// ==========================================
-// CONFIGURAÇÃO MERCADO PAGO
-// ==========================================
-const MP_PUBLIC_KEY = "APP_USR-xxxx-xxxx-xxxx-xxxx"; 
-
-window.iniciarCheckoutMercadoPago = function(valorAula = 80) {
-    try {
-        const mp = new MercadoPago(MP_PUBLIC_KEY, { locale: 'pt-BR' });
-        alert(`⚡ Conectando ao Mercado Pago...\n\nValor: R$ ${valorAula},00\n- 85% para ${dadosPerfil.nome}\n- 15% para Plataforma TAPAGO`);
-        setTimeout(() => {
-            alert("✅ Pagamento aprovado via Mercado Pago! Split concluído com sucesso.");
-            carregarAgendaDoBanco();
-        }, 1500);
-    } catch (e) {
-        console.error("Erro Mercado Pago:", e);
-        alert("Erro ao iniciar pagamento.");
-    }
-}
-
-window.addEventListener('DOMContentLoaded', () => {
-    if ("Notification" in window && Notification.permission === "granted") {
-        const banner = document.getElementById('banner-notificacao');
-        if (banner) banner.style.display = 'none';
-    }
-
-    // Vínculo seguro para o botão do Google no módulo
-    const btnGoogle = document.getElementById('btn-google');
-    if (btnGoogle) {
-        btnGoogle.addEventListener('click', loginComGoogle);
-    }
-
-    const savedProfile = localStorage.getItem('tapago_personal_user');
-    if (savedProfile) {
-        const parsed = JSON.parse(savedProfile);
-        dadosPerfil.nome = parsed.nome;
-        dadosPerfil.cpf = parsed.cpf;
-        dadosPerfil.cref = parsed.cref;
-        finalizarLogin(true, parsed.nome, parsed.cpf, parsed.cref);
-    }
-    renderizarCalendario();
-});
-
-window.solicitarPermissaoNotificacao = function() {
-    try {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        audioCtx.resume();
-    } catch(e) {}
-
-    if ("Notification" in window) {
-        Notification.requestPermission().then(permission => {
-            if (permission === "granted") {
-                const banner = document.getElementById('banner-notificacao');
-                if (banner) banner.style.display = 'none';
-                alert("🔔 Notificações e alertas sonoros ativados!");
-            }
-        });
-    }
-}
-
-function dispararNotificacaoNovaChamada(nomeAluno, foco) {
-    if ("vibrate" in navigator) {
-        navigator.vibrate([300, 150, 300]);
-    }
-
-    if ("Notification" in window && Notification.permission === "granted") {
-        new Notification("⚡ Novo Treino Solicitado no TAPAGO!", {
-            body: `${nomeAluno} está procurando um Personal para ${foco}!`,
-            icon: "manifest-icon.png"
-        });
-    }
-}
-
-function iniciarRastreamentoGPS() {
-    if (navigator.geolocation && dadosPerfil.cpf) {
-        navigator.geolocation.watchPosition(async (position) => {
-            const lat = position.coords.latitude;
-            const lng = position.coords.longitude;
-            try {
-                await setDoc(doc(db, "profissionais", dadosPerfil.cpf), {
-                    lat: lat,
-                    lng: lng,
-                    ultimaAtualizacao: new Date().toISOString()
-                }, { merge: true });
-            } catch (e) {
-                console.error("Erro GPS personal:", e);
-            }
-        }, (err) => console.error(err), { enableHighAccuracy: true });
-    }
-}
-
-async function loginComGoogle() {
-    try {
-        const result = await signInWithPopup(auth, googleProvider);
-        const user = result.user;
-        const q = query(collection(db, "profissionais"), where("email", "==", user.email));
-        const querySnapshot = await getDocs(q);
-
-        if (!querySnapshot.empty) {
-            const profDoc = querySnapshot.docs[0];
-            const profData = profDoc.data();
-            dadosPerfil.nome = profData.nome || user.displayName;
-            dadosPerfil.cpf = profData.cpf;
-            dadosPerfil.cref = profData.cref;
-            dadosPerfil.fotoUrl = user.photoURL;
-            dadosPerfil.status = profData.status || "pendente";
-            dadosPerfil.dadosBancarios = profData.dadosBancarios || null;
-            finalizarLogin(true, dadosPerfil.nome, dadosPerfil.cpf, dadosPerfil.cref);
-        } else {
-            const cpfInput = prompt("Digite seu CPF (apenas números):");
-            if (!cpfInput) return;
-            const crefInput = prompt("Digite seu CREF (Ex: 123456-G/SP):");
-            if (!crefInput) return;
-            const cpf = cpfInput.replace(/\D/g, '');
-            const cref = crefInput.trim();
-
-            dadosPerfil.nome = user.displayName;
-            dadosPerfil.cpf = cpf;
-            dadosPerfil.cref = cref;
-            dadosPerfil.status = "pendente";
-            dadosPerfil.dadosBancarios = null;
-
-            await setDoc(doc(db, "profissionais", cpf), {
-                nome: user.displayName,
-                email: user.email,
-                cpf: cpf,
-                cref: cref,
-                status: "pendente",
-                horaInicio: 8,
-                horaFim: 21,
-                diaFolga: 0,
-                criadoEm: new Date().toISOString()
-            });
-
-            finalizarLogin(true, user.displayName, cpf, cref);
-        }
-    } catch (error) {
-        console.error("Erro Google personal:", error);
-    }
+function aceitarTermosModal() {
+    if ($("check-termos")) $("check-termos").checked = true;
+    validarCheckTermos();
+    $("modal-termos")?.classList.remove("active");
 }
 
 async function validarProfissional() {
-    const nome = document.getElementById('input-nome').value.trim();
-    const cpf = document.getElementById('input-cpf').value.replace(/\D/g, '');
-    const cref = document.getElementById('input-cref').value.trim();
-    const lembreme = document.getElementById('check-remember').checked;
+    const nome = $("input-nome").value.trim();
+    const cpf = $("input-cpf").value.replace(/\D/g, "");
+    const cref = $("input-cref").value.trim();
+    const lembreme = $("check-remember").checked;
 
-    if (!nome || !cpf || !cref) return alert("Preencha todos os campos.");
+    if (!nome || !cpf) { toast("Preencha nome e CPF."); return; }
+    if (!cpfValido(cpf)) { toast("CPF inválido. Confira os 11 dígitos."); return; }
 
-    document.getElementById('login-loader').style.display = 'block';
-    document.getElementById('btn-login').style.display = 'none';
-
+    setLoading(true);
+    let status = "pendente";
     try {
-        dadosPerfil.nome = nome;
-        dadosPerfil.cpf = cpf;
-        dadosPerfil.cref = cref;
-
-        const docRef = doc(db, "profissionais", cpf);
-        const docSnap = await getDoc(docRef);
-
-        if (cpf === ADMIN_CPF) {
-            dadosPerfil.status = "ativo";
-            await setDoc(docRef, { nome, cpf, cref, status: "ativo", horaInicio: 8, horaFim: 21, diaFolga: 0, atualizadoEm: new Date() }, { merge: true });
-        } else if (docSnap.exists()) {
-            const profData = docSnap.data();
-            dadosPerfil.status = profData.status || "pendente";
-            dadosPerfil.dadosBancarios = profData.dadosBancarios || null;
+        const ref = doc(db, "profissionais", cpf);
+        const snap = await getDoc(ref);
+        if (snap.exists()) {
+            status = snap.data().status || "pendente";
+            if (status === "bloqueado") { 
+                toast("❌ Acesso não liberado para este CPF."); 
+                setLoading(false); 
+                return; 
+            }
         } else {
-            dadosPerfil.status = "pendente";
-            dadosPerfil.dadosBancarios = null;
-            await setDoc(docRef, { nome, cpf, cref, status: "pendente", horaInicio: 8, horaFim: 21, diaFolga: 0, criadoEm: new Date().toISOString() });
+            await setDoc(ref, { 
+                nome, 
+                cpf, 
+                cref, 
+                status: "pendente", 
+                indicadoPor: refRecebido(), 
+                criadoEm: serverTimestamp() 
+            });
         }
-
-        finalizarLogin(lembreme, nome, cpf, cref);
     } catch (e) {
-        console.error(e);
-        document.getElementById('login-loader').style.display = 'none';
-        document.getElementById('btn-login').style.display = 'block';
+        console.error("Erro no Firestore:", e);
+    }
+    setLoading(false);
+    finalizarLogin({ lembreme, nome, cpf, cref, status });
+}
+
+async function acharProfissionalPorEmail(email) {
+    const q = query(collection(db, "profissionais"), where("email", "==", email));
+    const snap = await getDocs(q);
+    return snap.empty ? null : snap.docs[0].data();
+}
+
+async function loginComGoogle() {
+    if (!$("check-termos")?.checked) { 
+        toast("Aceite os Termos de Uso para continuar."); 
+        return; 
+    }
+    try {
+        const { user } = await signInWithPopup(auth, googleProvider);
+        await processarUsuarioGoogle(user, true);
+    } catch (error) {
+        if (error.code === "auth/popup-blocked") {
+            try { 
+                await signInWithRedirect(auth, googleProvider); 
+                return; 
+            } catch (e) { error = e; }
+        }
+        console.error("Erro no login Google:", error);
     }
 }
 
-function finalizarLogin(lembreme, nome, cpf, cref) {
-    document.getElementById('login-loader').style.display = 'none';
-    const btnLogin = document.getElementById('btn-login');
-    if (btnLogin) btnLogin.style.display = 'block';
+async function processarUsuarioGoogle(user, interativo) {
+    dadosPerfil.uid = user.uid;
+    dadosPerfil.fotoUrl = user.photoURL;
 
-    if (lembreme) {
-        localStorage.setItem('tapago_personal_user', JSON.stringify({ nome, cpf, cref }));
+    let prof = null;
+    try { prof = await acharProfissionalPorEmail(user.email); } catch (e) {}
+
+    if (prof) {
+        if (prof.status === "bloqueado") { 
+            toast("❌ Acesso não liberado para este e-mail."); 
+            return; 
+        }
+        finalizarLogin({ 
+            lembreme: false, 
+            nome: prof.nome || user.displayName, 
+            cpf: prof.cpf || "", 
+            cref: prof.cref || "", 
+            status: prof.status || "pendente" 
+        });
+        return;
     }
+    if (!interativo) return;
+
+    try {
+        await setDoc(doc(db, "profissionais", user.uid), {
+            nome: user.displayName || "", 
+            email: user.email, 
+            uid: user.uid, 
+            cpf: "", 
+            cref: "",
+            fotoGoogle: user.photoURL || "", 
+            status: "pendente", 
+            indicadoPor: refRecebido(), 
+            criadoEm: serverTimestamp()
+        });
+    } catch (e) {}
+    finalizarLogin({ lembreme: false, nome: user.displayName || user.email, cpf: "", cref: "", status: "pendente" });
+}
+
+onAuthStateChanged(auth, (user) => { 
+    if (user) processarUsuarioGoogle(user, false); 
+});
+
+window.addEventListener("DOMContentLoaded", () => {
+    try {
+        const salvo = JSON.parse(localStorage.getItem("personow_personal") || "null");
+        if (salvo && $("input-nome")) { 
+            $("input-nome").value = salvo.nome || ""; 
+            $("check-remember").checked = true; 
+        }
+    } catch (e) {}
+});
+
+function finalizarLogin({ lembreme, nome, cpf, cref, status }) {
+    dadosPerfil = { ...dadosPerfil, nome: nome || "Personal", cpf, cref, status };
+    try {
+        if (lembreme) localStorage.setItem("personow_personal", JSON.stringify({ nome }));
+        else localStorage.removeItem("personow_personal");
+    } catch (e) {}
 
     atualizarExibicaoPerfil();
-    document.getElementById('screen-login-personal').classList.remove('active');
-    document.getElementById('screen-dashboard').classList.add('active');
+    const aprovado = status === "ativo";
+    if ($("card-status-analise")) $("card-status-analise").style.display = aprovado ? "none" : "block";
 
-    iniciarRastreamentoGPS();
+    $("screen-login-personal")?.classList.remove("active");
+    $("screen-dashboard")?.classList.add("active");
     carregarAgendaDoBanco();
-    carregarListaConversasPersonal();
-    escutarChamadasUberPersonal();
+    renderizarCalendario();
+    renderizarOfertas();
 }
 
-function escutarChamadasUberPersonal() {
-    const container = document.getElementById('painel-chamadas-uber');
-    if (!container) return;
-
-    const q = query(collection(db, "chamadas_uber"), where("status", "==", "pendente"));
-    onSnapshot(q, (snapshot) => {
-        container.innerHTML = "";
-        
-        if (!snapshot.empty) {
-            snapshot.docChanges().forEach((change) => {
-                if (change.type === "added" && !primeiraCargaChamadas) {
-                    const novaChamada = change.doc.data();
-                    dispararNotificacaoNovaChamada(novaChamada.alunoNome, novaChamada.foco);
-                }
-            });
-
-            snapshot.forEach((docItem) => {
-                const c = docItem.data();
-                const card = document.createElement('div');
-                card.className = "glass";
-                card.style.cssText = "padding: 15px; border-left: 4px solid var(--neon-green); margin-bottom: 10px; background: rgba(57, 255, 20, 0.08); border: 1px solid var(--neon-green);";
-                card.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                        <span style="font-size: 11px; font-weight: bold; color: var(--neon-green); text-transform: uppercase;">⚡ Chamada Solicitada ${c.ehPico ? '🔥 Pico' : ''}</span>
-                        <span style="font-size: 14px; font-weight: bold; color: var(--gold);">R$ ${c.valor},00</span>
-                    </div>
-                    <h4 style="margin: 0; font-size: 15px;">${c.alunoNome}</h4>
-                    <p style="font-size: 12px; color: var(--text-muted); margin: 3px 0;">Foco: <strong>${c.foco}</strong> • Horário: <strong>${c.horario}</strong></p>
-                    <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px;">Local: ${c.local}</p>
-                    <button onclick="aceitarChamadaUber('${docItem.id}', '${c.alunoNome}', '${c.horario}', ${c.valor}, '${c.foco}')" style="width: 100%; background: var(--neon-green); color: #000; font-weight: bold; padding: 10px; border: none; border-radius: 8px; cursor: pointer; font-size: 13px;">
-                        ⚡ Aceitar Chamada Agora (Split Mercado Pago)
-                    </button>
-                `;
-                container.appendChild(card);
-            });
-        }
-        primeiraCargaChamadas = false;
-    });
-}
-
-window.aceitarChamadaUber = async function(chamadaId, nomeAluno, horario, valor, foco) {
-    try {
-        if (dadosPerfil.cpf) {
-            const docRef = doc(db, "profissionais", dadosPerfil.cpf);
-            const docSnap = await getDoc(docRef);
-            if (docSnap.exists()) {
-                const data = docSnap.data();
-                dadosPerfil.status = data.status || "pendente";
-                dadosPerfil.dadosBancarios = data.dadosBancarios || null;
-            }
-        }
-    } catch (e) {
-        console.error("Erro ao verificar status:", e);
-    }
-
-    if (dadosPerfil.status !== "ativo") {
-        alert("⏳ Cadastro em Análise!\n\nVocê ainda não pode aceitar chamadas de treino enquanto seu cadastro estiver pendente de aprovação pela administração.");
-        return;
-    }
-
-    if (!dadosPerfil.dadosBancarios) {
-        alert("💳 Dados Bancários Pendentes!\n\nPara receber os repasses das aulas, cadastre sua conta bancária na aba 'Carteira' antes de aceitar treinos.");
-        return;
-    }
-
-    try {
-        await updateDoc(doc(db, "chamadas_uber", chamadaId), {
-            status: "aceito",
-            personalAceitou: dadosPerfil.nome
-        });
-
-        await addDoc(collection(db, "agenda"), {
-            nome: nomeAluno,
-            aluno: nomeAluno,
-            professor: dadosPerfil.nome,
-            objetivo: foco || "Treino Rápido",
-            preco: parseFloat(valor),
-            horario: horario,
-            diaSemana: "Hoje",
-            frequencia: "Chamada Instantânea",
-            status: "ativo",
-            criadoEm: new Date().toISOString()
-        });
-
-        alert(`🎉 Você aceitou o treino de ${nomeAluno}!\n\nA taxa de 15% foi retida automaticamente pela TAPAGO via Mercado Pago.`);
-        carregarAgendaDoBanco();
-    } catch (e) {
-        console.error("Erro ao aceitar chamada:", e);
-    }
-}
-
-async function carregarAgendaDoBanco() {
-    try {
-        const querySnapshot = await getDocs(collection(db, "agenda"));
-        agendaDeHoje = [];
-        querySnapshot.forEach((docItem) => {
-            agendaDeHoje.push({ id: docItem.id, ...docItem.data() });
-        });
-        renderizarAgenda();
-        atualizarProjecaoFinanceiraReal();
-    } catch (error) {
-        console.error("Erro agenda:", error);
-    }
-}
-
-function renderizarAgenda() {
-    const lista = document.getElementById('lista-agenda');
-    const resumo = document.getElementById('lista-agenda-resumo');
-    if (!lista) return;
-    lista.innerHTML = "";
-    if (resumo) resumo.innerHTML = "";
-
-    if (agendaDeHoje.length === 0) {
-        lista.innerHTML = "<p style='color: var(--text-muted); font-size: 12px; text-align: center; padding: 15px;'>Nenhum atendimento agendado para esta data.</p>";
-        if (resumo) resumo.innerHTML = "<p style='color: var(--text-muted); font-size: 12px;'>Nenhum atendimento para hoje.</p>";
-        return;
-    }
-
-    agendaDeHoje.forEach((slot, index) => {
-        const itemHtml = `
-            <div class="glass" style="padding: 12px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <div>
-                    <h4 style="margin: 0; font-size: 14px;">${slot.nome || slot.aluno} (${slot.horario || '08:00'})</h4>
-                    <p style="font-size: 11px; color: var(--gold); margin: 2px 0;">Foco: ${slot.objetivo} • R$ ${slot.preco || 0}</p>
-                </div>
-                <button onclick="desmarcarTreinoPersonal('${slot.id}', '${slot.nome || slot.aluno}')" style="background: rgba(255, 51, 51, 0.2); color: #ff3333; border: 1px solid #ff3333; padding: 4px 8px; border-radius: 6px; font-size: 10px; cursor: pointer;">✕ Desmarcar</button>
-            </div>
-        `;
-        lista.innerHTML += itemHtml;
-        if (resumo) resumo.innerHTML += itemHtml;
-    });
-}
-
-window.desmarcarTreinoPersonal = async function(agendamentoId, nomeAluno) {
-    const confirma = confirm(`⚠️ TAXA DE CANCELAMENTO:\n\nTem certeza que deseja desmarcar a aula com ${nomeAluno}?\n\nO cancelamento gera uma taxa administrativa de R$ 15,00 retida pela plataforma para ressarcimento da agenda.`);
-    if (!confirma) return;
-
-    try {
-        await deleteDoc(doc(db, "agenda", agendamentoId));
-        alert("✅ Aula desmarcada com sucesso.");
-        carregarAgendaDoBanco();
-    } catch (e) {
-        console.error("Erro ao desmarcar treino:", e);
-    }
-}
-
-async function atualizarProjecaoFinanceiraReal() {
-    try {
-        const querySnapshot = await getDocs(collection(db, "agenda"));
-        let totalBruto = 0;
-        querySnapshot.forEach((docItem) => {
-            const data = docItem.data();
-            if (data.preco) totalBruto += Number(data.preco);
-        });
-        let totalLiquido = totalBruto * 0.85;
-        const elFixo = document.getElementById('valor-fixo');
-        const elTotal = document.getElementById('valor-total');
-        if (elFixo) elFixo.innerText = `R$ ${totalLiquido.toLocaleString('pt-BR', {maximumFractionDigits:2})}`;
-        let totalGeral = totalLiquido + (ganhosAvulsos * 0.85);
-        if (elTotal) elTotal.innerText = `R$ ${totalGeral.toLocaleString('pt-BR', {maximumFractionDigits:2})}`;
-    } catch (e) {
-        console.error("Erro finanças:", e);
-    }
-}
-
-async function confirmarCadastroAluno() {
-    const nome = document.getElementById('cad-aluno-nome').value.trim();
-    const objetivo = document.getElementById('cad-aluno-objetivo').value.trim();
-    const cpf = document.getElementById('cad-aluno-cpf').value.trim();
-    const preco = parseFloat(document.getElementById('cad-aluno-preco').value) || 350;
-    const diaSemana = document.getElementById('cad-aluno-dias').value.trim() || "Seg, Qua, Sex";
-    const horario = document.getElementById('cad-aluno-horario').value.trim() || "08:00";
-    const frequencia = document.getElementById('cad-aluno-frequencia').value.trim() || "3x na semana";
-
-    if (!nome) return alert("Digite o nome do aluno.");
-
-    try {
-        await addDoc(collection(db, "agenda"), {
-            nome, cpf: cpf || "Não informado", objetivo: objetivo || "Geral",
-            preco, diaSemana, horario, frequencia, status: "ativo", criadoEm: new Date().toISOString()
-        });
-        fecharModalCadastrarAluno();
-        alert(`🎉 Aluno ${nome} matriculado!`);
-        carregarAgendaDoBanco();
-    } catch (e) {
-        console.error("Erro cadastro aluno:", e);
-    }
-}
-
-async function carregarListaConversasPersonal() {
-    const listaView = document.getElementById('chat-list-view');
-    if (!listaView) return;
-    try {
-        const snap = await getDocs(collection(db, "usuarios"));
-        listaView.innerHTML = "";
-        snap.forEach(docUsr => {
-            const u = docUsr.data();
-            const item = document.createElement('div');
-            item.className = "chat-item glass";
-            item.onclick = () => abrirConversa(docUsr.id, u.nome);
-            item.innerHTML = `
-                <div class="chat-avatar">${u.nome.charAt(0)}</div>
-                <div class="chat-info">
-                    <h4>${u.nome} <span class="chat-time">Online</span></h4>
-                    <p>Clique para conversar</p>
-                </div>
-            `;
-            listaView.appendChild(item);
-        });
-    } catch (e) {
-        console.error("Erro conversas personal:", e);
-    }
-}
-
-async function abrirConversa(alunoUid, nomeAluno) {
-    conversaAtiva = alunoUid;
-    document.getElementById('chat-list-view').style.display = 'none';
-    document.getElementById('chat-conversation-view').style.display = 'flex';
-    document.getElementById('chat-active-name').innerText = nomeAluno;
-
-    const chatBox = document.getElementById('chat-box');
-    chatBox.innerHTML = '';
-
-    const chatId = `${alunoUid}_${dadosPerfil.nome}`;
-    const q = query(collection(db, "chats", chatId, "mensagens"), orderBy("data", "asc"));
-
-    if (unsubscribePersonalChat) unsubscribePersonalChat();
-
-    unsubscribePersonalChat = onSnapshot(q, (snapshot) => {
-        chatBox.innerHTML = '';
-        snapshot.forEach((docItem) => {
-            const msg = docItem.data();
-            const msgDiv = document.createElement('div');
-            const ehMinha = msg.remetente === dadosPerfil.nome;
-            msgDiv.className = `msg ${ehMinha ? 'msg-sent' : 'msg-received'}`;
-            msgDiv.innerHTML = `<p>${msg.texto}</p><span class="msg-time">${new Date(msg.data).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>`;
-            chatBox.appendChild(msgDiv);
-        });
-        chatBox.scrollTop = chatBox.scrollHeight;
-    });
-}
-
-function fecharConversa() {
-    if (unsubscribePersonalChat) unsubscribePersonalChat();
-    document.getElementById('chat-list-view').style.display = 'block';
-    document.getElementById('chat-conversation-view').style.display = 'none';
-    conversaAtiva = null;
-    carregarListaConversasPersonal();
-}
-
-async function enviarMensagemChat() {
-    const input = document.getElementById('input-chat-msg');
-    const texto = input.value.trim();
-    if (texto === "" || !conversaAtiva) return;
-
-    const chatId = `${conversaAtiva}_${dadosPerfil.nome}`;
-    input.value = "";
-
-    try {
-        await addDoc(collection(db, "chats", chatId, "mensagens"), {
-            remetente: dadosPerfil.nome,
-            texto: texto,
-            data: new Date().toISOString()
-        });
-    } catch (e) {
-        console.error("Erro envio personal:", e);
-    }
-}
-
-async function enviarPropostaPersonal() {
-    if (!conversaAtiva) return alert("Abra uma conversa primeiro.");
-    const horario = prompt("Digite o horário da aula (Ex: 15:00):", "15:00");
-    const preco = prompt("Digite o valor da aula (R$):", "60");
-    if (!horario || !preco) return;
-
-    const chatId = `${conversaAtiva}_${dadosPerfil.nome}`;
-    try {
-        await addDoc(collection(db, "chats", chatId, "mensagens"), {
-            remetente: dadosPerfil.nome,
-            tipo: "proposta",
-            horario: horario,
-            preco: preco,
-            texto: `📋 Proposta de Treino: Horário às ${horario} - Valor: R$ ${preco},00 (Split Mercado Pago)`,
-            data: new Date().toISOString()
-        });
-    } catch (e) {
-        console.error("Erro proposta:", e);
-    }
+async function sairModoPessoal() {
+    if (!confirm("Deseja realmente sair do portal?")) return;
+    try { await signOut(auth); } catch (e) {}
+    $("screen-dashboard")?.classList.remove("active");
+    $("screen-login-personal")?.classList.add("active");
 }
 
 function atualizarExibicaoPerfil() {
-    const primeiraLetra = dadosPerfil.nome.charAt(0).toUpperCase();
-    const elNome = document.getElementById('nome-exibicao');
-    const elPerfilNome = document.getElementById('perfil-nome-display');
-    const elPerfilCref = document.getElementById('perfil-cref-display');
-    const elInitPerfil = document.getElementById('initials-perfil');
-
-    if (elNome) elNome.innerText = dadosPerfil.nome;
-    if (elPerfilNome) elPerfilNome.innerText = dadosPerfil.nome;
-    if (elPerfilCref) elPerfilCref.innerText = `CREF: ${dadosPerfil.cref}`;
-    if (elInitPerfil) elInitPerfil.innerText = primeiraLetra;
-}
-
-window.sairModoPessoal = function() {
-    if (confirm("Deseja realmente sair do modo profissional?")) {
-        localStorage.removeItem('tapago_personal_user');
-        const dash = document.getElementById('screen-dashboard');
-        const login = document.getElementById('screen-login-personal');
-        if (dash) dash.classList.remove('active');
-        if (login) login.classList.add('active');
+    const inicial = (dadosPerfil.nome || "P").charAt(0).toUpperCase();
+    if ($("perfil-nome-display")) $("perfil-nome-display").innerText = dadosPerfil.nome;
+    if ($("perfil-cref-display")) $("perfil-cref-display").innerText = dadosPerfil.status === "ativo" ? "Status: Ativo ✓" : "Status: Em análise";
+    if ($("initials-perfil")) $("initials-perfil").innerText = inicial;
+    if (dadosPerfil.fotoUrl && $("img-perfil-preview")) {
+        const img = $("img-perfil-preview");
+        img.src = dadosPerfil.fotoUrl;
+        img.style.display = "block";
+        if ($("initials-perfil")) $("initials-perfil").style.display = "none";
     }
 }
 
-function abrirModalCadastrarAluno() { document.getElementById('modal-cadastrar-aluno').classList.add('active'); }
-function fecharModalCadastrarAluno() { document.getElementById('modal-cadastrar-aluno').classList.remove('active'); }
-
-window.abrirModalDadosBancarios = async function() {
-    document.getElementById('modal-dados-bancarios').classList.add('active');
-
-    if (dadosPerfil.cpf) {
-        try {
-            const docRef = doc(db, "profissionais", dadosPerfil.cpf);
-            const docSnap = await getDoc(docRef);
-            if (docSnap.exists() && docSnap.data().dadosBancarios) {
-                const b = docSnap.data().dadosBancarios;
-                if (b.banco) document.getElementById('bank-select-banco').value = b.banco;
-                if (b.tipoConta) document.getElementById('bank-select-tipo-conta').value = b.tipoConta;
-                if (b.agencia) document.getElementById('bank-input-agencia').value = b.agencia;
-                if (b.conta) document.getElementById('bank-input-conta').value = b.conta;
-                if (b.digito) document.getElementById('bank-input-digito').value = b.digito;
-                if (b.tipoPix) document.getElementById('bank-select-tipo-pix').value = b.tipoPix;
-                if (b.chavePix) document.getElementById('bank-input-chave-pix').value = b.chavePix;
-            }
-        } catch (e) {
-            console.error("Erro ao carregar dados bancários:", e);
-        }
-    }
+function switchTabPersonal(tabId, navElement) {
+    document.querySelectorAll("#screen-dashboard .tab-content").forEach((t) => t.classList.remove("active"));
+    $(tabId)?.classList.add("active");
+    document.querySelectorAll("#nav-personal .nav-item").forEach((i) => i.classList.remove("active"));
+    if (navElement) navElement.classList.add("active");
+    window.scrollTo(0, 0);
+    if (tabId === "tab-ofertas") initMapAlunos();
 }
 
-window.fecharModalDadosBancarios = function() {
-    document.getElementById('modal-dados-bancarios').classList.remove('active');
+const SUBTELAS = {
+    "Perfil": "subscreen-perfil-detalhes",
+    "Dados bancários": "subscreen-dados-bancarios",
+    "Preferências de Atendimento": "subscreen-preferencias-atendimento",
+    "Convidar Amigos": "subscreen-indicar-amigo",
+    "Notificações": "subscreen-notificacoes",
+    "Ajuda": "subscreen-ajuda"
+};
+
+function abrirOpcaoMenu(nome) { 
+    const id = SUBTELAS[nome]; 
+    if (id && $(id))$(id).style.display = "block"; 
 }
 
-window.salvarDadosBancarios = async function() {
-    const banco = document.getElementById('bank-select-banco').value;
-    const tipoConta = document.getElementById('bank-select-tipo-conta').value;
-    const agencia = document.getElementById('bank-input-agencia').value.trim();
-    const conta = document.getElementById('bank-input-conta').value.trim();
-    const digito = document.getElementById('bank-input-digito').value.trim();
-    const tipoPix = document.getElementById('bank-select-tipo-pix').value;
-    const chavePix = document.getElementById('bank-input-chave-pix').value.trim();
+function fecharSubtela(id) { 
+    if ($(id))$(id).style.display = "none"; 
+}
 
-    if (!agencia || !conta || !chavePix) {
-        return alert("Por favor, preencha Agência, Número da Conta e Chave PIX.");
-    }
+async function salvarMerge(dados) {
+    const chave = dadosPerfil.cpf || dadosPerfil.uid;
+    if (!chave) return;
+    await setDoc(doc(db, "profissionais", chave), { ...dados, atualizadoEm: serverTimestamp() }, { merge: true });
+}
 
-    if (!dadosPerfil.cpf) {
-        return alert("Erro: Identificação do perfil não encontrada. Faça login novamente.");
-    }
-
+async function salvarPerfilProfissionalCompleto() {
     try {
-        const dadosBancariosObj = {
-            banco,
-            tipoConta,
-            agencia,
-            conta,
-            digito,
-            tipoPix,
-            chavePix,
-            atualizadoEm: new Date().toISOString()
-        };
-
-        dadosPerfil.dadosBancarios = dadosBancariosObj;
-
-        await setDoc(doc(db, "profissionais", dadosPerfil.cpf), {
-            dadosBancarios: dadosBancariosObj
-        }, { merge: true });
-
-        alert("✅ Dados bancários salvos com sucesso!");
-        fecharSubtela('subscreen-dados-bancarios');
-    } catch (e) {
-        console.error("Erro ao salvar dados bancários:", e);
-        alert("Erro ao salvar dados. Tente novamente.");
-    }
-}
-
-window.initMapAlunos = function() {
-    const mapElement = document.getElementById('mapa-alunos');
-    if (!mapElement) return;
-
-    mapAlunos = new google.maps.Map(mapElement, {
-        center: { lat: -22.4243, lng: -46.8427 },
-        zoom: 14,
-        disableDefaultUI: true
-    });
-
-    carregarAlunosNoMapa();
-}
-
-window.carregarAlunosNoMapa = async function() {
-    if (!mapAlunos) return;
-    const containerDemandas = document.getElementById('lista-demandas-cards');
-    if (containerDemandas) containerDemandas.innerHTML = "";
-
-    try {
-        const querySnapshot = await getDocs(collection(db, "usuarios"));
-        
-        if (querySnapshot.empty) {
-            if (containerDemandas) containerDemandas.innerHTML = "<p style='color: var(--text-muted); font-size: 12px; text-align: center; padding: 10px;'>Nenhum aluno online no momento.</p>";
-            return;
-        }
-
-        querySnapshot.forEach((docItem) => {
-            const aluno = docItem.data();
-            const uid = docItem.id;
-
-            if (aluno.lat && aluno.lng) {
-                const pos = { lat: aluno.lat, lng: aluno.lng };
-                if (!marcadoresAlunosMap[uid]) {
-                    marcadoresAlunosMap[uid] = new google.maps.Marker({
-                        position: pos,
-                        map: mapAlunos,
-                        title: aluno.nome,
-                        icon: {
-                            path: google.maps.SymbolPath.CIRCLE,
-                            scale: 8,
-                            fillColor: "#39ff14",
-                            fillOpacity: 1,
-                            strokeColor: "#ffffff",
-                            strokeWeight: 2
-                        }
-                    });
-                }
-            }
-
-            if (containerDemandas) {
-                const card = document.createElement('div');
-                card.className = "glass";
-                card.style.cssText = "padding: 12px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;";
-                card.innerHTML = `
-                    <div>
-                        <h4 style="margin: 0; font-size: 14px;">${aluno.nome || 'Aluno TAPAGO'} <span style="font-size: 10px; color: var(--neon-green);">● Online</span></h4>
-                        <p style="font-size: 11px; color: var(--gold); margin: 2px 0;">Foco: ${aluno.objetivo || 'Geral'}</p>
-                    </div>
-                    <button onclick="abrirConversaModal('${uid}', '${aluno.nome || 'Aluno'}')" style="background: var(--gold); color: #000; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size: 11px; cursor: pointer;">💬 Conversar</button>
-                `;
-                containerDemandas.appendChild(card);
-            }
+        await salvarMerge({
+            nome: $("perfil-input-nome")?.value.trim(),
+            cpf: $("perfil-input-cpf")?.value.trim(),
+            cref: $("perfil-input-cref")?.value.trim(),
+            naturalidade: $("perfil-input-naturalidade")?.value.trim(),
+            bio: $("personal-input-bio")?.value.trim()
         });
-    } catch (e) {
-        console.error("Erro ao carregar alunos no mapa:", e);
+        dadosPerfil.nome = $("perfil-input-nome")?.value.trim() || dadosPerfil.nome;
+        atualizarExibicaoPerfil();
+        toast("✅ Perfil salvo com sucesso!");
+        fecharSubtela("subscreen-perfil-detalhes");
+    } catch (e) { 
+        toast("Erro ao salvar perfil."); 
     }
 }
 
-window.abrirConversaModal = function(alunoUid, nomeAluno) {
-    const modalChat = document.getElementById('modal-chat-flutuante');
-    if (modalChat) {
-        modalChat.classList.add('active');
-        abrirConversa(alunoUid, nomeAluno);
-    } else {
-        switchTabPersonal('tab-menu');
-        abrirConversa(alunoUid, nomeAluno);
+async function salvarDadosBancarios() {
+    try {
+        await salvarMerge({
+            banco: { 
+                banco: $("bank-select-banco")?.value, 
+                agencia: $("bank-input-agencia")?.value.trim(), 
+                conta: $("bank-input-conta")?.value.trim() 
+            },
+            pix: { chave: $("bank-input-chave-pix")?.value.trim() }
+        });
+        toast("✅ Dados bancários salvos!");
+        fecharSubtela("subscreen-dados-bancarios");
+    } catch (e) { 
+        toast("Erro ao salvar dados bancários."); 
     }
 }
 
-window.fecharConversaModal = function() {
-    const modalChat = document.getElementById('modal-chat-flutuante');
-    if (modalChat) {
-        modalChat.classList.remove('active');
-        fecharConversa();
+async function salvarPrefs() {
+    try {
+        await salvarMerge({
+            estilo: $("pref-estilo")?.value,
+            valorMinimo: parseFloat($("pref-valor-min")?.value) || 0
+        });
+        toast("✅ Preferências salvas!");
+        fecharSubtela("subscreen-preferencias-atendimento");
+    } catch(e) {
+        toast("Erro ao salvar preferências.");
     }
 }
 
-window.switchTabPersonal = function(tabId, navElement) {
-    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-    const tabAlvo = document.getElementById(tabId);
-    if (tabAlvo) tabAlvo.classList.add('active');
-    
-    document.querySelectorAll('#nav-personal .nav-item').forEach(item => item.classList.remove('active'));
-    if (navElement) navElement.classList.add('active');
-
-    const sub = document.getElementById('subscreen-perfil-detalhes');
-    if (sub) sub.style.display = 'none';
-
-    if (tabId === 'tab-ofertas') {
-        setTimeout(() => {
-            if (mapAlunos) google.maps.event.trigger(mapAlunos, 'resize');
-        }, 200);
-        carregarAlunosNoMapa();
-    }
+function atualizarFotoPerfil(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const r = new FileReader();
+    r.onload = (e) => { 
+        dadosPerfil.fotoUrl = e.target.result; 
+        atualizarExibicaoPerfil(); 
+    };
+    r.readAsDataURL(file);
 }
 
-// Navegação unificada para todas as subscreens do menu
-window.abrirOpcaoMenu = function(nomeOpcao) {
-    if (nomeOpcao === 'Perfil') {
-        const sub = document.getElementById('subscreen-perfil-detalhes');
-        if (sub) {
-            sub.style.display = 'block';
-            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmtBRL = (v) => (Number(v) || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const fmtData = (d) => (d ? d.split("-").reverse().join("/") : "");
+const chavePromotor = () => dadosPerfil.cpf || dadosPerfil.uid;
+
+async function carregarAgendaDoBanco() {
+    agendaDeHoje = [];
+    try {
+        const chave = chavePromotor();
+        if (chave) {
+            const snap = await getDocs(query(collection(db, "solicitacoes"), where("promotorChave", "==", chave)));
+            agendaDeHoje = snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => `${a.data}${a.entrada}`.localeCompare(`${b.data}${b.entrada}`));
         }
-    } else if (nomeOpcao === 'Dados bancários') {
-        const sub = document.getElementById('subscreen-dados-bancarios');
-        if (sub) sub.style.display = 'block';
-    } else if (nomeOpcao === 'Preferências de Atendimento' || nomeOpcao === 'Atendimento') {
-        const sub = document.getElementById('subscreen-preferencias-atendimento');
-        if (sub) sub.style.display = 'block';
-    } else if (nomeOpcao === 'Convidar Amigos') {
-        const sub = document.getElementById('subscreen-indicar-amigo');
-        if (sub) {
-            sub.style.display = 'block';
-            const cpfPersonal = typeof dadosPerfil !== 'undefined' && dadosPerfil && dadosPerfil.cpf ? dadosPerfil.cpf : "OTAVIO";
-            const linkInput = document.getElementById('input-link-indicacao');
-            if (linkInput) linkInput.value = `https://tapago.com.br/personal/cadastro?ref=${cpfPersonal}`;
-        }
-    } else if (nomeOpcao === 'Notificações') {
-        const sub = document.getElementById('subscreen-notificacoes');
-        if (sub) sub.style.display = 'block';
-    } else if (nomeOpcao === 'Ajuda') {
-        const sub = document.getElementById('subscreen-ajuda');
-        if (sub) sub.style.display = 'block';
-    } else {
-        alert(`📌 Em breve: Redirecionando para ${nomeOpcao}.`);
+    } catch (e) {}
+    ganhosAvulsos = agendaDeHoje.filter((x) => x.status === "concluida").reduce((t, x) => t + (x.valor * 0.85), 0);
+    atualizarFinanceiro();
+    renderizarAgenda();
+}
+
+function renderizarAgenda() {
+    const lista = $("lista-agenda"), resumo = $("lista-agenda-resumo");
+    if (!lista || !resumo) return;
+    if (!agendaDeHoje.length) {
+        const v = `<div class="empty-state"><h4>Nenhum atendimento</h4><p>As aulas que você aceitar nas Ofertas aparecem aqui.</p></div>`;
+        lista.innerHTML = v; resumo.innerHTML = v; return;
+    }
+    const card = (x) => `<div class="glass agenda-slot" style="padding:15px; margin-bottom:10px;"><strong>${esc(x.loja || x.aluno || "Aluno")}</strong><p>${fmtData(x.data)} · ${esc(x.entrada)} · R$ ${esc(x.valor)}</p></div>`;
+    lista.innerHTML = agendaDeHoje.map(card).join("");
+    resumo.innerHTML = agendaDeHoje.map(card).join("");
+}
+
+function atualizarFinanceiro() {
+    const fmt = (v) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    if ($("valor-avulso")) $("valor-avulso").innerText = fmt(ganhosAvulsos);
+    if ($("valor-total")) $("valor-total").innerText = fmt(ganhosAvulsos);
+}
+
+function renderizarCalendario() {
+    const grid = $("calendar-days-grid");
+    if (!grid) return;
+    const ano = dataCalendario.getFullYear(), mes = dataCalendario.getMonth();
+    if ($("calendar-month-year")) $("calendar-month-year").innerText = dataCalendario.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+    let html = "";
+    for (let d = 1; d <= 28; d++) html += `<div class="cal-day" style="padding:10px; text-align:center;">${d}</div>`;
+    grid.innerHTML = html;
+}
+
+function mudarMesCalendario(delta) {
+    dataCalendario = new Date(dataCalendario.getFullYear(), dataCalendario.getMonth() + delta, 1);
+    renderizarCalendario();
+}
+
+async function renderizarOfertas() {
+    const el = $("lista-demandas-cards");
+    if (!el) return;
+    if (dadosPerfil.status !== "ativo") {
+        el.innerHTML = `<div class="empty-state"><h4>Ofertas liberadas após aprovação</h4><p>Estamos analisando seu CREF.</p></div>`;
+        return;
+    }
+    let lista = [];
+    try {
+        const snap = await getDocs(query(collection(db, "solicitacoes"), where("status", "==", "aberta")));
+        lista = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    } catch (e) {}
+    el.innerHTML = lista.length ? lista.map((x) => `<div class="glass agenda-slot" style="padding:15px;"><strong>${esc(x.loja)}</strong><p>${fmtBRL(x.valor)}</p><button class="btn btn-primary" onclick="aceitarOferta('${x.id}')" style="margin-top:10px;">Aceitar Aula</button></div>`).join("") : `<div class="empty-state"><h4>Sem ofertas no momento</h4><p>Novas solicitações aparecerão aqui.</p></div>`;
+}
+
+async function aceitarOferta(id) {
+    try {
+        await updateDoc(doc(db, "solicitacoes", id), { 
+            status: "aceita", 
+            promotorChave: chavePromotor(), 
+            promotorNome: dadosPerfil.nome 
+        });
+        toast("Aula aceita com sucesso!");
+        carregarAgendaDoBanco();
+        renderizarOfertas();
+    } catch (e) { 
+        toast("Erro ao aceitar aula."); 
     }
 }
 
-window.validarCheckTermos = function() {
-    const checkbox = document.getElementById('check-termos');
-    const btnLogin = document.getElementById('btn-login');
-    if (!checkbox || !btnLogin) return;
-    
-    if (checkbox.checked) {
-        btnLogin.disabled = false;
-        btnLogin.style.opacity = '1';
-        btnLogin.style.cursor = 'pointer';
-    } else {
-        btnLogin.disabled = true;
-        btnLogin.style.opacity = '0.5';
-        btnLogin.style.cursor = 'not-allowed';
+function initMapAlunos() {
+    const el = $("mapa-alunos");
+    if (!el || !window.google || !window.google.maps) return;
+    if (!mapaOfertas) {
+        mapaOfertas = new google.maps.Map(el, {
+            zoom: 14, 
+            center: { lat: -22.4389, lng: -46.8258 }, 
+            disableDefaultUI: true
+        });
     }
 }
 
-window.abrirModalTermos = function() {
-    document.getElementById('modal-termos').classList.add('active');
+function abrirModalCadastrarAluno() { 
+    $("modal-cadastrar-aluno")?.classList.add("active"); 
 }
 
-window.fecharModalTermos = function() {
-    document.getElementById('modal-termos').classList.remove('active');
+function fecharModalCadastrarAluno() { 
+    $("modal-cadastrar-aluno")?.classList.remove("active"); 
 }
 
-window.aceitarTermosModal = function() {
-    const chk = document.getElementById('check-termos');
-    if (chk) chk.checked = true;
-    validarCheckTermos();
-    fecharModalTermos();
+async function confirmarCadastroAluno() {
+    const nome = $("cad-aluno-nome")?.value.trim();
+    const objetivo = $("cad-aluno-objetivo")?.value.trim();
+    const preco = parseFloat($("cad-aluno-preco")?.value) || 0;
+    const horario = $("cad-aluno-horario")?.value.trim();
+
+    if (!nome || !preco) {
+        toast("Preencha o nome e o valor da aula.");
+        return;
+    }
+
+    try {
+        await addDoc(collection(db, "solicitacoes"), {
+            promotorChave: chavePromotor(),
+            promotorNome: dadosPerfil.nome,
+            aluno: nome,
+            loja: objetivo ? `Treino: ${objetivo}` : "Treino Particular",
+            data: new Date().toISOString().split("T")[0],
+            entrada: horario || "08:00",
+            valor: preco,
+            status: "aceita",
+            criadoEm: serverTimestamp()
+        });
+        fecharModalCadastrarAluno();
+        toast("✅ Aluno cadastrado com sucesso!");
+        carregarAgendaDoBanco();
+    } catch(e) {
+        toast("Erro ao cadastrar aluno.");
+    }
 }
 
-// EXPORTAÇÕES GLOBAIS
-window.validarProfissional = validarProfissional;
-window.loginComGoogle = loginComGoogle;
-window.abrirModalCadastrarAluno = abrirModalCadastrarAluno;
-window.fecharModalCadastrarAluno = fecharModalCadastrarAluno;
-window.confirmarCadastroAluno = confirmarCadastroAluno;
-window.abrirConversa = abrirConversa;
-window.fecharConversa = fecharConversa;
-window.enviarMensagemChat = enviarMensagemChat;
-window.enviarPropostaPersonal = enviarPropostaPersonal;
-window.sairModoPessoal = sairModoPessoal;
-window.switchTabPersonal = switchTabPersonal;
-window.carregarAlunosNoMapa = carregarAlunosNoMapa;
-window.aceitarChamadaUber = aceitarChamadaUber;
-window.desmarcarTreinoPersonal = desmarcarTreinoPersonal;
-window.solicitarPermissaoNotificacao = solicitarPermissaoNotificacao;
-window.iniciarCheckoutMercadoPago = iniciarCheckoutMercadoPago;
-window.validarCheckTermos = validarCheckTermos;
-window.abrirModalTermos = abrirModalTermos;
-window.fecharModalTermos = fecharModalTermos;
-window.aceitarTermosModal = aceitarTermosModal;
-window.abrirOpcaoMenu = abrirOpcaoMenu;
-window.abrirModalDadosBancarios = abrirModalDadosBancarios;
-window.fecharModalDadosBancarios = fecharModalDadosBancarios;
-window.salvarDadosBancarios = salvarDadosBancarios;
-window.mudarMesCalendario = mudarMesCalendario;
-window.selecionarDiaCalendario = selecionarDiaCalendario;
-window.abrirConversaModal = abrirConversaModal;
-window.fecharConversaModal = fecharConversaModal;
-window.initMapAlunos = initMapAlunos;
+function fecharQR() {
+    $("modal-qr")?.classList.remove("active");
+}
+
+Object.assign(window, {
+    validarProfissional, loginComGoogle, validarCheckTermos, abrirModalTermos, aceitarTermosModal,
+    abrirOpcaoMenu, fecharSubtela, salvarPerfilProfissionalCompleto, salvarDadosBancarios, salvarPrefs,
+    atualizarFotoPerfil, sairModoPessoal, switchTabPersonal, mudarMesCalendario,
+    abrirModalCadastrarAluno, fecharModalCadastrarAluno, confirmarCadastroAluno, 
+    aceitarOferta, initMapAlunos, fecharQR, copiarLinkIndicacao: window.copiarLinkIndicacao, compartilharWhatsApp: window.compartilharWhatsApp
+});
