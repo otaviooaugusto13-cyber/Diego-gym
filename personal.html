@@ -8,6 +8,8 @@
     <link rel="stylesheet" href="style-personal.css">
     <link rel="stylesheet" href="polish.css">
     <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="icon-192.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
     <meta name="theme-color" content="#3B82F6">
 </head>
 <body>
@@ -22,13 +24,13 @@
     <!-- TELA 1: Login -->
     <div id="screen-login-personal" class="screen active login-screen">
         <div class="auth-card">
-            <div class="auth-brand"><h1>PERSO<span class="highlight">NOW</span></h1><p>Reposição sob demanda para o varejo</p></div>
-            <div class="auth-switch"><a href="index.html" class="">Sou contratante</a><a href="personal.html" class="on">Sou personal</a></div>
-            <h2 class="auth-title">Comece a pegar turnos</h2>
-            <p class="auth-sub" id="login-sub">Seu cadastro passa por análise antes de liberar as ofertas.</p>
+            <div class="auth-brand"><img src="logo-branco.png" alt="PERSONOW" class="brand-logo"><p>Treinos e aulas sob demanda</p></div>
+            <div class="auth-switch"><a href="index.html" class="">Sou aluno</a><a href="personal.html" class="on">Sou personal</a></div>
+            <h2 class="auth-title">Comece a atender alunos</h2>
+            <p class="auth-sub" id="login-sub">Seu cadastro passa por análise antes de liberar os pedidos de treino.</p>
             <input type="text" id="input-nome" placeholder="Seu nome profissional" autocomplete="name">
             <input type="text" id="input-cpf" placeholder="CPF (apenas números)" maxlength="11" inputmode="numeric">
-            <input type="text" id="input-cref" placeholder="MEI ou experiência (opcional)">
+            <input type="text" id="input-cref" placeholder="CREF (opcional)">
             
             <label class="auth-check">
                 <input type="checkbox" id="check-remember">
@@ -59,7 +61,7 @@
                 </div>
                 
                 <h3 style="font-size: 18px; margin: 0 0 5px 0; color: var(--text-color);">Estamos analisando seu perfil profissional</h3>
-                <p style="font-size: 12px; color: var(--text-muted); margin: 0 0 20px 0;">Avisaremos por aqui assim que você puder pegar demandas de abastecimento.</p>
+                <p style="font-size: 12px; color: var(--text-muted); margin: 0 0 20px 0;">Avisaremos por aqui assim que você puder receber pedidos de alunos.</p>
 
                 <div class="section-title" style="margin-bottom: 15px;">O QUE ACONTECE AGORA</div>
 
@@ -74,7 +76,7 @@
                     </div>
                     <div style="display: flex; align-items: center; gap: 12px;">
                         <div style="width: 24px; height: 24px; border-radius: 50%; background: rgba(255,255,255,0.1); color: var(--text-muted); display: flex; align-items: center; justify-content: center; font-size: 12px;">🔔</div>
-                        <span style="font-size: 13px; color: var(--text-muted);">Avisaremos quando houver ofertas na região</span>
+                        <span style="font-size: 13px; color: var(--text-muted);">Avisaremos quando houver pedidos de treino na região</span>
                     </div>
                 </div>
             </div>
@@ -82,21 +84,21 @@
             <div class="glass" style="padding: 20px; border-radius: 16px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
                 <div>
                     <h3 style="margin: 0 0 5px 0; font-size: 16px;">Ajuda</h3>
-                    <p style="margin: 0 0 10px 0; font-size: 12px; color: var(--text-muted);">Ficou com alguma dúvida sobre reposições?<br>Estamos aqui para te ajudar!</p>
+                    <p style="margin: 0 0 10px 0; font-size: 12px; color: var(--text-muted);">Ficou com alguma dúvida sobre o PERSONOW?<br>Estamos aqui para te ajudar!</p>
                     <a href="#" onclick="abrirOpcaoMenu('Ajuda'); return false;" style="color: var(--accent); font-size: 12px; font-weight: bold; text-decoration: none;">Saber mais ›</a>
                 </div>
                 <div style="font-size: 40px; line-height: 1;">❓</div>
             </div>
 
             <div class="glass finance-card">
-                <div class="finance-header">Projeção Financeira Real (Líquido Promotor)</div>
+                <div class="finance-header">Projeção Financeira (Líquido Personal)</div>
                 <div class="finance-values">
                     <div class="finance-item">
-                        <span>Lojas Fixas</span>
+                        <span>Alunos Fixos</span>
                         <h3 id="valor-fixo">R$ 0,00</h3>
                     </div>
                     <div class="finance-item">
-                        <span>Freelas Avulsos</span>
+                        <span>Aulas Avulsas</span>
                         <h3 id="valor-avulso" style="color: var(--accent);">R$ 0,00</h3>
                     </div>
                 </div>
@@ -106,31 +108,31 @@
                 </div>
             </div>
 
-            <div class="section-title">Resumo de Atendimentos & Reposições de Hoje</div>
+            <div class="section-title">Resumo das Aulas de Hoje</div>
             <div id="lista-agenda-resumo" style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;"></div>
         </div>
 
         <!-- ABA 2: OFERTAS (RADAR) -->
         <div id="tab-ofertas" class="tab-content" style="padding-bottom: 120px;">
             <div class="header-personal glass">
-                <h2 style="margin: 0; font-size: 20px;">Demandas e Vagas de Reposição</h2>
+                <h2 style="margin: 0; font-size: 20px;">Pedidos de Treino</h2>
             </div>
             <div id="painel-chamadas-uber" style="margin-bottom: 15px;"></div>
             <div id="mapa-alunos" class="glass" style="height: 250px; width: 100%; border-radius: 16px; border: 1px solid var(--accent); overflow: hidden; margin-bottom: 20px;"></div>
-            <div class="section-title">Lojas & Mercados Buscando Promotores na Região</div>
+            <div class="section-title">Alunos Buscando Personal na Região</div>
             <div id="lista-demandas-cards" style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;"></div>
         </div>
 
         <!-- ABA 3: AGENDA -->
         <div id="tab-agenda" class="tab-content" style="padding-bottom: 120px;">
             <div class="header-personal glass" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h2 style="margin: 0; font-size: 20px;">Escala de Trabalho</h2>
+                <h2 style="margin: 0; font-size: 20px;">Agenda de Aulas</h2>
             </div>
 
             <div class="glass" style="padding: 12px 15px; background: rgba(59, 130, 246, 0.08); border-left: 4px solid var(--accent); margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
                 <span style="font-size: 20px;">⏳</span>
                 <p style="margin: 0; font-size: 11px; color: var(--text-muted); line-height: 1.3;">
-                    <strong>Aguarde! Estamos validando o seu cadastro.</strong><br>Para começar a aceitar demandas de reposição é necessário a aprovação do perfil.
+                    <strong>Aguarde! Estamos validando o seu cadastro.</strong><br>Para começar a aceitar pedidos de treino é necessário a aprovação do perfil.
                 </p>
             </div>
 
@@ -149,7 +151,7 @@
             </div>
 
             <div style="text-align: center; color: var(--text-muted); font-size: 12px; margin-bottom: 15px;" id="selected-date-label">
-                Escolha uma data para conferir os turnos de reposição agendados.
+                Escolha uma data para conferir as aulas agendadas.
             </div>
 
             <div id="lista-agenda" style="display: flex; flex-direction: column; gap: 10px;"></div>
@@ -165,9 +167,9 @@
                 <div style="width: 50px; height: 50px; border-radius: 50%; background: #28a745; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; margin: 0 auto 15px auto;">
                     $
                 </div>
-                <h3 style="margin: 0 0 8px 0; font-size: 16px; color: var(--text-color);">Seus ganhos de abastecimento aparecerão aqui</h3>
+                <h3 style="margin: 0 0 8px 0; font-size: 16px; color: var(--text-color);">Seus ganhos com as aulas aparecerão aqui</h3>
                 <p style="margin: 0; font-size: 12px; color: var(--text-muted); line-height: 1.4;">
-                    Os valores recebidos pelos seus serviços prestados ficam registrados neste espaço.
+                    Os valores recebidos pelas suas aulas ficam registrados neste espaço.
                 </p>
             </div>
 
@@ -177,7 +179,7 @@
                 </div>
                 <h3 style="margin: 0 0 8px 0; font-size: 15px; color: var(--text-color);">Você já cadastrou seus dados bancários?</h3>
                 <p style="margin: 0 0 15px 0; font-size: 12px; color: var(--text-muted); line-height: 1.4;">
-                    Cadastre seus dados bancários para receber seus pagamentos de diárias na data programada.
+                    Cadastre seus dados bancários para receber seus pagamentos das aulas na data programada.
                 </p>
                 <button class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 14px;" onclick="abrirOpcaoMenu('Dados bancários')">
                     Cadastrar
@@ -202,7 +204,7 @@
                         <input type="file" id="input-foto-promotor" accept="image/*" onchange="atualizarFotoPerfil(event)" style="display:none">
                     </div>
                     <div>
-                        <h3 id="perfil-nome-display" style="margin: 0; font-size: 17px;">Promotor</h3>
+                        <h3 id="perfil-nome-display" style="margin: 0; font-size: 17px;">Personal</h3>
                         <p id="perfil-cref-display" style="margin: 2px 0 0 0; font-size: 11px; color: var(--accent);">Status: Ativo</p>
                     </div>
                 </div>
@@ -216,7 +218,7 @@
                     </div>
                     <div>
                         <h3 style="margin: 0; font-size: 18px; color: var(--accent);">0</h3>
-                        <span style="font-size: 11px; color: var(--text-muted);">Lojas Atendidas</span>
+                        <span style="font-size: 11px; color: var(--text-muted);">Alunos Atendidos</span>
                     </div>
                 </div>
                 <button class="btn btn-primary" style="padding: 10px; font-size: 12px; width: 100%;">Meu desempenho</button>
@@ -224,8 +226,8 @@
 
             <div class="section-title">Minha conta</div>
             <div class="glass" style="padding:15px;margin-bottom:15px;border-left:4px solid var(--accent);">
-                <h4 class="conta-h">Próxima reposição</h4>
-                <p id="proxima-reposicao" class="muted-line">Nenhum turno agendado.</p>
+                <h4 class="conta-h">Próxima aula</h4>
+                <p id="proxima-aula" class="muted-line">Nenhuma aula agendada.</p>
             </div>
             <div class="glass" style="padding:15px;margin-bottom:15px;">
                 <h4 class="conta-h">Contato</h4>
@@ -267,7 +269,7 @@
                     <span class="option-arrow">›</span>
                 </div>
                 <div class="menu-option-item" onclick="abrirOpcaoMenu('Convidar Amigos')">
-                    <div class="option-left"><span>🎁</span><span>Convidar promotores</span></div>
+                    <div class="option-left"><span>🎁</span><span>Convidar personais</span></div>
                     <span class="option-arrow">›</span>
                 </div>
                 <div class="menu-option-item" onclick="abrirOpcaoMenu('Ajuda')">
@@ -339,8 +341,8 @@
             <label style="font-size: 12px; font-weight: bold; color: #e4e4e7; display: block; margin-bottom: 6px;">Cidade de Atuação (UF)</label>
             <input type="text" id="perfil-input-naturalidade" placeholder="Ex: Itapira - SP" style="width: 100%; padding: 12px; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; font-size: 13px; color: #ffffff; background: #1f1f23; margin-bottom: 15px; outline: none; box-sizing: border-box;">
 
-            <label style="font-size: 12px; font-weight: bold; color: #e4e4e7; display: block; margin-bottom: 6px;">Apresentação / Experiência em Varejo</label>
-            <textarea id="personal-input-bio" rows="3" placeholder="Conte suas experiências em supermercados, marcas atendidas..." style="width: 100%; padding: 12px; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; color: #ffffff; background: #1f1f23; font-size: 13px; margin-bottom: 20px; outline: none; box-sizing: border-box;"></textarea>
+            <label style="font-size: 12px; font-weight: bold; color: #e4e4e7; display: block; margin-bottom: 6px;">Apresentação / Experiência como Personal</label>
+            <textarea id="personal-input-bio" rows="3" placeholder="Conte sua formação, CREF, especialidades e experiência na academia..." style="width: 100%; padding: 12px; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; color: #ffffff; background: #1f1f23; font-size: 13px; margin-bottom: 20px; outline: none; box-sizing: border-box;"></textarea>
 
             <button class="btn btn-primary" onclick="salvarPerfilProfissionalCompleto()" style="width: 100%; font-weight: bold; padding: 14px; border-radius: 12px; font-size: 14px; cursor: pointer; margin-bottom: 30px;">Salvar Alterações</button>
         </div>
@@ -356,7 +358,7 @@
             
             <h3 style="margin: 0 0 10px 0; font-size: 14px; color: var(--accent); font-weight: bold;">Configure seu recebimento</h3>
             <p style="font-size: 12px; color: #a1a1aa; line-height: 1.4; margin-bottom: 20px;">
-                Atualize seus dados para garantir os pagamentos de diárias e freelas.
+                Atualize seus dados para garantir os pagamentos das aulas.
             </p>
 
             <label style="font-size: 12px; font-weight: bold; color: #e4e4e7; display: block; margin-bottom: 6px;">Banco</label>
@@ -419,13 +421,14 @@
                 <h2 style="margin: 0; color: #ffffff; font-size: 18px; font-weight: bold;">Especialidades & Horários</h2>
             </div>
             
-            <label style="font-size: 12px; font-weight: bold; color: var(--accent); display: block; margin-bottom: 10px;">🛒 Setor / Especialidade Principal</label>
+            <label style="font-size: 12px; font-weight: bold; color: var(--accent); display: block; margin-bottom: 10px;">🏋️ Especialidade Principal</label>
             <select id="pref-estilo" style="width: 100%; padding: 12px; background: #1f1f23; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; color: #fff; margin-bottom: 20px; box-sizing: border-box;">
-                <option value="mercearia">Mercearia & Abastecimento Geral</option>
-                <option value="hortifruti">Hortifruti / FLV</option>
-                <option value="frios">Frios & Laticínios</option>
-                <option value="bebidas">Bebidas & Pontas de Gôndola</option>
-                <option value="inventario">Auditoria & Prevenção de Perdas</option>
+                <option value="musculacao">Musculação</option>
+                <option value="hipertrofia">Hipertrofia</option>
+                <option value="emagrecimento">Emagrecimento</option>
+                <option value="funcional">Treinamento Funcional</option>
+                <option value="avaliacao">Avaliação Física</option>
+                <option value="corrida">Corrida & Cardio</option>
             </select>
 
             <label style="font-size: 12px; font-weight: bold; color: var(--accent); display: block; margin-bottom: 10px;">⏰ Disponibilidade (Início e Fim)</label>
@@ -446,9 +449,9 @@
                 <button type="button" class="btn-dia" onclick="toggleDiaTrabalho(this)" style="padding: 10px; background: #1f1f23; border: 1px solid rgba(255,255,255,0.15); color: #888; border-radius: 8px; font-size: 12px; cursor: pointer;">Dom (Folga)</button>
             </div>
 
-            <label style="font-size: 12px; font-weight: bold; color: var(--accent); display: block; margin-bottom: 10px;">💰 Valor mínimo por turno (R$)</label>
+            <label style="font-size: 12px; font-weight: bold; color: var(--accent); display: block; margin-bottom: 10px;">💰 Valor mínimo por aula (R$)</label>
             <input type="number" id="pref-valor-min" min="0" step="5" placeholder="Ex: 100" style="width: 100%; padding: 12px; background: #1f1f23; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; color: #fff; margin-bottom: 6px; box-sizing: border-box;">
-            <p style="font-size: 11px; color: #a1a1aa; margin-bottom: 20px;">Você só verá propostas deste valor ou acima.</p>
+            <p style="font-size: 11px; color: #a1a1aa; margin-bottom: 20px;">Você só verá pedidos deste valor ou acima.</p>
 
             <button class="btn btn-primary" onclick="salvarPreferenciasAtendimento()" style="width: 100%; font-weight: bold; padding: 14px; border-radius: 12px; font-size: 14px; cursor: pointer; margin-bottom: 30px;">Salvar Preferências e Disponibilidade</button>
         </div>
@@ -459,13 +462,13 @@
         <div style="max-width: 480px; width: 100%; margin: 0 auto; padding: 20px; box-sizing: border-box;">
             <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 25px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px;">
                 <button onclick="fecharSubtela('subscreen-indicar-amigo')" style="background: transparent; border: none; color: var(--accent); font-size: 22px; font-weight: bold; cursor: pointer; padding: 0;">❮</button>
-                <h2 style="margin: 0; color: #ffffff; font-size: 18px; font-weight: bold;">Indique Promotores e Ganhe</h2>
+                <h2 style="margin: 0; color: #ffffff; font-size: 18px; font-weight: bold;">Indique Personais e Ganhe</h2>
             </div>
 
             <div class="glass" style="padding: 20px; border-radius: 16px; margin-bottom: 20px; background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.3);">
                 <h3 style="color: var(--accent); font-size: 16px; margin: 0 0 10px 0;">🎁 Como funciona?</h3>
                 <p style="font-size: 13px; color: #e4e4e7; line-height: 1.5; margin: 0;">
-                    Envie seu link para um amigo promotor. Quando ele concluir o <strong>primeiro turno</strong>, os <strong>15% da plataforma</strong> desse turno ficam com você. Depois disso, tudo segue o padrão normal (85% promotor, 15% plataforma).
+                    Envie seu link para um amigo personal. Quando ele concluir a <strong>primeira aula</strong>, os <strong>15% da plataforma</strong> dessa aula ficam com você. Depois disso, tudo segue o padrão normal (85% personal, 15% plataforma).
                 </p>
             </div>
 
@@ -491,11 +494,11 @@
             
             <div style="display: flex; flex-direction: column; gap: 15px; margin-bottom: 25px;">
                 <label style="display: flex; align-items: center; justify-content: space-between; background: #1f1f23; padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); cursor: pointer;">
-                    <span style="font-size: 13px; color: #fff;">📲 Notificações de novas reposições (Push)</span>
+                    <span style="font-size: 13px; color: #fff;">📲 Notificações de novos pedidos de treino (Push)</span>
                     <input type="checkbox" id="notif-push" checked style="width: 18px; height: 18px; accent-color: var(--accent);">
                 </label>
                 <label style="display: flex; align-items: center; justify-content: space-between; background: #1f1f23; padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); cursor: pointer;">
-                    <span style="font-size: 13px; color: #fff;">💬 Mensagens no chat da loja</span>
+                    <span style="font-size: 13px; color: #fff;">💬 Mensagens no chat do aluno</span>
                     <input type="checkbox" id="notif-chat" checked style="width: 18px; height: 18px; accent-color: var(--accent);">
                 </label>
             </div>
@@ -513,12 +516,12 @@
             </div>
             
             <div class="glass" style="padding: 20px; border-radius: 16px; margin-bottom: 20px; border: 1px solid var(--accent);">
-                <h3 style="color: var(--accent); font-size: 16px; margin: 0 0 10px 0;">💻 Suporte Técnico Abastece Já</h3>
+                <h3 style="color: var(--accent); font-size: 16px; margin: 0 0 10px 0;">💻 Suporte PERSONOW</h3>
                 <p style="font-size: 13px; color: #e4e4e7; line-height: 1.6; margin: 0 0 15px 0;">
-                    Precisa de suporte com chamadas de abastecimento, repasses ou cadastro de loja?
+                    Precisa de suporte com pedidos de treino, repasses ou cadastro?
                 </p>
                 <div style="font-size: 13px; color: #fff; display: flex; flex-direction: column; gap: 8px;">
-                    <div>📧 <strong>E-mail:</strong> suporte@abasteceja.com.br</div>
+                    <div>📧 <strong>E-mail:</strong> suporte@personow.com.br</div>
                     <div>📱 <strong>WhatsApp de Suporte:</strong> (19) 99999-9999</div>
                 </div>
             </div>
@@ -530,8 +533,8 @@
     <!-- MODAL: QR CODE DE COBRANÇA -->
     <div id="modal-qr" class="app-overlay">
         <div class="glass modal-box" style="text-align:center">
-            <h3 style="color:var(--accent);margin-bottom:6px">Cobrar pela reposição</h3>
-            <p class="muted-line" style="margin-bottom:14px">Mostre este QR Code ao gerente da loja para ele pagar pelo app.</p>
+            <h3 style="color:var(--accent);margin-bottom:6px">Cobrar pela aula</h3>
+            <p class="muted-line" style="margin-bottom:14px">Mostre este QR Code ao aluno para ele pagar pelo app.</p>
             <div id="qr-box" style="background:#fff;padding:14px;border-radius:14px;display:inline-block"></div>
             <p id="qr-valor" style="margin:14px 0 4px;font-weight:700"></p>
             <p id="qr-liquido" class="muted-line"></p>
@@ -553,7 +556,7 @@
                     <input type="text" id="input-chat-msg" placeholder="Digite sua mensagem..." style="flex: 1; margin: 0;">
                     <button class="btn btn-primary" onclick="enviarMensagemChat()" style="padding: 0 15px; border-radius: 8px;">Enviar</button>
                 </div>
-                <button onclick="enviarPropostaPersonal()" style="background: rgba(59, 130, 246, 0.15); border: 1px solid var(--accent); color: var(--accent); width: 100%; padding: 8px; border-radius: 8px; font-size: 11px; font-weight: bold; margin-top: 8px; cursor: pointer;">📋 Enviar Orçamento de Diária / Turno</button>
+                <button onclick="enviarPropostaPersonal()" style="background: rgba(59, 130, 246, 0.15); border: 1px solid var(--accent); color: var(--accent); width: 100%; padding: 8px; border-radius: 8px; font-size: 11px; font-weight: bold; margin-top: 8px; cursor: pointer;">📋 Enviar Orçamento da Aula</button>
             </div>
         </div>
     </div>
@@ -561,26 +564,26 @@
     <!-- MODAL: TERMOS DE USO -->
     <div id="modal-termos" class="app-overlay">
         <div class="glass modal-box" style="max-height: 80vh; overflow-y: auto; text-align: left; padding: 25px;">
-            <h3 style="color: var(--accent); margin-bottom: 10px;">📜 Termos de Uso - ABASTECE JÁ</h3>
+            <h3 style="color: var(--accent); margin-bottom: 10px;">📜 Termos de Uso - PERSONOW</h3>
             <p style="font-size: 11px; color: var(--text-muted); line-height: 1.4;">
                 • <strong>Taxa da Plataforma (15%):</strong> Intermediação e repasse automático via Mercado Pago.<br>
-                • <strong>Cancelamento:</strong> Válido conforme prazos de confirmação de diárias.
+                • <strong>Cancelamento:</strong> Válido conforme prazos de confirmação das aulas.
             </p>
             <button class="btn btn-primary" style="margin-top: 20px; width: 100%;" onclick="aceitarTermosModal()">Entendi e Concordo</button>
         </div>
     </div>
 
-    <!-- MODAL: CADASTRAR CLIENTE/LOJA -->
+    <!-- MODAL: CADASTRAR ALUNO -->
     <div id="modal-cadastrar-aluno" class="app-overlay">
         <div class="glass modal-box">
-            <h3 style="margin-bottom: 10px; color: var(--accent);">Cadastrar Loja / Contratante</h3>
-            <input type="text" id="cad-aluno-cpf" placeholder="CNPJ / CPF do Responsável">
-            <input type="text" id="cad-aluno-nome" placeholder="Nome da Loja ou Marca">
-            <input type="text" id="cad-aluno-objetivo" placeholder="Setor de Reposição (ex: Mercearia)">
-            <input type="number" id="cad-aluno-preco" placeholder="Valor da Diária (R$)">
-            <input type="text" id="cad-aluno-dias" placeholder="Dias do Abastecimento">
-            <input type="text" id="cad-aluno-horario" placeholder="Horário do Turno">
-            <input type="text" id="cad-aluno-frequencia" placeholder="Frequência">
+            <h3 style="margin-bottom: 10px; color: var(--accent);">Cadastrar Aluno</h3>
+            <input type="text" id="cad-aluno-cpf" placeholder="CPF do Aluno">
+            <input type="text" id="cad-aluno-nome" placeholder="Nome do Aluno">
+            <input type="text" id="cad-aluno-objetivo" placeholder="Objetivo (ex: Hipertrofia)">
+            <input type="number" id="cad-aluno-preco" placeholder="Valor da Aula (R$)">
+            <input type="text" id="cad-aluno-dias" placeholder="Dias de Treino">
+            <input type="text" id="cad-aluno-horario" placeholder="Horário da Aula">
+            <input type="text" id="cad-aluno-frequencia" placeholder="Frequência semanal">
             <button class="btn btn-primary" onclick="confirmarCadastroAluno()">Confirmar Registro</button>
             <button class="btn btn-outline" style="margin-top: 8px;" onclick="fecharModalCadastrarAluno()">Cancelar</button>
         </div>
@@ -620,7 +623,7 @@
         window.compartilharWhatsApp = function() {
             const input = document.getElementById('input-link-indicacao');
             const link = input && input.value ? input.value : location.href.split("?")[0];
-            const texto = encodeURIComponent(`Olá! Venha para o ABASTECE JÁ, a plataforma de demandas de reposição e abastecimento no varejo. Cadastre-se pelo link: ${link}`);
+            const texto = encodeURIComponent(`Olá! Venha para o PERSONOW, a plataforma de personal trainers sob demanda. Cadastre-se pelo link: ${link}`);
             window.open(`https://api.whatsapp.com/send?text=${texto}`, '_blank');
         }
     </script>
