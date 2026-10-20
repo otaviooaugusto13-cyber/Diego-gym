@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="style-personal.css">
     <link rel="stylesheet" href="polish.css">
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#d4af37">
+    <meta name="theme-color" content="#3B82F6">
 </head>
 <body>
 
@@ -23,7 +23,7 @@
     <div id="screen-login-personal" class="screen active login-screen">
         <div class="auth-card">
             <div class="auth-brand"><h1>PERSO<span class="highlight">NOW</span></h1><p>Reposição sob demanda para o varejo</p></div>
-            <div class="auth-switch"><a href="index.html" class="">Sou contratante</a><a href="promotor.html" class="on">Sou personal</a></div>
+            <div class="auth-switch"><a href="index.html" class="">Sou aluno</a><a href="personal.html" class="on">Sou personal</a></div>
             <h2 class="auth-title">Comece a pegar turnos</h2>
             <p class="auth-sub" id="login-sub">Seu cadastro passa por análise antes de liberar as ofertas.</p>
             <input type="text" id="input-nome" placeholder="Seu nome profissional" autocomplete="name">
@@ -46,7 +46,7 @@
             
             <div id="card-status-analise" class="glass" style="padding: 20px; border-radius: 16px; margin: 15px 0;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <span style="font-size: 11px; font-weight: bold; color: var(--gold); background: rgba(212, 175, 55, 0.15); padding: 4px 10px; border-radius: 12px;">• EM ANÁLISE</span>
+                    <span style="font-size: 11px; font-weight: bold; color: var(--accent); background: rgba(59, 130, 246, 0.15); padding: 4px 10px; border-radius: 12px;">• EM ANÁLISE</span>
                 </div>
                 
                 <h3 style="font-size: 18px; margin: 0 0 5px 0; color: var(--text-color);">Estamos analisando seu perfil profissional</h3>
@@ -60,7 +60,7 @@
                         <span style="font-size: 13px; color: var(--text-color); font-weight: 500;">Cadastro recebido</span>
                     </div>
                     <div style="display: flex; align-items: center; gap: 12px;">
-                        <div style="width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--gold); color: var(--gold); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold;">🔍</div>
+                        <div style="width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--accent); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold;">🔍</div>
                         <span style="font-size: 13px; color: var(--text-color); font-weight: 500;">Análise em andamento</span>
                     </div>
                     <div style="display: flex; align-items: center; gap: 12px;">
@@ -74,7 +74,7 @@
                 <div>
                     <h3 style="margin: 0 0 5px 0; font-size: 16px;">Ajuda</h3>
                     <p style="margin: 0 0 10px 0; font-size: 12px; color: var(--text-muted);">Ficou com alguma dúvida sobre reposições?<br>Estamos aqui para te ajudar!</p>
-                    <a href="#" onclick="abrirOpcaoMenu('Ajuda'); return false;" style="color: var(--gold); font-size: 12px; font-weight: bold; text-decoration: none;">Saber mais ›</a>
+                    <a href="#" onclick="abrirOpcaoMenu('Ajuda'); return false;" style="color: var(--accent); font-size: 12px; font-weight: bold; text-decoration: none;">Saber mais ›</a>
                 </div>
                 <div style="font-size: 40px; line-height: 1;">❓</div>
             </div>
@@ -88,12 +88,12 @@
                     </div>
                     <div class="finance-item">
                         <span>Freelas Avulsos</span>
-                        <h3 id="valor-avulso" style="color: var(--gold);">R$ 0,00</h3>
+                        <h3 id="valor-avulso" style="color: var(--accent);">R$ 0,00</h3>
                     </div>
                 </div>
                 <div class="finance-total">
                     <span>Total Líquido Projetado:</span>
-                    <span id="valor-total" style="color: var(--gold); font-size: 18px; font-weight: bold;">R$ 0,00</span>
+                    <span id="valor-total" style="color: var(--accent); font-size: 18px; font-weight: bold;">R$ 0,00</span>
                 </div>
             </div>
 
@@ -107,7 +107,7 @@
                 <h2 style="margin: 0; font-size: 20px;">Demandas e Vagas de Reposição</h2>
             </div>
             <div id="painel-chamadas-uber" style="margin-bottom: 15px;"></div>
-            <div id="mapa-alunos" class="glass" style="height: 250px; width: 100%; border-radius: 16px; border: 1px solid var(--gold); overflow: hidden; margin-bottom: 20px;"></div>
+            <div id="mapa-alunos" class="glass" style="height: 250px; width: 100%; border-radius: 16px; border: 1px solid var(--accent); overflow: hidden; margin-bottom: 20px;"></div>
             <div class="section-title">Lojas & Mercados Buscando Promotores na Região</div>
             <div id="lista-demandas-cards" style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;"></div>
         </div>
@@ -119,7 +119,7 @@
                 
             </div>
 
-            <div class="glass" style="padding: 12px 15px; background: rgba(212, 175, 55, 0.08); border-left: 4px solid var(--gold); margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+            <div class="glass" style="padding: 12px 15px; background: rgba(59, 130, 246, 0.08); border-left: 4px solid var(--accent); margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
                 <span style="font-size: 20px;">⏳</span>
                 <p style="margin: 0; font-size: 11px; color: var(--text-muted); line-height: 1.3;">
                     <strong>Aguarde! Estamos validando o seu cadastro.</strong><br>Para começar a aceitar demandas de reposição é necessário a aprovação do perfil.
@@ -128,9 +128,9 @@
 
             <div class="glass" style="padding: 15px; border-radius: 16px; margin-bottom: 15px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <button onclick="mudarMesCalendario(-1)" style="background: transparent; border: none; color: var(--gold); font-size: 16px; cursor: pointer;">◀</button>
+                    <button onclick="mudarMesCalendario(-1)" style="background: transparent; border: none; color: var(--accent); font-size: 16px; cursor: pointer;">◀</button>
                     <h3 id="calendar-month-year" style="margin: 0; font-size: 15px; font-weight: bold; color: var(--text-color);">Outubro 2026</h3>
-                    <button onclick="mudarMesCalendario(1)" style="background: transparent; border: none; color: var(--gold); font-size: 16px; cursor: pointer;">▶</button>
+                    <button onclick="mudarMesCalendario(1)" style="background: transparent; border: none; color: var(--accent); font-size: 16px; cursor: pointer;">▶</button>
                 </div>
 
                 <div style="display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 11px; font-weight: bold; color: var(--text-muted); margin-bottom: 10px;">
@@ -171,7 +171,7 @@
                 <p style="margin: 0 0 15px 0; font-size: 12px; color: var(--text-muted); line-height: 1.4;">
                     Cadastre seus dados bancários para receber seus pagamentos de diárias na data programada.
                 </p>
-                <button class="btn" style="background: #e60000; color: #fff; border: none; width: 100%; padding: 12px; font-size: 14px; font-weight: bold; border-radius: 10px; cursor: pointer;" onclick="abrirOpcaoMenu('Dados bancários')">
+                <button class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 14px;" onclick="abrirOpcaoMenu('Dados bancários')">
                     Cadastrar
                 </button>
             </div>
@@ -187,7 +187,7 @@
         <div id="tab-menu" class="tab-content" style="padding-bottom: 120px;">
             <div class="header-personal glass" style="margin-bottom: 15px;">
                 <div style="display: flex; align-items: center; gap: 12px;">
-                    <div style="width: 56px; height: 56px; position: relative; border-radius: 50%; overflow: hidden; background: var(--gold); display: flex; align-items: center; justify-content: center; font-weight: bold; color: #000; font-size: 20px;">
+                    <div style="width: 56px; height: 56px; position: relative; border-radius: 50%; overflow: hidden; background: var(--accent); display: flex; align-items: center; justify-content: center; font-weight: bold; color: #fff; font-size: 20px;">
                         <img id="img-perfil-preview" src="" alt="" style="display:none; width:100%; height:100%; object-fit:cover;">
                         <span id="initials-perfil">P</span>
                         <label for="input-foto-promotor" class="foto-trocar">Alterar</label>
@@ -195,7 +195,7 @@
                     </div>
                     <div>
                         <h3 id="perfil-nome-display" style="margin: 0; font-size: 17px;">Promotor</h3>
-                        <p id="perfil-cref-display" style="margin: 2px 0 0 0; font-size: 11px; color: var(--gold);">Status: Ativo</p>
+                        <p id="perfil-cref-display" style="margin: 2px 0 0 0; font-size: 11px; color: var(--accent);">Status: Ativo</p>
                     </div>
                 </div>
             </div>
@@ -203,11 +203,11 @@
             <div class="glass" style="padding: 15px; margin-bottom: 15px; text-align: center;">
                 <div style="display: flex; justify-content: space-around; margin-bottom: 10px;">
                     <div>
-                        <h3 style="margin: 0; font-size: 18px; color: var(--gold);">0</h3>
+                        <h3 style="margin: 0; font-size: 18px; color: var(--accent);">0</h3>
                         <span style="font-size: 11px; color: var(--text-muted);">Avaliação</span>
                     </div>
                     <div>
-                        <h3 style="margin: 0; font-size: 18px; color: var(--gold);">0</h3>
+                        <h3 style="margin: 0; font-size: 18px; color: var(--accent);">0</h3>
                         <span style="font-size: 11px; color: var(--text-muted);">Lojas Atendidas</span>
                     </div>
                 </div>
@@ -215,7 +215,7 @@
             </div>
 
             <div class="section-title">Minha conta</div>
-            <div class="glass" style="padding:15px;margin-bottom:15px;border-left:4px solid var(--gold);">
+            <div class="glass" style="padding:15px;margin-bottom:15px;border-left:4px solid var(--accent);">
                 <h4 class="conta-h">Próxima reposição</h4>
                 <p id="proxima-reposicao" class="muted-line">Nenhum turno agendado.</p>
             </div>
@@ -310,7 +310,7 @@
     <div id="subscreen-perfil-detalhes" class="app-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0b0b0d; z-index: 999999; overflow-y: auto;">
         <div style="max-width: 480px; width: 100%; margin: 0 auto; padding: 20px; box-sizing: border-box;">
             <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 25px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px;">
-                <button onclick="fecharSubtela('subscreen-perfil-detalhes')" style="background: transparent; border: none; color: var(--gold, #ffd700); font-size: 22px; font-weight: bold; cursor: pointer; padding: 0;">❮</button>
+                <button onclick="fecharSubtela('subscreen-perfil-detalhes')" style="background: transparent; border: none; color: var(--accent); font-size: 22px; font-weight: bold; cursor: pointer; padding: 0;">❮</button>
                 <h2 style="margin: 0; color: #ffffff; font-size: 18px; font-weight: bold;">Perfil e Verificação</h2>
             </div>
             
@@ -335,7 +335,7 @@
             <textarea id="personal-input-bio" rows="3" placeholder="Conte suas experiências em supermercados, marcas atendidas..." style="width: 100%; padding: 12px; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; color: #ffffff; background: #1f1f23; font-size: 13px; margin-bottom: 20px; outline: none; box-sizing: border-box;"></textarea>
 
             <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px; margin-bottom: 25px;">
-                <h3 style="font-size: 15px; color: var(--gold, #ffd700); margin-bottom: 8px;">🔐 Verificação de Identidade</h3>
+                <h3 style="font-size: 15px; color: var(--accent); margin-bottom: 8px;">🔐 Verificação de Identidade</h3>
                 <label style="font-size: 12px; font-weight: bold; color: #e4e4e7; display: block; margin-bottom: 6px;">Foto do Documento (RG ou CNH)</label>
                 <input type="file" id="perfil-doc-file" accept="image/*" style="width: 100%; padding: 10px; border: 1px dashed rgba(255,255,255,0.3); border-radius: 10px; font-size: 12px; color: #a1a1aa; background: #1f1f23; margin-bottom: 12px; box-sizing: border-box;">
 
@@ -343,7 +343,7 @@
                 <input type="file" id="perfil-selfie-file" accept="image/*" style="width: 100%; padding: 10px; border: 1px dashed rgba(255,255,255,0.3); border-radius: 10px; font-size: 12px; color: #a1a1aa; background: #1f1f23; margin-bottom: 15px; box-sizing: border-box;">
             </div>
 
-            <button class="btn" onclick="salvarPerfilProfissionalCompleto()" style="width: 100%; background: var(--gold, #ffd700); color: #000000; font-weight: bold; padding: 14px; border: none; border-radius: 12px; font-size: 14px; cursor: pointer; margin-bottom: 30px;">Salvar Alterações</button>
+            <button class="btn btn-primary" onclick="salvarPerfilProfissionalCompleto()" style="width: 100%; font-weight: bold; padding: 14px; border-radius: 12px; font-size: 14px; cursor: pointer; margin-bottom: 30px;">Salvar Alterações</button>
         </div>
     </div>
 
@@ -351,11 +351,11 @@
     <div id="subscreen-dados-bancarios" class="app-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0b0b0d; z-index: 999999; overflow-y: auto;">
         <div style="max-width: 480px; width: 100%; margin: 0 auto; padding: 20px; box-sizing: border-box;">
             <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 25px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px;">
-                <button onclick="fecharSubtela('subscreen-dados-bancarios')" style="background: transparent; border: none; color: var(--gold, #ffd700); font-size: 22px; font-weight: bold; cursor: pointer; padding: 0;">❮</button>
+                <button onclick="fecharSubtela('subscreen-dados-bancarios')" style="background: transparent; border: none; color: var(--accent); font-size: 22px; font-weight: bold; cursor: pointer; padding: 0;">❮</button>
                 <h2 style="margin: 0; color: #ffffff; font-size: 18px; font-weight: bold;">Dados Bancários</h2>
             </div>
             
-            <h3 style="margin: 0 0 10px 0; font-size: 14px; color: var(--gold, #ffd700); font-weight: bold;">Configure seu recebimento</h3>
+            <h3 style="margin: 0 0 10px 0; font-size: 14px; color: var(--accent); font-weight: bold;">Configure seu recebimento</h3>
             <p style="font-size: 12px; color: #a1a1aa; line-height: 1.4; margin-bottom: 20px;">
                 Atualize seus dados para garantir os pagamentos de diárias e freelas.
             </p>
@@ -394,7 +394,7 @@
             </div>
 
             <div style="text-align: center; margin-bottom: 15px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">
-                <h3 style="margin: 0 0 5px 0; font-size: 16px; font-weight: bold; color: var(--gold, #ffd700);">PIX</h3>
+                <h3 style="margin: 0 0 5px 0; font-size: 16px; font-weight: bold; color: var(--accent);">PIX</h3>
             </div>
 
             <label style="font-size: 12px; font-weight: bold; color: #e4e4e7; display: block; margin-bottom: 6px;">Tipo de Chave</label>
@@ -408,7 +408,7 @@
             <label style="font-size: 12px; font-weight: bold; color: #e4e4e7; display: block; margin-bottom: 6px;">Chave PIX</label>
             <input type="text" id="bank-input-chave-pix" placeholder="Sua chave PIX" style="width: 100%; padding: 12px; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; font-size: 13px; color: #ffffff; background: #1f1f23; margin-bottom: 25px; outline: none; box-sizing: border-box;">
 
-            <button class="btn" onclick="salvarDadosBancarios()" style="width: 100%; background: var(--gold, #ffd700); color: #000000; font-weight: bold; padding: 14px; border: none; border-radius: 12px; font-size: 14px; cursor: pointer; margin-bottom: 30px;">Salvar Dados Bancários</button>
+            <button class="btn btn-primary" onclick="salvarDadosBancarios()" style="width: 100%; font-weight: bold; padding: 14px; border-radius: 12px; font-size: 14px; cursor: pointer; margin-bottom: 30px;">Salvar Dados Bancários</button>
         </div>
     </div>
 
@@ -416,11 +416,11 @@
     <div id="subscreen-preferencias-atendimento" class="app-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0b0b0d; z-index: 999999; overflow-y: auto;">
         <div style="max-width: 480px; width: 100%; margin: 0 auto; padding: 20px; box-sizing: border-box;">
             <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 25px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px;">
-                <button onclick="fecharSubtela('subscreen-preferencias-atendimento')" style="background: transparent; border: none; color: var(--gold, #ffd700); font-size: 22px; font-weight: bold; cursor: pointer; padding: 0;">❮</button>
+                <button onclick="fecharSubtela('subscreen-preferencias-atendimento')" style="background: transparent; border: none; color: var(--accent); font-size: 22px; font-weight: bold; cursor: pointer; padding: 0;">❮</button>
                 <h2 style="margin: 0; color: #ffffff; font-size: 18px; font-weight: bold;">Especialidades & Horários</h2>
             </div>
             
-            <label style="font-size: 12px; font-weight: bold; color: var(--gold); display: block; margin-bottom: 10px;">🛒 Setor / Especialidade Principal</label>
+            <label style="font-size: 12px; font-weight: bold; color: var(--accent); display: block; margin-bottom: 10px;">🛒 Setor / Especialidade Principal</label>
             <select id="pref-estilo" style="width: 100%; padding: 12px; background: #1f1f23; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; color: #fff; margin-bottom: 20px; box-sizing: border-box;">
                 <option value="mercearia">Mercearia & Abastecimento Geral</option>
                 <option value="hortifruti">Hortifruti / FLV</option>
@@ -429,29 +429,29 @@
                 <option value="inventario">Auditoria & Prevenção de Perdas</option>
             </select>
 
-            <label style="font-size: 12px; font-weight: bold; color: var(--gold); display: block; margin-bottom: 10px;">⏰ Disponibilidade (Início e Fim)</label>
+            <label style="font-size: 12px; font-weight: bold; color: var(--accent); display: block; margin-bottom: 10px;">⏰ Disponibilidade (Início e Fim)</label>
             <div style="display: flex; gap: 10px; margin-bottom: 20px;">
                 <input type="time" id="pref-hora-inicio" value="06:00" style="flex: 1; padding: 12px; background: #1f1f23; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; color: #fff; box-sizing: border-box;">
                 <span style="color: #fff; align-self: center;">até</span>
                 <input type="time" id="pref-hora-fim" value="22:00" style="flex: 1; padding: 12px; background: #1f1f23; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; color: #fff; box-sizing: border-box;">
             </div>
 
-            <label style="font-size: 12px; font-weight: bold; color: var(--gold); display: block; margin-bottom: 10px;">📅 Dias Disponíveis</label>
+            <label style="font-size: 12px; font-weight: bold; color: var(--accent); display: block; margin-bottom: 10px;">📅 Dias Disponíveis</label>
             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 25px;">
-                <button type="button" class="btn-dia active" onclick="toggleDiaTrabalho(this)" style="padding: 10px; background: rgba(212,175,55,0.2); border: 1px solid var(--gold); color: #fff; border-radius: 8px; font-size: 12px; cursor: pointer;">Seg</button>
-                <button type="button" class="btn-dia active" onclick="toggleDiaTrabalho(this)" style="padding: 10px; background: rgba(212,175,55,0.2); border: 1px solid var(--gold); color: #fff; border-radius: 8px; font-size: 12px; cursor: pointer;">Ter</button>
-                <button type="button" class="btn-dia active" onclick="toggleDiaTrabalho(this)" style="padding: 10px; background: rgba(212,175,55,0.2); border: 1px solid var(--gold); color: #fff; border-radius: 8px; font-size: 12px; cursor: pointer;">Qua</button>
-                <button type="button" class="btn-dia active" onclick="toggleDiaTrabalho(this)" style="padding: 10px; background: rgba(212,175,55,0.2); border: 1px solid var(--gold); color: #fff; border-radius: 8px; font-size: 12px; cursor: pointer;">Qui</button>
-                <button type="button" class="btn-dia active" onclick="toggleDiaTrabalho(this)" style="padding: 10px; background: rgba(212,175,55,0.2); border: 1px solid var(--gold); color: #fff; border-radius: 8px; font-size: 12px; cursor: pointer;">Sex</button>
+                <button type="button" class="btn-dia active" onclick="toggleDiaTrabalho(this)" style="padding: 10px; background: rgba(59, 130, 246, 0.2); border: 1px solid var(--accent); color: #fff; border-radius: 8px; font-size: 12px; cursor: pointer;">Seg</button>
+                <button type="button" class="btn-dia active" onclick="toggleDiaTrabalho(this)" style="padding: 10px; background: rgba(59, 130, 246, 0.2); border: 1px solid var(--accent); color: #fff; border-radius: 8px; font-size: 12px; cursor: pointer;">Ter</button>
+                <button type="button" class="btn-dia active" onclick="toggleDiaTrabalho(this)" style="padding: 10px; background: rgba(59, 130, 246, 0.2); border: 1px solid var(--accent); color: #fff; border-radius: 8px; font-size: 12px; cursor: pointer;">Qua</button>
+                <button type="button" class="btn-dia active" onclick="toggleDiaTrabalho(this)" style="padding: 10px; background: rgba(59, 130, 246, 0.2); border: 1px solid var(--accent); color: #fff; border-radius: 8px; font-size: 12px; cursor: pointer;">Qui</button>
+                <button type="button" class="btn-dia active" onclick="toggleDiaTrabalho(this)" style="padding: 10px; background: rgba(59, 130, 246, 0.2); border: 1px solid var(--accent); color: #fff; border-radius: 8px; font-size: 12px; cursor: pointer;">Sex</button>
                 <button type="button" class="btn-dia" onclick="toggleDiaTrabalho(this)" style="padding: 10px; background: #1f1f23; border: 1px solid rgba(255,255,255,0.15); color: #888; border-radius: 8px; font-size: 12px; cursor: pointer;">Sáb (Folga)</button>
                 <button type="button" class="btn-dia" onclick="toggleDiaTrabalho(this)" style="padding: 10px; background: #1f1f23; border: 1px solid rgba(255,255,255,0.15); color: #888; border-radius: 8px; font-size: 12px; cursor: pointer;">Dom (Folga)</button>
             </div>
 
-            <label style="font-size: 12px; font-weight: bold; color: var(--gold); display: block; margin-bottom: 10px;">💰 Valor mínimo por turno (R$)</label>
+            <label style="font-size: 12px; font-weight: bold; color: var(--accent); display: block; margin-bottom: 10px;">💰 Valor mínimo por turno (R$)</label>
             <input type="number" id="pref-valor-min" min="0" step="5" placeholder="Ex: 100" style="width: 100%; padding: 12px; background: #1f1f23; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; color: #fff; margin-bottom: 6px; box-sizing: border-box;">
             <p style="font-size: 11px; color: #a1a1aa; margin-bottom: 20px;">Você só verá propostas deste valor ou acima.</p>
 
-            <button class="btn" onclick="salvarPreferenciasAtendimento()" style="width: 100%; background: var(--gold, #ffd700); color: #000000; font-weight: bold; padding: 14px; border: none; border-radius: 12px; font-size: 14px; cursor: pointer; margin-bottom: 30px;">Salvar Preferências e Disponibilidade</button>
+            <button class="btn btn-primary" onclick="salvarPreferenciasAtendimento()" style="width: 100%; font-weight: bold; padding: 14px; border-radius: 12px; font-size: 14px; cursor: pointer; margin-bottom: 30px;">Salvar Preferências e Disponibilidade</button>
         </div>
     </div>
 
@@ -459,12 +459,12 @@
     <div id="subscreen-indicar-amigo" class="app-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0b0b0d; z-index: 999999; overflow-y: auto;">
         <div style="max-width: 480px; width: 100%; margin: 0 auto; padding: 20px; box-sizing: border-box;">
             <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 25px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px;">
-                <button onclick="fecharSubtela('subscreen-indicar-amigo')" style="background: transparent; border: none; color: var(--gold, #ffd700); font-size: 22px; font-weight: bold; cursor: pointer; padding: 0;">❮</button>
+                <button onclick="fecharSubtela('subscreen-indicar-amigo')" style="background: transparent; border: none; color: var(--accent); font-size: 22px; font-weight: bold; cursor: pointer; padding: 0;">❮</button>
                 <h2 style="margin: 0; color: #ffffff; font-size: 18px; font-weight: bold;">Indique Promotores e Ganhe</h2>
             </div>
 
-            <div class="glass" style="padding: 20px; border-radius: 16px; margin-bottom: 20px; background: rgba(212, 175, 55, 0.05); border: 1px solid rgba(212, 175, 55, 0.3);">
-                <h3 style="color: var(--gold, #ffd700); font-size: 16px; margin: 0 0 10px 0;">🎁 Como funciona?</h3>
+            <div class="glass" style="padding: 20px; border-radius: 16px; margin-bottom: 20px; background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.3);">
+                <h3 style="color: var(--accent); font-size: 16px; margin: 0 0 10px 0;">🎁 Como funciona?</h3>
                 <p style="font-size: 13px; color: #e4e4e7; line-height: 1.5; margin: 0;">
                     Envie seu link para um amigo promotor. Quando ele concluir o <strong>primeiro turno</strong>, os <strong>15% da plataforma</strong> desse turno ficam com você. Depois disso, tudo segue o padrão normal (85% promotor, 15% plataforma).
                 </p>
@@ -472,7 +472,7 @@
 
             <label style="font-size: 12px; font-weight: bold; color: #e4e4e7; display: block; margin-bottom: 6px;">Seu Link de Indicação Exclusivo</label>
             <div style="display: flex; gap: 8px; margin-bottom: 20px;">
-                <input type="text" id="input-link-indicacao" readonly style="flex: 1; padding: 12px; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; font-size: 12px; color: var(--gold, #ffd700); background: #1f1f23; outline: none; box-sizing: border-box;" value="" placeholder="Gerando seu link...">
+                <input type="text" id="input-link-indicacao" readonly style="flex: 1; padding: 12px; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; font-size: 12px; color: var(--accent); background: #1f1f23; outline: none; box-sizing: border-box;" value="" placeholder="Gerando seu link...">
                 <button onclick="copiarLinkIndicacao()" style="background: #27272a; border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 0 15px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 12px;">Copiar</button>
             </div>
 
@@ -486,22 +486,22 @@
     <div id="subscreen-notificacoes" class="app-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0b0b0d; z-index: 999999; overflow-y: auto;">
         <div style="max-width: 480px; width: 100%; margin: 0 auto; padding: 20px; box-sizing: border-box;">
             <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 25px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px;">
-                <button onclick="fecharSubtela('subscreen-notificacoes')" style="background: transparent; border: none; color: var(--gold, #ffd700); font-size: 22px; font-weight: bold; cursor: pointer;">❮</button>
+                <button onclick="fecharSubtela('subscreen-notificacoes')" style="background: transparent; border: none; color: var(--accent); font-size: 22px; font-weight: bold; cursor: pointer;">❮</button>
                 <h2 style="margin: 0; color: #ffffff; font-size: 18px;">Configurações de Notificação</h2>
             </div>
             
             <div style="display: flex; flex-direction: column; gap: 15px; margin-bottom: 25px;">
                 <label style="display: flex; align-items: center; justify-content: space-between; background: #1f1f23; padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); cursor: pointer;">
                     <span style="font-size: 13px; color: #fff;">📲 Notificações de novas reposições (Push)</span>
-                    <input type="checkbox" id="notif-push" checked style="width: 18px; height: 18px; accent-color: var(--gold, #ffd700);">
+                    <input type="checkbox" id="notif-push" checked style="width: 18px; height: 18px; accent-color: var(--accent);">
                 </label>
                 <label style="display: flex; align-items: center; justify-content: space-between; background: #1f1f23; padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); cursor: pointer;">
                     <span style="font-size: 13px; color: #fff;">💬 Mensagens no chat da loja</span>
-                    <input type="checkbox" id="notif-chat" checked style="width: 18px; height: 18px; accent-color: var(--gold, #ffd700);">
+                    <input type="checkbox" id="notif-chat" checked style="width: 18px; height: 18px; accent-color: var(--accent);">
                 </label>
             </div>
 
-            <button class="btn" onclick="fecharSubtela('subscreen-notificacoes')" style="width: 100%; background: var(--gold, #ffd700); color: #000; font-weight: bold; padding: 14px; border: none; border-radius: 12px; cursor: pointer;">Salvar Notificações</button>
+            <button class="btn btn-primary" onclick="fecharSubtela('subscreen-notificacoes')" style="width: 100%; font-weight: bold; padding: 14px; border-radius: 12px; cursor: pointer;">Salvar Notificações</button>
         </div>
     </div>
 
@@ -509,12 +509,12 @@
     <div id="subscreen-ajuda" class="app-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0b0b0d; z-index: 999999; overflow-y: auto;">
         <div style="max-width: 480px; width: 100%; margin: 0 auto; padding: 20px; box-sizing: border-box;">
             <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 25px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px;">
-                <button onclick="fecharSubtela('subscreen-ajuda')" style="background: transparent; border: none; color: var(--gold, #ffd700); font-size: 22px; font-weight: bold; cursor: pointer;">❮</button>
+                <button onclick="fecharSubtela('subscreen-ajuda')" style="background: transparent; border: none; color: var(--accent); font-size: 22px; font-weight: bold; cursor: pointer;">❮</button>
                 <h2 style="margin: 0; color: #ffffff; font-size: 18px;">Ajuda e Suporte</h2>
             </div>
             
-            <div class="glass" style="padding: 20px; border-radius: 16px; margin-bottom: 20px; border: 1px solid var(--gold);">
-                <h3 style="color: var(--gold); font-size: 16px; margin: 0 0 10px 0;">💻 Suporte Técnico Abastece Já</h3>
+            <div class="glass" style="padding: 20px; border-radius: 16px; margin-bottom: 20px; border: 1px solid var(--accent);">
+                <h3 style="color: var(--accent); font-size: 16px; margin: 0 0 10px 0;">💻 Suporte Técnico Abastece Já</h3>
                 <p style="font-size: 13px; color: #e4e4e7; line-height: 1.6; margin: 0 0 15px 0;">
                     Precisa de suporte com chamadas de abastecimento, repasses ou cadastro de loja?
                 </p>
@@ -531,7 +531,7 @@
     <!-- MODAL: QR CODE DE COBRANÇA -->
     <div id="modal-qr" class="app-overlay">
         <div class="glass modal-box" style="text-align:center">
-            <h3 style="color:var(--gold);margin-bottom:6px">Cobrar pela reposição</h3>
+            <h3 style="color:var(--accent);margin-bottom:6px">Cobrar pela reposição</h3>
             <p class="muted-line" style="margin-bottom:14px">Mostre este QR Code ao gerente da loja para ele pagar pelo app.</p>
             <div id="qr-box" style="background:#fff;padding:14px;border-radius:14px;display:inline-block"></div>
             <p id="qr-valor" style="margin:14px 0 4px;font-weight:700"></p>
@@ -544,7 +544,7 @@
     <div id="modal-chat-flutuante" class="app-overlay">
         <div class="glass modal-box" style="max-width: 450px; width: 100%; height: 80vh; display: flex; flex-direction: column; padding: 15px;">
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--glass-border); padding-bottom: 10px; margin-bottom: 10px;">
-                <h3 id="chat-active-name" style="margin: 0; color: var(--gold); font-size: 16px;">Conversa</h3>
+                <h3 id="chat-active-name" style="margin: 0; color: var(--accent); font-size: 16px;">Conversa</h3>
                 <button onclick="fecharConversaModal()" style="background: transparent; border: none; color: #ff3333; font-size: 18px; font-weight: bold; cursor: pointer;">✕</button>
             </div>
             <div id="chat-list-view" style="flex: 1; overflow-y: auto;"></div>
@@ -552,9 +552,9 @@
                 <div id="chat-box" class="chat-messages-container" style="flex: 1; overflow-y: auto; margin-bottom: 10px;"></div>
                 <div class="chat-input-bar" style="display: flex; gap: 8px;">
                     <input type="text" id="input-chat-msg" placeholder="Digite sua mensagem..." style="flex: 1; margin: 0;">
-                    <button onclick="enviarMensagemChat()" style="background: var(--gold); color: #000; border: none; padding: 0 15px; border-radius: 8px; font-weight: bold;">Enviar</button>
+                    <button class="btn btn-primary" onclick="enviarMensagemChat()" style="padding: 0 15px; border-radius: 8px;">Enviar</button>
                 </div>
-                <button onclick="enviarPropostaPersonal()" style="background: rgba(212, 175, 55, 0.15); border: 1px solid var(--gold); color: var(--gold); width: 100%; padding: 8px; border-radius: 8px; font-size: 11px; font-weight: bold; margin-top: 8px; cursor: pointer;">📋 Enviar Orçamento de Diária / Turno</button>
+                <button onclick="enviarPropostaPersonal()" style="background: rgba(59, 130, 246, 0.15); border: 1px solid var(--accent); color: var(--accent); width: 100%; padding: 8px; border-radius: 8px; font-size: 11px; font-weight: bold; margin-top: 8px; cursor: pointer;">📋 Enviar Orçamento de Diária / Turno</button>
             </div>
         </div>
     </div>
@@ -562,7 +562,7 @@
     <!-- MODAL: TERMOS DE USO -->
     <div id="modal-termos" class="app-overlay">
         <div class="glass modal-box" style="max-height: 80vh; overflow-y: auto; text-align: left; padding: 25px;">
-            <h3 style="color: var(--gold); margin-bottom: 10px;">📜 Termos de Uso - ABASTECE JÁ</h3>
+            <h3 style="color: var(--accent); margin-bottom: 10px;">📜 Termos de Uso - ABASTECE JÁ</h3>
             <p style="font-size: 11px; color: var(--text-muted); line-height: 1.4;">
                 • <strong>Taxa da Plataforma (15%):</strong> Intermediação e repasse automático via Mercado Pago.<br>
                 • <strong>Cancelamento:</strong> Válido conforme prazos de confirmação de diárias.
@@ -574,7 +574,7 @@
     <!-- MODAL: CADASTRAR CLIENTE/LOJA -->
     <div id="modal-cadastrar-aluno" class="app-overlay">
         <div class="glass modal-box">
-            <h3 style="margin-bottom: 10px; color: var(--gold);">Cadastrar Loja / Contratante</h3>
+            <h3 style="margin-bottom: 10px; color: var(--accent);">Cadastrar Loja / Contratante</h3>
             <input type="text" id="cad-aluno-cpf" placeholder="CNPJ / CPF do Responsável">
             <input type="text" id="cad-aluno-nome" placeholder="Nome da Loja ou Marca">
             <input type="text" id="cad-aluno-objetivo" placeholder="Setor de Reposição (ex: Mercearia)">
@@ -596,8 +596,8 @@
         window.toggleDiaTrabalho = function(btn) {
             const isAtivo = btn.classList.toggle('active');
             if (isAtivo) {
-                btn.style.background = 'rgba(212,175,55,0.2)';
-                btn.style.borderColor = 'var(--gold, #ffd700)';
+                btn.style.background = 'rgba(59, 130, 246, 0.2)';
+                btn.style.borderColor = 'var(--accent)';
                 btn.style.color = '#fff';
                 btn.innerText = btn.innerText.replace(' (Folga)', '');
             } else {
