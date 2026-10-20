@@ -58,7 +58,7 @@ h2 { font-size: 1.4rem; margin-bottom: 8px; font-weight: 600; color: #FFFFFF; }
 .screen.active { display: flex; animation: fadeIn 0.4s ease-out; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-.main-app-screen { justify-content: flex-start; padding: 0; padding-bottom: 90px; }
+.main-app-screen { justify-content: flex-start; padding: 0; padding-bottom: 80px !important; }
 .tab-content { display: none; width: 100%; max-width: 500px; margin: 0 auto; padding: 20px 16px; flex-direction: column; }
 .tab-content.active { display: flex; animation: fadeIn 0.3s ease-out; }
 
@@ -222,10 +222,10 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent) !importa
 /* Botão Flutuante do WhatsApp */
 .btn-whatsapp {
     position: fixed;
-    bottom: 95px;
-    right: 20px;
-    width: 55px;
-    height: 55px;
+    bottom: 85px !important;
+    right: 16px !important;
+    width: 50px !important;
+    height: 50px !important;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -235,7 +235,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent) !importa
     background: rgba(31, 35, 41, 0.85);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    z-index: 9999;
+    z-index: 9999 !important;
     cursor: pointer;
     transition: all 0.3s ease;
     text-decoration: none;
@@ -286,7 +286,8 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent) !importa
     bottom: 0; 
     left: 0; 
     width: 100%; 
-    height: 80px; 
+    height: 65px !important; 
+    padding: 0 8px !important;
     display: flex; 
     justify-content: space-around; 
     align-items: center; 
@@ -294,14 +295,39 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent) !importa
     backdrop-filter: blur(25px); 
     border-top: 1px solid var(--glass-border); 
     z-index: 500; 
-    border-radius: 22px 22px 0 0; 
+    border-radius: 20px 20px 0 0; 
 }
-.nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 60px; cursor: pointer; color: var(--text-muted); }
-.nav-item.active { color: var(--accent); transform: translateY(-3px); }
+.nav-item { 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    justify-content: center; 
+    width: auto !important;
+    min-width: 45px !important;
+    padding: 2px 4px !important;
+    gap: 2px !important;
+    cursor: pointer; 
+    color: var(--text-muted); 
+}
+.nav-item.active { color: var(--accent); transform: translateY(-2px); }
+
+.nav-item svg,
+.nav-item .nav-icon {
+    width: 20px !important;
+    height: 20px !important;
+    margin-bottom: 0 !important;
+}
+
+.nav-item span {
+    font-size: 10px !important;
+    line-height: 1.1 !important;
+    letter-spacing: -0.2px !important;
+}
 
 /* Logo PERSONOW nas telas de login */
 .brand-logo { display: block; width: 190px; max-width: 70%; height: auto; margin: 0 auto 10px; }
 body.light-theme .brand-logo { filter: invert(1); }
+
 /* ==========================================
    AJUSTES FINAIS DE BOTÕES, LISTAS E ATALHOS
    ========================================== */
@@ -451,4 +477,68 @@ body.light-theme .brand-logo { filter: invert(1); }
 
 .theme-switch input:checked + .slider:before {
     transform: translateX(20px) !important;
+}
+
+/* ==========================================
+   OTIMIZAÇÕES DE UX MOBILE (SOLICITAÇÃO & NAVEGAÇÃO)
+   ========================================== */
+
+/* Grade compacta para Datas e Horários */
+.form-row-datetime {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr 1fr !important;
+    gap: 8px !important;
+    margin-bottom: 12px !important;
+}
+
+@media (max-width: 480px) {
+    .form-row-datetime {
+        grid-template-columns: 1fr 1fr !important;
+    }
+    .form-row-datetime .full-width-mobile {
+        grid-column: span 2 !important;
+    }
+}
+
+.form-group-sm {
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+.form-group-sm label {
+    font-size: 11px !important;
+    color: var(--text-muted) !important;
+    margin-bottom: 4px !important;
+    font-weight: 600 !important;
+}
+
+.form-group-sm input {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding: 10px 8px !important;
+    font-size: 13px !important;
+}
+
+/* Divisor elegante das taxas do personal */
+.fee-breakdown {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    background: rgba(255, 255, 255, 0.03) !important;
+    border: 1px dashed var(--glass-border) !important;
+    border-radius: 12px !important;
+    padding: 10px 14px !important;
+    margin: 12px 0 16px 0 !important;
+    font-size: 11px !important;
+    color: var(--text-muted) !important;
+}
+
+.fee-breakdown strong {
+    color: #FFFFFF !important;
+}
+
+/* Ajuste e atenuação de borda do card de solicitação */
+.request-card.glass {
+    border: 1px solid rgba(59, 130, 246, 0.25) !important;
+    padding: 18px 14px !important;
 }
