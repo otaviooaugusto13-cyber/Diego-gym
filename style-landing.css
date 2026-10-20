@@ -420,3 +420,10 @@ body, html {
 .btn-main, .btn-sub, .nav-btn-entrar { border-radius: 999px; }
 .card-overlap, .roi-item, .service-pill, .footer-cta-box { border-radius: 22px; }
 .partner-pill, .hero-badge-tech { border-radius: 999px; }
+
+/* Logo PERSONOW */
+.nav-logo-link { display: flex; align-items: center; gap: 8px; text-decoration: none; }
+.nav-logo-img { height: 26px; width: auto; display: block; }
+.nav-logo-text { font-size: 15px; font-weight: 800; color: #FFFFFF; letter-spacing: 1px; }
+.hero-logo { display: block; width: 170px; max-width: 60%; height: auto; margin: 0 auto 18px; }
+@media (max-width: 440px) { .nav-logo-text { display: none; } .nav-links { gap: 10px; } }
