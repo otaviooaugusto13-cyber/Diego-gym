@@ -283,3 +283,62 @@ body {
 /* Indicador de Status / Online */
 .status-online { color: var(--accent) !important; }
 .status-online .dot { background: var(--accent) !important; box-shadow: 0 0 6px var(--accent) !important; }
+
+/* ==========================================
+   AJUSTE DE LAYOUT: PROJEÇÃO FINANCEIRA
+   ========================================== */
+.card-projecao, 
+.glass[onclick*="projecao"],
+.glass:has(.resumo-valor) {
+    padding: 20px !important;
+}
+
+.card-projecao h3,
+.glass h3 {
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    color: var(--text-color) !important;
+    margin-bottom: 14px !important;
+}
+
+.resumo-valor {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 12px !important;
+    margin-top: 12px !important;
+    padding-top: 12px !important;
+    border-top: 1px solid var(--glass-border) !important;
+}
+
+.resumo-item {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+}
+
+.resumo-item .rotulo {
+    font-size: 12px !important;
+    color: var(--text-muted) !important;
+}
+
+.resumo-item .valor {
+    font-size: 16px !important;
+    font-weight: 700 !important;
+    color: var(--text-color) !important;
+}
+
+.resumo-item .valor.destaque {
+    color: var(--accent) !important;
+}
+
+.resumo-total {
+    grid-column: span 2 !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin-top: 8px !important;
+    padding-top: 10px !important;
+    border-top: 1px dashed var(--glass-border) !important;
+    font-weight: 700 !important;
+    font-size: 13px !important;
+}
