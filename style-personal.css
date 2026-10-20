@@ -1,4 +1,4 @@
-/* PERSONOW - Estilos da Área do Personal Trainer */
+/* PERSONOW - Estilos da Área do Personal/Promotor (Polido e Padronizado) */
 :root {
     --bg-color: #0B0B0D;
     --card-bg: #1F2329;
@@ -10,10 +10,97 @@
     --glass-nav: rgba(11, 11, 13, 0.95);
 }
 
-body {
-    background-color: var(--bg-color);
-    color: var(--text-color);
-    font-family: 'Inter', -apple-system, sans-serif;
+body.light-theme {
+    --bg-color: #F4F6F9;
+    --card-bg: #FFFFFF;
+    --text-color: #111827;
+    --text-muted: #6B7280;
+    --glass-border: rgba(59, 130, 246, 0.3);
+    --glass-nav: rgba(255, 255, 255, 0.98);
+}
+
+/* Reset & Base */
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', 'Segoe UI', -apple-system, Roboto, sans-serif; }
+body { background-color: var(--bg-color); color: var(--text-color); overflow-x: hidden; transition: background-color 0.3s, color 0.3s; }
+
+/* Glassmorphism & Cards */
+.glass { 
+    background: var(--card-bg); 
+    backdrop-filter: blur(20px); 
+    -webkit-backdrop-filter: blur(20px); 
+    border: 1px solid var(--glass-border); 
+    border-radius: 20px; 
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3); 
+    transition: all 0.3s; 
+}
+
+/* Tipografia */
+h1 { font-size: 2.1rem; margin-bottom: 8px; font-weight: 800; color: #FFFFFF; }
+h2 { font-size: 1.4rem; margin-bottom: 8px; font-weight: 600; color: #FFFFFF; }
+.subtitle { color: var(--text-muted); font-size: 13px; margin-bottom: 20px; }
+
+/* Telas e Estrutura */
+.screen { display: none; min-height: 100vh; padding: 20px; flex-direction: column; align-items: center; justify-content: center; }
+.screen.active { display: flex; animation: fadeIn 0.4s ease-out; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+.main-app-screen { justify-content: flex-start; padding: 0; padding-bottom: 90px; }
+.tab-content { display: none; width: 100%; max-width: 500px; margin: 0 auto; padding: 20px 16px; flex-direction: column; }
+.tab-content.active { display: flex; animation: fadeIn 0.3s ease-out; }
+
+/* Inputs e Botões Padronizados */
+input, select, textarea { 
+    width: 100%; 
+    padding: 14px 16px; 
+    margin-top: 6px;
+    margin-bottom: 16px; 
+    border-radius: 14px; 
+    border: 1px solid var(--glass-border); 
+    background: rgba(11, 11, 13, 0.6); 
+    color: var(--text-color); 
+    outline: none; 
+    font-size: 14px; 
+    transition: border 0.3s; 
+}
+input:focus, textarea:focus, select:focus { border-color: var(--accent) !important; outline: none; }
+
+.btn { 
+    background: var(--card-bg); 
+    border: 1px solid var(--glass-border); 
+    color: var(--text-color); 
+    padding: 15px 25px; 
+    border-radius: 999px; 
+    font-size: 14px; 
+    font-weight: bold; 
+    cursor: pointer; 
+    position: relative; 
+    overflow: hidden; 
+    width: 100%; 
+    transition: transform 0.15s ease, background-color 0.2s ease, box-shadow 0.2s ease; 
+    text-align: center; 
+}
+.btn:active { transform: scale(0.97); }
+
+.btn-primary { 
+    background: linear-gradient(135deg, #3B82F6, #2563EB) !important; 
+    color: #FFFFFF !important; 
+    border: none !important; 
+    font-weight: 700;
+    border-radius: 999px !important; 
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.35);
+    padding: 15px 25px;
+    width: 100%;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.2s ease !important;
+}
+.btn-primary:hover {
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5) !important;
+    transform: translateY(-1px);
+}
+.btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    box-shadow: none;
 }
 
 /* Header & Perfil do Personal */
@@ -37,38 +124,166 @@ body {
     margin-top: 6px;
 }
 
-/* Botões Padronizados com o Aluno */
-.btn-primary {
-    background: linear-gradient(135deg, #3B82F6, #2563EB) !important;
-    color: #FFFFFF !important;
-    border: none !important;
-    font-weight: bold;
-    border-radius: 999px !important;
-    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.35);
-}
-
-.btn-primary:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    box-shadow: none;
-}
-
-/* Cards e Listas */
-.glass {
-    background: var(--card-bg) !important;
-    border: 1px solid var(--glass-border) !important;
-    border-radius: 20px !important;
+/* Menu e Listas do Personal */
+.glass-list {
+    background: var(--card-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    overflow: hidden;
 }
 
 .menu-option-item {
-    background: var(--card-bg);
-    color: #FFFFFF;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 18px;
     border-bottom: 1px solid var(--glass-border);
+    cursor: pointer;
+    transition: background 0.2s;
+    color: #FFFFFF;
+    font-size: 14px;
+    background: var(--card-bg);
 }
+.menu-option-item:last-child { border-bottom: none; }
+.menu-option-item:hover { background: rgba(59, 130, 246, 0.08); }
 
 /* Indicador de Status / Online */
-.status-online { color: var(--accent) !important; }
-.status-online .dot { background: var(--accent) !important; box-shadow: 0 0 6px var(--accent) !important; }
-/* Indicador de Status / Online */
-.status-online { color: var(--accent) !important; }
-.status-online .dot { background: var(--accent) !important; box-shadow: 0 0 6px var(--accent) !important; }
+.status-online { color: var(--accent) !important; display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; }
+.status-online .dot { width: 8px; height: 8px; background: var(--accent) !important; border-radius: 50%; box-shadow: 0 0 8px var(--accent) !important; }
+
+/* Cartão de Autenticação / Login do Personal */
+.auth-card {
+    width: 100%;
+    max-width: 400px;
+    padding: 30px 20px;
+    background: var(--card-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    text-align: center;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+}
+
+.auth-switch {
+    display: flex;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--glass-border);
+    border-radius: 999px;
+    padding: 5px;
+    margin: 20px 0;
+}
+
+.auth-switch a {
+    flex: 1;
+    padding: 10px;
+    font-size: 13px;
+    color: var(--text-muted);
+    text-decoration: none;
+    border-radius: 999px;
+    transition: all 0.25s ease;
+    text-align: center;
+    font-weight: 600;
+}
+
+.auth-switch a.on {
+    background: var(--accent);
+    color: #FFFFFF;
+    box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4);
+}
+
+.auth-check, .auth-terms {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    font-size: 12px !important;
+    color: var(--text-muted) !important;
+    margin-bottom: 16px !important;
+    text-align: left !important;
+    cursor: pointer;
+}
+
+.auth-check input[type="checkbox"], 
+.auth-terms input[type="checkbox"] {
+    width: 16px !important;
+    height: 16px !important;
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+
+.btn-google-login {
+    background: #FFFFFF !important;
+    color: #111111 !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    border: none;
+    font-weight: 700;
+    border-radius: 999px !important;
+    box-shadow: 0 4px 20px rgba(255, 255, 255, 0.2);
+    transition: transform 0.15s ease, background-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.btn-google-login:hover {
+    background: #F1F3F4 !important;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 24px rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Modais e Toast */
+.app-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10000;
+    background: rgba(11, 11, 13, 0.95);
+    backdrop-filter: blur(15px);
+    display: none;
+    flex-direction: column;
+    padding: 20px;
+    box-sizing: border-box;
+    overflow-y: auto;
+}
+.app-overlay.active { display: flex; animation: slideIn 0.3s forwards; }
+
+#toast {
+    position: fixed;
+    top: -60px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--accent);
+    color: #FFFFFF;
+    padding: 12px 24px;
+    border-radius: 30px;
+    font-weight: bold;
+    font-size: 13px;
+    transition: top 0.4s ease;
+    z-index: 999999;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+}
+#toast.show { top: 20px; }
+
+/* Menu Fixo Inferior */
+.glass-nav { 
+    position: fixed; 
+    bottom: 0; 
+    left: 0; 
+    width: 100%; 
+    height: 80px; 
+    display: flex; 
+    justify-content: space-around; 
+    align-items: center; 
+    background: var(--glass-nav); 
+    backdrop-filter: blur(25px); 
+    border-top: 1px solid var(--glass-border); 
+    z-index: 500; 
+    border-radius: 22px 22px 0 0; 
+}
+.nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 60px; cursor: pointer; color: var(--text-muted); }
+.nav-item.active { color: var(--accent); transform: translateY(-3px); }
+
+/* Logo nas telas de login */
+.brand-logo { display: block; width: 190px; max-width: 70%; height: auto; margin: 0 auto 10px; }
+body.light-theme .brand-logo { filter: invert(1); }
