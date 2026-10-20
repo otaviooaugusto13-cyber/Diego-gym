@@ -62,10 +62,8 @@ function cpfValido(cpf) {
 }
 
 function setLoading(on) {
-    const loader = $("login-loader");
-    const btnLogin = $("btn-login");
-    if (loader) loader.style.display = on ? "block" : "none";
-    if (btnLogin) btnLogin.style.display = on ? "none" : "block";
+    if ($("login-loader")) $("login-loader").style.display = on ? "block" : "none";
+    if ($("btn-login")) $("btn-login").style.display = on ? "none" : "block";
 }
 
 function mensagemErroAuth(error) {
@@ -134,11 +132,11 @@ function validarCheckTermos() {
         btn.style.cursor = ok ? "pointer" : "not-allowed";
     }
 }
-function abrirModalTermos() { $("modal-termos").classList.add("active"); }
+function abrirModalTermos() { if ($("modal-termos")) $("modal-termos").classList.add("active"); }
 function aceitarTermosModal() {
     if ($("check-termos")) $("check-termos").checked = true;
     validarCheckTermos();
-    $("modal-termos").classList.remove("active");
+    if ($("modal-termos")) $("modal-termos").classList.remove("active");
 }
 
 // ==========================================
@@ -173,7 +171,7 @@ async function validarProfissional() {
 }
 
 // ==========================================
-// LOGIN GOOGLE (CORRIGIDO)
+// LOGIN GOOGLE
 // ==========================================
 async function acharProfissionalPorEmail(email) {
     const q = query(collection(db, "profissionais"), where("email", "==", email));
@@ -242,7 +240,7 @@ window.addEventListener("DOMContentLoaded", () => {
     if (refRecebido() && $("login-sub")) $("login-sub").textContent = "🎁 Você foi convidado. Cadastre-se e faça seu primeiro turno!";
     try {
         const salvo = JSON.parse(localStorage.getItem("abastece_ja_promotor") || "null");
-        if (salvo) { $("input-nome").value = salvo.nome \vert{}\vert{} ""; $("check-remember").checked = true; }
+        if (salvo && $("input-nome")) { $("input-nome").value = salvo.nome || ""; if ($("check-remember")) $("check-remember").checked = true; }
     } catch (e) {}
 });
 
@@ -262,8 +260,8 @@ function finalizarLogin({ lembreme, nome, cpf, cref, status }) {
     const analise = $("card-status-analise");
     if (analise) analise.style.display = aprovado ? "none" : "block";
 
-    $("screen-login-personal").classList.remove("active");
-    $("screen-dashboard").classList.add("active");
+    if ($("screen-login-personal")) $("screen-login-personal").classList.remove("active");
+    if ($("screen-dashboard")) $("screen-dashboard").classList.add("active");
     carregarAgendaDoBanco();
     renderizarCalendario();
     renderizarOfertas();
@@ -285,8 +283,8 @@ async function garantirLinkIndicacao() {
 async function sairModoPessoal() {
     if (!confirm("Deseja realmente sair do portal?")) return;
     try { await signOut(auth); } catch (e) {}
-    $("screen-dashboard").classList.remove("active");
-    $("screen-login-personal").classList.add("active");
+    if ($("screen-dashboard")) $("screen-dashboard").classList.remove("active");
+    if ($("screen-login-personal")) $("screen-login-personal").classList.add("active");
 }
 
 function atualizarExibicaoPerfil() {
@@ -538,8 +536,22 @@ function initMapAlunos() {
 }
 
 // ==========================================
-// CHAT COM BLOQUEIO ANTI-FUGA
+// CADASTRO DE LOJA E CHAT (ANTI-FUGA)
 // ==========================================
+function abrirModalCadastrarAluno() { if ($("modal-cadastrar-aluno")) $("modal-cadastrar-aluno").classList.add("active"); }
+function fecharModalCadastrarAluno() {
+    if ($("modal-cadastrar-aluno")) $("modal-cadastrar-aluno").classList.remove("active");
+    ["cpf", "nome", "objetivo", "preco", "dias", "horario", "frequencia"].forEach((k) => { const e = $("cad-aluno-" + k); if (e) e.value = ""; });
+}
+function confirmarCadastroAluno() {
+    const nome = $("cad-aluno-nome").value.trim();
+    if (!nome) { toast("Informe o nome da loja."); return; }
+    agendaDeHoje.push({ hora: $("cad-aluno-horario").value.trim() || "12:00", loja: nome, setor: $("cad-aluno-objetivo").value.trim() \vert{}\vert{} "Geral", status: "ocupado", valor: parseFloat($("cad-aluno-preco").value) || 100 });
+    renderizarAgenda();
+    fecharModalCadastrarAluno();
+    toast("✅ Loja vinculada à sua escala!");
+}
+
 function fecharConversaModal() { if ($("modal-chat-flutuante")) $("modal-chat-flutuante").classList.remove("active"); }
 
 const palavrasProibidas = ['whatsapp', 'wpp', 'zap', 'whats', 'pix', 'instagram', 'insta', 'telefone', 'celular', 'contato', 'chama no pv', 'privado', 'telegram'];
@@ -559,7 +571,7 @@ function enviarMensagemChat() {
     if (!texto) return;
 
     if (verificarConteudoMensagem(texto)) {
-        toast("⚠️ Advertência: Envio de contatos/Pix externos viola os Termos. Na próxima ocorrência, sua conta será banida.");
+        toast("⚠️ Advertência: O envio de contatos ou Pix externos viola os Termos de Uso. Na próxima ocorrência, sua conta será banida.");
         input.value = '';
         return;
     }
@@ -574,10 +586,11 @@ function enviarMensagemChat() {
     }
     input.value = "";
 }
-function enviarPropostaPersonal() { toast("Orçamento enviado."); }
+function enviarPropostaPersonal() { toast("Orçamento enviado à loja."); }
+function toggleDiaTrabalho(btn) {}
 
 // ==========================================
-// OUTROS E MAPPED WINDOWS
+// PARIDADE E MAPEAMENTO DE JANELA
 // ==========================================
 function toggleTheme() {
     const claro = $("theme-toggle").checked;
@@ -593,9 +606,9 @@ try {
 
 async function salvarContato() {
     const tel = $("promotor-input-telefone").value.trim();
-    if (!tel) { toast("Informe seu telefone."); return; }
+    if (!tel) { toast("Informe seu telefone ou WhatsApp."); return; }
     try { await salvarMerge({ telefone: tel }); toast("✅ Contato salvo!"); }
-    catch (e) { toast("Erro ao salvar contato."); }
+    catch (e) { toast("Não foi possível salvar o contato."); }
 }
 
 function atualizarProximaReposicao() {
@@ -606,13 +619,14 @@ function atualizarProximaReposicao() {
 
 window.addEventListener("DOMContentLoaded", () => {
     const c = $("lista-conversas-promotor");
-    if (c) c.innerHTML = estadoVazio("💬", "Nenhuma conversa ainda", "As conversas com as lojas aparecerão aqui.");
+    if (c) c.innerHTML = estadoVazio("💬", "Nenhuma conversa ainda", "Quando você aceitar um turno, o chat com a loja aparece aqui.");
 });
 
 Object.assign(window, {
     validarProfissional, loginComGoogle, validarCheckTermos, abrirModalTermos, aceitarTermosModal,
     abrirOpcaoMenu, fecharSubtela, salvarPerfilProfissionalCompleto, salvarDadosBancarios,
     atualizarFotoPerfil, sairModoPessoal, switchTabPersonal, mudarMesCalendario, selecionarDia,
+    abrirModalCadastrarAluno, fecharModalCadastrarAluno, confirmarCadastroAluno,
     fecharConversaModal, enviarMensagemChat, enviarPropostaPersonal, initMapAlunos,
     toggleTheme, salvarContato, toast, mostrarQR, fecharQR, aceitarOferta, salvarPrefs, calcularDistanciaKm
 });
