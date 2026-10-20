@@ -44,7 +44,7 @@ body {
     border: none !important;
     font-weight: bold;
     border-radius: 999px !important;
-    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.35);
 }
 
 .btn-primary:disabled {
