@@ -127,3 +127,80 @@
 .resumo-valor { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 11px; color: var(--text-muted); margin-top: 8px; }
 .auth-terms a, .auth-links a { color: var(--accent); }
 .auth-links { text-align: center; margin-top: 14px; font-size: 12px; }
+
+/* ==========================================
+   CORREÇÃO DOS ATALHOS E LISTAS DE MENU
+   ========================================== */
+.menu-shortcut-card {
+    min-width: 100px;
+    padding: 14px 12px;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    text-align: center;
+    background: var(--card-bg);
+    border: 1px solid var(--glass-border);
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.menu-shortcut-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+}
+
+.menu-shortcut-card .shortcut-icon {
+    font-size: 22px;
+    line-height: 1;
+}
+
+.menu-shortcut-card span {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-color);
+    white-space: nowrap;
+}
+
+.glass-list {
+    background: var(--card-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 18px;
+    overflow: hidden;
+}
+
+.menu-option-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px 18px;
+    border-bottom: 1px solid var(--glass-border);
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.menu-option-item:last-child {
+    border-bottom: none;
+}
+
+.menu-option-item:hover {
+    background: rgba(59, 130, 246, 0.08);
+}
+
+.menu-option-item .option-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #FFFFFF;
+}
+
+.menu-option-item .option-arrow {
+    color: var(--text-muted);
+    font-size: 16px;
+    font-weight: bold;
+}
