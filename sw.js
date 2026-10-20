@@ -1,7 +1,8 @@
+
 self.addEventListener('install', (e) => {
   e.waitUntil(
-    caches.open('tapago-v2').then((cache) => {
-      return cache.addAll(['./index.html', './personal.html', './style.css', './style-personal.css', './script.js', './script-personal.js']);
+    caches.open('personow-v3').then((cache) => {
+      return cache.addAll(['./index.html', './personal.html', './landing.html', './style.css', './style-personal.css', './style-landing.css', './polish.css', './script.js', './script-personal.js', './logo-branco.png', './icon-192.png']);
     })
   );
 });
