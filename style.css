@@ -10,14 +10,6 @@
     
     --text-color: #FFFFFF;
     --text-muted: #9AA0A6;
-    
-    --status-red-bg: rgba(255, 51, 51, 0.1);
-    --status-red-border: rgba(255, 51, 51, 0.4);
-    --status-red-text: #FF3333;
-    
-    --status-green-bg: rgba(59, 130, 246, 0.15);
-    --status-green-border: rgba(59, 130, 246, 0.5);
-    --status-green-text: #3B82F6;
 }
 
 body.light-theme {
@@ -44,7 +36,6 @@ body { background-color: var(--bg-color); color: var(--text-color); overflow-x: 
     transition: all 0.3s; 
 }
 
-/* Textos e Tipografia */
 h1 { font-size: 2.1rem; margin-bottom: 8px; font-weight: 800; color: #FFFFFF; }
 h2 { font-size: 1.4rem; margin-bottom: 8px; font-weight: 600; color: #FFFFFF; }
 .highlight { color: var(--accent); font-weight: bold; }
@@ -52,7 +43,7 @@ h2 { font-size: 1.4rem; margin-bottom: 8px; font-weight: 600; color: #FFFFFF; }
 .section-title { font-size: 12px; color: var(--accent); margin-top: 20px; margin-bottom: 12px; text-transform: uppercase; font-weight: bold; letter-spacing: 1px; }
 .muted-line { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
 
-/* Telas e Estrutura do App */
+/* Telas e Estrutura */
 .screen { display: none; min-height: 100vh; padding: 20px; flex-direction: column; align-items: center; justify-content: center; }
 .screen.active { display: flex; animation: fadeIn 0.4s ease-out; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -61,7 +52,7 @@ h2 { font-size: 1.4rem; margin-bottom: 8px; font-weight: 600; color: #FFFFFF; }
 .tab-content { display: none; width: 100%; max-width: 500px; margin: 0 auto; padding: 20px 16px; flex-direction: column; }
 .tab-content.active { display: flex; animation: fadeIn 0.3s ease-out; }
 
-/* Inputs e Botões Globais */
+/* Inputs e Botões */
 input, select, textarea { 
     width: 100%; 
     padding: 14px 16px; 
@@ -89,7 +80,6 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent) !importa
     position: relative; 
     overflow: hidden; 
     width: 100%; 
-    transition: transform 0.1s, background-color 0.2s; 
     text-align: center; 
 }
 .btn:active { transform: scale(0.97); }
@@ -102,29 +92,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent) !importa
     border-radius: 999px !important; 
 }
 
-/* Formulário de Solicitacao de Personal */
-.request-card {
-    padding: 20px;
-    border-radius: 20px;
-    margin-bottom: 20px;
-}
-
-.request-card label {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-muted);
-    display: block;
-    margin-top: 10px;
-}
-
-/* Chips de Foco de Treino */
-.chips-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin: 10px 0 16px 0;
-}
-
+/* Chips de Foco */
 .setor-chip {
     background: rgba(255, 255, 255, 0.05) !important;
     border: 1px solid var(--glass-border) !important;
@@ -141,28 +109,9 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent) !importa
     background: rgba(59, 130, 246, 0.25) !important;
     border-color: var(--accent) !important;
     color: #FFFFFF !important;
-    box-shadow: 0 0 12px rgba(59, 130, 246, 0.3);
 }
 
-/* Espaçamento e Alinhamento do Resumo de Valores (85% / 15%) */
-.resumo-valor {
-    display: flex !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-    padding: 12px 16px !important;
-    margin: 16px 0 !important;
-    background: rgba(0, 0, 0, 0.4) !important;
-    border-radius: 14px !important;
-    border: 1px solid var(--glass-border) !important;
-    font-size: 12px !important;
-    color: var(--text-muted) !important;
-}
-
-.resumo-valor strong {
-    color: #FFFFFF;
-}
-
-/* Cards dos Personais Disponíveis (LISTA CORRIGIDA) */
+/* Cards de Profissionais */
 .trainer-card, .trainer-slot {
     background: var(--card-bg);
     border: 1px solid var(--glass-border);
@@ -172,43 +121,9 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent) !importa
     display: flex;
     flex-direction: column;
     gap: 8px;
-    position: relative;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
-.trainer-card h3, .trainer-slot h3 {
-    font-size: 16px;
-    font-weight: 700;
-    color: #FFFFFF;
-    margin: 0;
-}
-
-.trainer-card p, .trainer-slot p {
-    font-size: 12px;
-    color: var(--text-muted);
-    margin: 0;
-}
-
-.trainer-card .trainer-status {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--accent);
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-}
-
-.trainer-card .trainer-status::before {
-    content: '';
-    width: 7px;
-    height: 7px;
-    background-color: var(--accent);
-    border-radius: 50%;
-    box-shadow: 0 0 8px var(--accent);
-}
-
-.trainer-card button, 
-.trainer-slot button {
+.trainer-card button, .trainer-slot button {
     align-self: flex-start;
     margin-top: 8px;
     width: auto !important;
@@ -221,15 +136,9 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent) !importa
     font-size: 13px !important;
     font-weight: 700 !important;
     cursor: pointer !important;
-    box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35) !important;
-    transition: transform 0.1s ease, box-shadow 0.2s ease !important;
 }
 
-.trainer-card button:active, .trainer-slot button:active {
-    transform: scale(0.95) !important;
-}
-
-/* Cartão de Autenticação / Login */
+/* Cartão de Autenticação */
 .auth-card {
     width: 100%;
     max-width: 400px;
@@ -238,11 +147,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent) !importa
     border: 1px solid var(--glass-border);
     border-radius: 20px;
     text-align: center;
-    backdrop-filter: blur(20px);
 }
-
-.auth-brand h1 { font-size: 32px; font-weight: 900; letter-spacing: 1px; color: #FFFFFF; }
-.auth-brand p { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
 
 .auth-switch {
     display: flex;
@@ -259,7 +164,6 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent) !importa
     color: var(--text-muted);
     text-decoration: none;
     border-radius: 8px;
-    transition: 0.3s;
     text-align: center;
 }
 
@@ -269,14 +173,9 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent) !importa
     font-weight: bold;
 }
 
-.auth-title { font-size: 20px; margin-bottom: 6px; color: #FFFFFF; }
-.auth-sub { font-size: 12px; color: var(--text-muted); margin-bottom: 20px; }
-
-/* Checkboxes Alinhadas */
 .auth-check, .auth-terms {
     display: flex !important;
     align-items: center !important;
-    justify-content: flex-start !important;
     gap: 10px !important;
     font-size: 12px !important;
     color: var(--text-muted) !important;
@@ -289,19 +188,9 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent) !importa
 .auth-terms input[type="checkbox"] {
     width: 16px !important;
     height: 16px !important;
-    margin: 0 !important;
-    padding: 0 !important;
     accent-color: var(--accent);
     cursor: pointer;
-    flex-shrink: 0;
 }
-
-.auth-terms span, .auth-check span {
-    display: inline-block;
-    line-height: 1.3;
-}
-
-.auth-terms a { color: var(--accent); text-decoration: underline; }
 
 .btn-google-login {
     background: #FFFFFF !important;
@@ -315,105 +204,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent) !importa
     border-radius: 999px !important;
 }
 
-/* Atalhos Rápidos Corrigidos */
-.menu-shortcut-card {
-    flex: 1;
-    background: var(--card-bg);
-    border: 1px solid var(--glass-border);
-    border-radius: 16px;
-    padding: 12px 10px !important;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--text-color);
-    cursor: pointer;
-    height: auto !important;
-    min-width: 90px;
-}
-.shortcut-icon { font-size: 20px; line-height: 1; }
-
-/* Lista de Opções do Perfil / Menu */
-.glass-list {
-    background: var(--card-bg);
-    border: 1px solid var(--glass-border);
-    border-radius: 16px;
-    overflow: hidden;
-}
-
-.menu-option-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16px 18px;
-    border-bottom: 1px solid var(--glass-border);
-    cursor: pointer;
-    transition: background 0.2s;
-    color: #FFFFFF;
-    font-size: 14px;
-}
-
-.menu-option-item:last-child { border-bottom: none; }
-.menu-option-item:hover { background: rgba(59, 130, 246, 0.08); }
-.option-left { display: flex; align-items: center; gap: 12px; }
-.option-arrow { color: var(--text-muted); font-size: 18px; font-weight: bold; }
-
-/* Botão Flutuante do WhatsApp */
-.btn-whatsapp {
-    position: fixed;
-    bottom: 95px;
-    right: 20px;
-    width: 55px;
-    height: 55px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #25D366;
-    border: 1px solid #25D366;
-    background: rgba(31, 35, 41, 0.85);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    z-index: 9999;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    text-decoration: none;
-    box-shadow: 0 4px 15px rgba(37, 211, 102, 0.2);
-}
-
-/* Modais e Overlays */
-.app-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 10000;
-    background: rgba(11, 11, 13, 0.95);
-    backdrop-filter: blur(15px);
-    display: none;
-    flex-direction: column;
-    padding: 20px;
-    box-sizing: border-box;
-    overflow-y: auto;
-}
-
-.app-overlay.active { display: flex; animation: slideIn 0.3s forwards; }
-@keyframes slideIn { from { transform: translateY(100%); } to { transform: translateY(0); } }
-
-.modal-box {
-    width: 100%;
-    max-width: 420px;
-    margin: auto;
-    padding: 25px;
-    border-radius: 20px;
-    background: var(--card-bg);
-}
-
-/* Notificações Toast */
+/* Toast & Navegação */
 #toast {
     position: fixed;
     top: -60px;
@@ -427,11 +218,9 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent) !importa
     font-size: 13px;
     transition: top 0.4s ease;
     z-index: 999999;
-    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
 }
 #toast.show { top: 20px; }
 
-/* Menu Fixo Inferior */
 .glass-nav { 
     position: fixed; 
     bottom: 0; 
@@ -443,12 +232,9 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent) !importa
     align-items: center; 
     background: var(--glass-nav); 
     backdrop-filter: blur(25px); 
-    -webkit-backdrop-filter: blur(25px); 
     border-top: 1px solid var(--glass-border); 
     z-index: 500; 
     border-radius: 22px 22px 0 0; 
 }
-.nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 60px; cursor: pointer; color: var(--text-muted); transition: all 0.3s ease; }
-.nav-icon { width: 24px; height: 24px; margin-bottom: 4px; transition: 0.3s; }
-.nav-item span { font-size: 11px; font-weight: 500; }
+.nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 60px; cursor: pointer; color: var(--text-muted); }
 .nav-item.active { color: var(--accent); transform: translateY(-3px); }
