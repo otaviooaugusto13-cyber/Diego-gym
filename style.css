@@ -53,12 +53,12 @@ h2 { font-size: 1.5rem; margin-bottom: 10px; font-weight: 600; color: #FFFFFF; }
 .tab-content { display: none; width: 100%; max-width: 500px; margin: 0 auto; padding: 25px 20px; flex-direction: column; }
 .tab-content.active { display: flex; animation: fadeIn 0.3s ease-out; }
 
-/* Inputs e Botões */
+/* Inputs e Botões Padronizados e Modernizados */
 input, select, textarea { width: 100%; padding: 14px 16px; margin-bottom: 15px; border-radius: 14px; border: 1px solid var(--glass-border); background: var(--bg-color); color: var(--text-color); outline: none; font-size: 15px; transition: border 0.3s; }
 input:focus, textarea:focus, select:focus { border-color: var(--accent) !important; outline: none; }
 .btn { background: var(--card-bg); border: 1px solid var(--glass-border); color: var(--text-color); padding: 16px 30px; border-radius: 999px; font-size: 15px; font-weight: bold; cursor: pointer; position: relative; overflow: hidden; width: 100%; transition: transform 0.1s, background-color 0.2s; text-align: center; }
 .btn:active { transform: scale(0.97); }
-.btn-primary { background: linear-gradient(135deg, #3B82F6, #2563EB); border: none; color: #FFFFFF; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3); }
+.btn-primary { background: linear-gradient(135deg, #3B82F6, #2563EB) !important; border: none !important; color: #FFFFFF !important; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.35) !important; border-radius: 999px !important; }
 
 /* Cartão de Autenticação / Login */
 .auth-card {
@@ -128,9 +128,10 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent) !importa
     gap: 10px;
     border: none;
     font-weight: bold;
+    border-radius: 999px !important;
 }
 
-/* Lista de Opções do Perfil / Menu (Corrigido para não ficar transparente) */
+/* Lista de Opções do Perfil / Menu */
 .glass-list {
     background: var(--card-bg);
     border: 1px solid var(--glass-border);
