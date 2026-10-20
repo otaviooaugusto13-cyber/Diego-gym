@@ -69,3 +69,6 @@ body {
 /* Indicador de Status / Online */
 .status-online { color: var(--accent) !important; }
 .status-online .dot { background: var(--accent) !important; box-shadow: 0 0 6px var(--accent) !important; }
+/* Indicador de Status / Online */
+.status-online { color: var(--accent) !important; }
+.status-online .dot { background: var(--accent) !important; box-shadow: 0 0 6px var(--accent) !important; }
