@@ -93,7 +93,7 @@
     font-size: 13px;
     transition: top 0.4s ease;
     z-index: 999999;
-    box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
 }
 
 #toast.show {
@@ -121,3 +121,9 @@
 .empty-state p {
     font-size: 12px;
 }
+
+/* Ajustes visuais */
+.nav-icon { width: 22px; height: 22px; display: block; margin: 0 auto 2px; }
+.resumo-valor { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 11px; color: var(--text-muted); margin-top: 8px; }
+.auth-terms a, .auth-links a { color: var(--accent); }
+.auth-links { text-align: center; margin-top: 14px; font-size: 12px; }
